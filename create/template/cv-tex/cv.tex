@@ -1,0 +1,38 @@
+% Your CV. This file decides the ORDER of things; cv.yml decides what goes in.
+%
+% Styling: redefine the macros in preamble.tex. For deeper changes run
+%   pnpm vitakit eject vitakit-cv.cls
+% which copies the document class into cv-tex/, where it is yours to edit and
+% takes precedence. Do not edit the copy in cv-tex/generated/ -- every build
+% overwrites it.
+%
+% A variant (say, for one application) is just a copy of this file:
+%   cp cv-tex/cv.tex cv-tex/application-xyz.tex   and change \vitadocument below.
+\documentclass{vitakit-cv}
+\vitadocument{cv}
+
+% The class already loads biblatex; just point it at your .bib file.
+\addbibresource{../content/publications.bib}
+
+\input{preamble.tex}
+\input{generated/cv/profile.tex}
+
+\begin{document}
+\vitaheader
+
+% Prose (cover letters, statements) lives in cv-tex/prose/ as plain LaTeX and
+% is included with \input, not \vitasection -- \vitasection is only for
+% sections vitakit generates from content/.
+% \input{prose/research-statement.tex}
+
+\vitasection{employment}
+\vitasection{education}
+\vitasection{teaching}
+
+\section{Publications}
+\vitainput{publications}
+
+\vitasection{supervision}
+\vitasection{talks}
+
+\end{document}

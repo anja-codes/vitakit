@@ -1,0 +1,9 @@
+<% for (const item of it.entries) { %>
+\vitaentry{<%~ it.date(item.date) %>}{<%~ it.rich(item.position) %>}{<%~ it.inst(item.institution) %>}
+<% if (item.project) { %>
+  \vitanote{Project <% if (item.project.url) { %>\href{<%~ it.url(item.project.url) %>}{\emph{<%~ it.rich(item.project.title) %>}}<% } else { %>\emph{<%~ it.rich(item.project.title) %>}<% } %><% if (item.project.funder) { %> (<%~ it.tex(item.project.funder) %><% if (item.project.grant) { %>~<%~ it.tex(item.project.grant) %><% } %>)<% } %>}
+<% } %>
+<% if (item.note) { %>
+  \vitanote{<%~ it.rich(item.note) %>}
+<% } %>
+<% } %>

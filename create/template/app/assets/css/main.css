@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/* Design tokens: the first stop for restyling. Tailwind v4 reads these, so
+   `text-primary` and `font-serif` follow from here. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Lora", ui-serif, Georgia, serif;
+  --color-primary: oklch(48% 0.13 250);
+}
+
+body {
+  @apply font-sans text-neutral-900 antialiased;
+}
+
+a {
+  @apply text-primary underline underline-offset-2 hover:no-underline;
+}
+
+/* --- vitakit components ------------------------------------------------ */
+
+.vita-entry {
+  @apply grid gap-1 py-2 sm:grid-cols-[8rem_1fr] sm:gap-4;
+}
+.vita-entry__date {
+  @apply text-sm text-neutral-500 tabular-nums;
+}
+.vita-entry__title {
+  @apply font-medium;
+}
+.vita-entry__meta,
+.vita-entry__note {
+  @apply text-sm text-neutral-600;
+}
+.vita-section {
+  @apply divide-y divide-neutral-100;
+}
+.vita-links {
+  @apply flex flex-wrap gap-x-4 gap-y-1;
+}
+.vita-publications__group + .vita-publications__group {
+  @apply mt-8;
+}
+.vita-publications__heading {
+  @apply text-xl font-semibold;
+}
+.vita-bib {
+  @apply mt-3 list-decimal space-y-3 pl-6;
+}
+.vita-badge {
+  @apply ml-1 rounded bg-neutral-100 px-1.5 py-0.5 text-xs no-underline hover:bg-neutral-200;
+}
+.vita-issues {
+  @apply border-b border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900;
+}
+.vita-issues__title {
+  @apply font-semibold;
+}
+.vita-issues pre {
+  @apply whitespace-pre-wrap font-sans;
+}
+
+/* --- Markdown output --------------------------------------------------- */
+
+.vita-prose {
+  @apply leading-relaxed;
+}
+.vita-prose :where(p, ul, ol, blockquote, pre, table) {
+  @apply my-4;
+}
+.vita-prose :where(h2) {
+  @apply mt-8 mb-2 text-xl font-semibold;
+}
+.vita-prose :where(h3) {
+  @apply mt-6 mb-2 text-lg font-semibold;
+}
+.vita-prose :where(ul) {
+  @apply list-disc pl-6;
+}
+.vita-prose :where(ol) {
+  @apply list-decimal pl-6;
+}
+.vita-prose :where(code) {
+  @apply rounded bg-neutral-100 px-1 py-0.5 text-sm;
+}
+.vita-prose :where(pre) {
+  @apply overflow-x-auto rounded bg-neutral-100 p-4 text-sm;
+}
+.vita-prose :where(blockquote) {
+  @apply border-l-4 border-neutral-200 pl-4 text-neutral-600;
+}
+.vita-prose :where(figure) {
+  @apply my-4;
+}
+.vita-prose :where(figcaption) {
+  @apply mt-1 text-xs text-neutral-500;
+}
+/* A figure beside the text on wide screens, above it on narrow ones. */
+.vita-prose :where(figure.figure-right) {
+  @apply sm:float-right sm:ml-6 sm:mt-0 sm:w-56;
+}
+.vita-prose :where(figure.figure-right) img {
+  @apply w-full rounded border border-neutral-200 bg-white p-2;
+}
+.vita-prose :where(table) {
+  @apply w-full border-collapse text-left text-sm;
+}
+.vita-prose :where(th, td) {
+  @apply border-b border-neutral-200 py-2 pr-4 align-top;
+}
+.vita-prose :where(th) {
+  @apply font-semibold;
+}
+
+/* Wide display formulas must not blow up the layout on narrow screens. */
+.katex-display {
+  @apply overflow-x-auto overflow-y-hidden py-1;
+}

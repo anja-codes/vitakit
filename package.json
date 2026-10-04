@@ -1,0 +1,121 @@
+{
+  "name": "@anja.codes/vitakit",
+  "version": "0.1.0",
+  "description": "Structured CV data in, academic website and LaTeX CV out.",
+  "license": "MIT",
+  "keywords": [
+    "cv",
+    "academic",
+    "nuxt",
+    "nuxt-module",
+    "latex",
+    "bibtex",
+    "katex",
+    "static-site"
+  ],
+  "homepage": "https://github.com/anja-codes/vitakit#readme",
+  "bugs": {
+    "url": "https://github.com/anja-codes/vitakit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anja-codes/vitakit.git"
+  },
+  "type": "module",
+  "packageManager": "pnpm@10.29.1",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./nuxt": {
+      "types": "./dist/nuxt.d.mts",
+      "import": "./dist/nuxt.mjs"
+    },
+    "./runtime/*": "./dist/runtime/*",
+    "./styles/*": "./dist/styles/*",
+    "./tex/*": "./dist/tex/*",
+    "./shared": {
+      "types": "./dist/shared/index.d.mts",
+      "import": "./dist/shared/index.mjs"
+    },
+    "./tex": {
+      "types": "./dist/tex.d.mts",
+      "import": "./dist/tex.mjs"
+    },
+    "./check": {
+      "types": "./dist/check.d.mts",
+      "import": "./dist/check.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "import": "./dist/cli.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "styles",
+    "src/bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "prepare": "unbuild",
+    "dev": "unbuild --stub",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm test && pnpm build && node scripts/check-dist.mjs && pnpm example:check",
+    "check:dist": "node scripts/check-dist.mjs",
+    "prepublishOnly": "pnpm check",
+    "example": "node scripts/generate-example.mjs",
+    "example:check": "node scripts/generate-example.mjs --check",
+    "check:deps": "node scripts/check-deps.mjs"
+  },
+  "dependencies": {
+    "@behackl/citation-js-extras": "^0.4.0",
+    "@types/hast": "^3.0.5",
+    "citation-js": "^0.7.22",
+    "eta": "^4.6.0",
+    "gray-matter": "^4.0.3",
+    "rehype-katex": "^7.0.1",
+    "rehype-parse": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0",
+    "yaml": "^2.8.1",
+    "zod": "^4.5.4"
+  },
+  "peerDependencies": {
+    "@nuxt/kit": "^4.0.0",
+    "nuxt": "^4.0.0"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.5.2",
+    "@nuxt/schema": "^4.5.2",
+    "@types/node": "^26.4.1",
+    "nitropack": "^2.13.4",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^5.0.0",
+    "vue": "^3.5.42"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "vitakit": "./src/bin/vitakit.mjs",
+    "vitakit-check": "./src/bin/vitakit-check.mjs",
+    "vitakit-build-cv": "./src/bin/vitakit-build-cv.mjs"
+  }
+}

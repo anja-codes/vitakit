@@ -1,0 +1,3 @@
+<% for (const item of it.entries) { %>
+\vitaentry{<%~ it.date(item.date) %>}{<%~ it.rich(item.title) %>}{<%~ [item.event && it.tex(item.event), item.location && it.tex(item.location)].filter(Boolean).join(', ') %>}
+<% } %>

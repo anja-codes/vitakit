@@ -1,0 +1,34 @@
+# You, and the shape of your site. The only file that is not a CV section.
+name: __NAME__
+title: __TITLE__
+affiliation:
+  name: __AFFILIATION__
+email: __EMAIL__
+
+# Where the site is published. Only the PDF needs it, to link files on the
+# site such as /slides/talk.pdf; delete the # once you know the address.
+# url: https://yourname.github.io/
+
+# Portrait, from public/. Delete the line if you would rather not have one.
+avatar: /img/portrait.svg
+
+links:
+  - { label: ORCID, url: https://orcid.org/0000-0002-1825-0097 }
+  # - { label: GitHub, url: https://github.com/yourname }
+  # - { label: arXiv, url: https://arxiv.org/a/yourname }
+
+# One or two sentences for search engines and link previews. What visitors
+# read is content/pages/index.md, not this.
+summary: >-
+  __TITLE__ at __AFFILIATION__, working on your research area.
+
+# Navigation, in the order it should appear. Adding a page does not change
+# this list: the wording and the order are yours.
+nav:
+  - { label: About, to: / }
+  - { label: Research, to: /research/ }
+  - { label: Publications, to: /publications/ }
+  - { label: CV, to: /cv/ }
+
+# Inline Markdown, shown quietly at the bottom of every page.
+footer: Built with [vitakit](https://github.com/anja-codes/vitakit).

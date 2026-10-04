@@ -1,0 +1,12 @@
+- date: 2025
+  student: A. Student
+  ongoing: true          # still in progress
+  title: Simulating random trees with $n$ nodes
+  degree: Master's thesis
+  institution: University of Graz
+
+- date: 2024
+  student: B. Student
+  title: Ascent sequences in combinatorics
+  degree: Bachelor's thesis
+  institution: University of Graz

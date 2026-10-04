@@ -1,0 +1,18 @@
+- date: { from: 2016, to: 2020 }
+  degree: PhD in Mathematics
+  institution: { name: University of Klagenfurt, url: https://www.aau.at }
+  thesis:
+    title: Cutting down random trees
+    type: Doctoral thesis
+    supervisor: { label: A. Supervisor, url: https://example.org/supervisor }
+
+- date: { from: 2014, to: 2016 }
+  degree: MSc in Mathematics (with distinction)
+  institution: University of Klagenfurt
+  thesis:
+    title: Ascent sequences and their asymptotics
+    type: Master's thesis
+
+- date: { from: 2011, to: 2014 }
+  degree: BSc in Technical Mathematics
+  institution: University of Klagenfurt

@@ -1,0 +1,36 @@
+# Builds the PDF CV and attaches it to the workflow run.
+#
+# The PDF is an artifact, not part of the website: it may contain entries
+# marked `visibility: cv` (address, phone, referees). Download it from the run
+# summary. Runs on demand, and on pushes that touch CV material.
+name: CV
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['content/**', 'cv-tex/**']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Generate the .tex files here: the LaTeX action runs in its own container,
+      # without Node. cv-tex/latexmkrc lets it find the generated document class.
+      - run: pnpm build:cv --no-pdf
+      - uses: xu-cheng/latex-action@v4
+        with:
+          working_directory: cv-tex
+          root_file: cv.tex
+          latexmk_use_lualatex: false
+      - uses: actions/upload-artifact@v5
+        with:
+          name: cv
+          path: cv-tex/*.pdf

@@ -1,0 +1,18 @@
+- date: { from: 2023, to: present }
+  position: Postdoctoral Researcher
+  institution: { name: University of Graz, url: https://www.uni-graz.at }
+  project:
+    title: Asymptotics of random discrete structures
+    funder: FWF
+    grant: P 12345
+    url: https://www.fwf.ac.at
+
+- date: { from: 2020, to: 2023 }
+  position: University Assistant
+  institution: University of Klagenfurt
+
+- date: { from: 2019, to: 2019 }
+  position: Visiting Researcher
+  institution: Uppsala University
+  note: Three-month research stay with the combinatorics group.
+  visibility: cv

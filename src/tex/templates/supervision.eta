@@ -1,0 +1,4 @@
+<% for (const item of it.entries) { %>
+\vitaentry{<%~ it.date(item.date) %><% if (item.ongoing) { %>--<% } %>}{<%~ it.tex(item.student) %>}{<%~ [item.degree && it.tex(item.degree), it.inst(item.institution)].filter(Boolean).join(', ') %>}
+  \vitanote{\emph{<%~ it.rich(item.title) %>}<% if (item.coSupervisor) { %>, with <%~ it.tex(item.coSupervisor) %><% } %><% if (item.ongoing) { %> (in progress)<% } %>}
+<% } %>

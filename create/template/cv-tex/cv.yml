@@ -1,0 +1,7 @@
+# Selection for this document. Order lives in cv.tex.
+visibility: cv        # include entries marked public and cv, not private
+
+sections:
+  talks:
+    where: { kind: invited }
+    limit: 10

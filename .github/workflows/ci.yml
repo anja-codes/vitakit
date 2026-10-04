@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # typecheck, tests, build, and that examples/scaffolded still matches the
+      # @anja.codes/create-vitakit template.
+      - run: pnpm check
+
+  example:
+    name: Scaffolded example
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @anja.codes/vitakit build
+
+      # The website half: generate and assert on the generated HTML.
+      - name: Website
+        working-directory: examples/scaffolded
+        run: pnpm check
+
+      # The LaTeX half: the .tex must be generated and must compile.
+      - name: Generate CV sources
+        working-directory: examples/scaffolded
+        run: pnpm build:cv --no-pdf
+      - uses: xu-cheng/latex-action@v4
+        with:
+          working_directory: examples/scaffolded/cv-tex
+          root_file: cv.tex
+      - uses: actions/upload-artifact@v5
+        with:
+          name: example-cv
+          path: examples/scaffolded/cv-tex/cv.pdf

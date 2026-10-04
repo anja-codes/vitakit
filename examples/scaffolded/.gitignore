@@ -1,0 +1,19 @@
+# Nuxt
+.output
+.nuxt
+.data
+.nitro
+.cache
+dist
+node_modules
+
+# vitakit / latexmk output
+# Everything generated lives in cv-tex/generated/ (the .cls and all auxiliary
+# files included); only the finished PDF is written beside the sources.
+cv-tex/generated
+cv-tex/*.pdf
+
+# Misc
+*.log
+.DS_Store
+.env

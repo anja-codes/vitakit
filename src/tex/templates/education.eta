@@ -1,0 +1,9 @@
+<% for (const item of it.entries) { %>
+\vitaentry{<%~ it.date(item.date) %>}{<%~ it.rich(item.degree) %>}{<%~ it.inst(item.institution) %>}
+<% if (item.thesis) { %>
+  \vitanote{<%~ it.tex(item.thesis.type ?? 'Thesis') %>: \emph{<%~ it.rich(item.thesis.title) %>}<% if (item.thesis.supervisor) { %>, supervised by <%~ it.linkOrText(item.thesis.supervisor) %><% } %>}
+<% } %>
+<% if (item.note) { %>
+  \vitanote{<%~ it.rich(item.note) %>}
+<% } %>
+<% } %>

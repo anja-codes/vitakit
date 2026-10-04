@@ -1,0 +1,43 @@
+% Your publication list. Export it from Zotero, JabRef or arXiv and replace the
+% examples below.
+%
+% The non-standard `status` field decides the grouping on /publications/ and in
+% the PDF: published, accepted, preprint, software or other; without it, an
+% entry is published. To change the groups:
+%     pnpm vitakit eject publications        # -> schemas/publications.ts
+%
+% `doi`, `arxiv`, `mrnumber` and `zbl` become links; `eprint` with
+% `eprinttype = {arxiv}` (or `archivePrefix`) works as `arxiv` does, so exports
+% from Zotero, JabRef or arXiv need no editing. Mathematics in titles works:
+% write $...$ as usual.
+%
+% The website formats this list with a CSL style. To change it:
+%     pnpm vitakit eject publications.csl    # -> content/publications.csl
+% or save any CSL style under that name.
+
+@article{example-published,
+  author  = {Doe, Jane and Roe, Richard},
+  title   = {The shape of large random $k$-ary trees},
+  journal = {Random Structures \& Algorithms},
+  volume  = {64},
+  pages   = {201--240},
+  year    = {2024},
+  doi     = {10.5555/12345678},
+  status  = {published},
+}
+
+@misc{example-preprint,
+  author = {Doe, Jane},
+  title  = {Sharp bounds for ascent sequences of height $h$},
+  year   = {2025},
+  arxiv  = {2501.01234},
+  status = {preprint},
+}
+
+@software{example-software,
+  author = {Doe, Jane},
+  title  = {treetools: utilities for random tree simulation},
+  url    = {https://github.com/yourname/treetools},
+  year   = {2025},
+  status = {software},
+}

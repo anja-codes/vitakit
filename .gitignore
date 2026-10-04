@@ -1,0 +1,13 @@
+dist
+node_modules
+*.log
+*.tgz
+.env
+.DS_Store
+
+# build output inside the example project; like any vitakit project, everything
+# LaTeX writes lives in cv-tex/generated/, and only the PDF beside the sources
+examples/scaffolded/.nuxt
+examples/scaffolded/.output
+examples/scaffolded/cv-tex/generated
+examples/scaffolded/cv-tex/*.pdf

@@ -1,0 +1,40 @@
+{
+  "name": "@anja.codes/create-vitakit",
+  "version": "0.1.0",
+  "description": "Scaffold a vitakit project: an academic website and a LaTeX CV from one set of files.",
+  "license": "MIT",
+  "keywords": [
+    "vitakit",
+    "create",
+    "scaffold",
+    "cv",
+    "academic",
+    "nuxt",
+    "latex"
+  ],
+  "homepage": "https://github.com/anja-codes/vitakit/tree/main/create#readme",
+  "bugs": {
+    "url": "https://github.com/anja-codes/vitakit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anja-codes/vitakit.git",
+    "directory": "create"
+  },
+  "type": "module",
+  "bin": {
+    "create-vitakit": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "template",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

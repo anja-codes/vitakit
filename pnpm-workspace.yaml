@@ -1,0 +1,11 @@
+packages:
+  - .
+  - create
+  - examples/scaffolded
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@tailwindcss/oxide'
+  - esbuild
+ignoredBuiltDependencies:
+  - citation-js
