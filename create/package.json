@@ -23,7 +23,7 @@
   },
   "type": "module",
   "bin": {
-    "create-vitakit": "./index.mjs"
+    "create-vitakit": "index.mjs"
   },
   "files": [
     "index.mjs",

@@ -114,8 +114,8 @@
     "access": "public"
   },
   "bin": {
-    "vitakit": "./src/bin/vitakit.mjs",
-    "vitakit-check": "./src/bin/vitakit-check.mjs",
-    "vitakit-build-cv": "./src/bin/vitakit-build-cv.mjs"
+    "vitakit": "src/bin/vitakit.mjs",
+    "vitakit-check": "src/bin/vitakit-check.mjs",
+    "vitakit-build-cv": "src/bin/vitakit-build-cv.mjs"
   }
 }
