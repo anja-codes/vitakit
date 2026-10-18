@@ -1,10 +1,12 @@
 # Builds the site and deploys it to Cloudflare Pages.
 #
-# Recommended when the repository is private: Cloudflare Pages builds from
-# private repositories on the free tier, which GitHub Pages does not.
+# GitHub Actions builds the site and uploads only .output/public; the source
+# repository can stay private. The site is public at <project>.pages.dev (or
+# your custom domain). Free-tier hosting and GitHub Actions usage limits apply.
 #
-# Secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
-# Set `projectName` to your Pages project.
+# Setup: create a Pages Direct Upload project with production branch `main`.
+# Set --project-name below to its name.
+# Secrets: CLOUDFLARE_API_TOKEN (Pages edit permission), CLOUDFLARE_ACCOUNT_ID.
 name: Deploy (Cloudflare Pages)
 
 on:

@@ -1,0 +1,37 @@
+# Builds the site and uploads only the checked output to Codeberg Pages.
+# Codeberg Pages now uses git-pages; no pages branch or webhook is needed here.
+# Enable Actions in repository settings. Codeberg's hosted runners require a
+# PUBLIC, freely licensed repository. For private CV source, use your own
+# compatible runner and change runs-on below; do not make sensitive source public.
+# The automatic token authorizes the matching <owner>.codeberg.page/<repo>/ site.
+# For a root site or custom domain, change BOTH NUXT_APP_BASE_URL and site below.
+# Custom domains also need DNS authorization: https://docs.codeberg.org/codeberg-pages/using-custom-domain/
+name: Deploy (Codeberg Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ forgejo.ref == 'refs/heads/main' }}
+    # Use a Docker-capable runner; Nuxt builds need more than the tiny tier.
+    runs-on: codeberg-medium
+    env:
+      NUXT_APP_BASE_URL: /${{ forgejo.event.repository.name }}/
+    steps:
+      - uses: https://github.com/actions/checkout@v7
+      - uses: https://github.com/pnpm/action-setup@v6
+      - uses: https://github.com/actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - uses: https://codeberg.org/git-pages/action@v2
+        with:
+          site: https://${{ forgejo.repository_owner }}.codeberg.page/${{ forgejo.event.repository.name }}/
+          server: codeberg.page
+          token: ${{ forgejo.token }}
+          source: .output/public/

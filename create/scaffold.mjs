@@ -1,15 +1,11 @@
 import { cp, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { DEPLOYMENTS } from './deployments.mjs'
+
+export { DEPLOYMENTS } from './deployments.mjs'
 
 const TEMPLATE = fileURLToPath(new URL('template', import.meta.url))
-
-export const DEPLOYMENTS = {
-  'github-pages': { label: 'GitHub Pages (public repository)', keep: ['deploy.yml', 'cv.yml'], host: '_github' },
-  'cloudflare': { label: 'Cloudflare Pages (works with a private repository)', keep: ['cloudflare.yml', 'cv.yml'], host: '_github' },
-  'rsync': { label: 'Web space via rsync (Forgejo)', keep: ['deploy.yml'], host: '_forgejo' },
-  'none': { label: 'None for now', keep: [], host: undefined },
-}
 
 /** Package managers a project can be written for; the first is the default. */
 export const PACKAGE_MANAGERS = ['pnpm', 'npm']
@@ -34,6 +30,7 @@ function forNpm(text, scripts) {
     // The pnpm setup step, together with the comment lines directly above it.
     .replace(/^(?:[ \t]*#.*\n)*[ \t]*- uses: \S*pnpm\/action-setup@\S+\n/gm, '')
     .replace(/cache: pnpm\b/g, 'cache: npm')
+    .replace(/^[ \t]*- corepack (?:enable|install)\n/gm, '')
     .replace(/pnpm install --frozen-lockfile/g, 'npm ci')
     .replace(/pnpm vitakit\b/g, 'npx vitakit')
     // `pnpm build:cv --no-pdf` -> `npm run build:cv -- --no-pdf`
@@ -63,8 +60,17 @@ const TEXT_NAMES = new Set(['package.json', '.gitignore', 'latexmkrc'])
 
 /** Internal creator implementation, separate from the interactive CLI. */
 export async function scaffold(target, answers) {
+  const deployment = DEPLOYMENTS[answers.deployment]
+  if (!deployment || !Object.hasOwn(DEPLOYMENTS, answers.deployment)) {
+    throw new Error(`Unknown deployment target: ${answers.deployment}`)
+  }
+
   await mkdir(target, { recursive: true })
-  await cp(TEMPLATE, target, { recursive: true })
+  await cp(TEMPLATE, target, {
+    recursive: true,
+    // Finder metadata can exist in a checkout but must not reach a project.
+    filter: source => basename(source) !== '.DS_Store',
+  })
 
   // Files that cannot be shipped under their final name: `.gitignore` is
   // excluded by npm, and `package.json` would make the template a workspace.
@@ -72,18 +78,24 @@ export async function scaffold(target, answers) {
     await rename(join(target, from), join(target, to))
   }
 
-  const deployment = DEPLOYMENTS[answers.deployment]
   for (const [dir, name] of [['_github', '.github'], ['_forgejo', '.forgejo']]) {
     const path = join(target, dir)
-    if (deployment.host !== dir) {
+    const keep = deployment.files.filter(file => file.startsWith(`${name}/workflows/`))
+    if (!keep.length) {
       await rm(path, { recursive: true, force: true })
       continue
     }
     const workflows = join(path, 'workflows')
     for (const file of await readdir(workflows)) {
-      if (!deployment.keep.includes(file)) await rm(join(workflows, file))
+      if (!keep.includes(`${name}/workflows/${file}`)) await rm(join(workflows, file))
     }
     await rename(path, join(target, name))
+  }
+
+  // Standalone provider configuration is just as target-specific as workflows.
+  for (const [from, to] of [['gitlab-ci.yml.template', '.gitlab-ci.yml'], ['wrangler.json.template', 'wrangler.json']]) {
+    if (deployment.files.includes(to)) await rename(join(target, from), join(target, to))
+    else await rm(join(target, from))
   }
 
   const manifest = join(target, 'package.json')

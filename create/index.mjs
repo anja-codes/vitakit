@@ -13,7 +13,8 @@ import { existsSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import process from 'node:process'
-import { DEPLOYMENTS, detectPackageManager, scaffold } from './scaffold.mjs'
+import { detectPackageManager, scaffold } from './scaffold.mjs'
+import { chooseDeployment, deploymentHelp, deploymentInstructions } from './deployments.mjs'
 
 function slugify(value) {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
@@ -21,7 +22,19 @@ function slugify(value) {
 }
 
 async function main() {
-  const [directoryArgument] = process.argv.slice(2).filter(argument => !argument.startsWith('-'))
+  const args = process.argv.slice(2)
+  const packageManager = detectPackageManager(process.env.npm_config_user_agent)
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`Usage: ${packageManager} create @anja.codes/vitakit [directory]\n\n  --help, -h          Show this help without creating a project\n  --deployment-help  Explain deployment targets without creating a project\n`)
+    console.log(deploymentHelp())
+    return
+  }
+  if (args.includes('--deployment-help')) {
+    console.log(deploymentHelp())
+    return
+  }
+
+  const [directoryArgument] = args.filter(argument => !argument.startsWith('-'))
   const interactive = process.stdin.isTTY && !process.env.VITAKIT_CREATE_DEFAULTS
 
   const answers = {
@@ -30,7 +43,7 @@ async function main() {
     affiliation: 'Department of Mathematics, University of Graz',
     email: 'you@example.org',
     deployment: 'github-pages',
-    packageManager: detectPackageManager(process.env.npm_config_user_agent),
+    packageManager,
   }
 
   let directory = directoryArgument
@@ -49,13 +62,11 @@ async function main() {
     answers.email = await ask('Email:', answers.email)
     directory ??= await ask('Directory:', slugify(answers.name))
 
-    console.log('\nDeployment:')
-    const keys = Object.keys(DEPLOYMENTS)
-    keys.forEach((key, index) => console.log(`  ${index + 1}. ${DEPLOYMENTS[key].label}`))
-    const choice = await ask('Choose:', '1')
-    answers.deployment = keys[Number(choice) - 1] ?? 'github-pages'
-
-    rl.close()
+    try {
+      answers.deployment = await chooseDeployment(ask)
+    } finally {
+      rl.close()
+    }
   }
 
   directory ??= slugify(answers.name)
@@ -78,8 +89,8 @@ async function main() {
   step(`${run} build:cv`, 'cv-tex/cv.pdf (needs LaTeX)')
   step(`${run} check`, 'what CI runs')
   console.log()
-  console.log('Then edit content/: profile.yml, the section files and publications.bib.')
-  console.log('The PDF is not part of the website build; assume this repository is private.\n')
+  console.log('Edit content/ to make it yours. Keep sensitive CV source private.\n')
+  console.log(`${deploymentInstructions(answers.deployment, pm)}\n`)
 }
 
 main().catch((error) => {
