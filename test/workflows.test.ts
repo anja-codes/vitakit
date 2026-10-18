@@ -666,6 +666,43 @@ describe('full pipeline', () => {
     }
   }, 120_000)
 
+  it.skipIf(!hasLatexmk() || !hasPdftotext())('uses inline section headings without changing defaults or revealing empty sections', async () => {
+    const root = await starter({
+      'content/teaching.yml': '- { date: 2025, title: A course }\n',
+      'content/supervision.yml': '[]\n',
+      'cv-tex/preamble.tex': '\\vitasectiontitle{employment}{Preamble employment}\n\\vitasectiontitle{talks}{Preamble talks}\n',
+      'cv-tex/cv.yml': 'sections:\n  talks: { title: YAML talks }\n',
+      'cv-tex/cv.tex': STARTER['cv-tex/cv.tex']!
+        .replace('\\vitaheader', '\\vitaheader\n\\tableofcontents')
+        .replace('\\vitasection{employment}', '\\vitasection[Inline employment \\& roles]{employment}\n\\vitasection{employment}')
+        .replace('\\vitasection{talks}', [
+          '\\vitasection[Inline selected talks]{talks}',
+          '\\vitasection{talks}',
+          '\\vitasection{teaching}',
+          '\\vitasection[Hidden supervision]{supervision}',
+        ].join('\n')),
+    })
+    const [pdf] = await buildCv({ rootDir: root })
+    const text = execFileSync('pdftotext', [pdf!, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ')
+    expect(text).toContain('Inline employment & roles')
+    expect(text).toContain('Inline selected talks')
+    expect(text).toContain('Preamble employment')
+    expect(text).toContain('YAML talks')
+    expect(text).not.toContain('Preamble talks')
+    expect(text).not.toContain('Hidden supervision')
+
+    // These remain real section headings, with the same precedence in the ToC.
+    const toc = await readFile(join(root, 'cv-tex/generated/cv/cv.toc'), 'utf8')
+    const headings = ['Inline employment \\& roles', 'Preamble employment', 'Inline selected talks', 'YAML talks', 'teaching']
+    let previous = -1
+    for (const heading of headings) {
+      const position = toc.indexOf(heading)
+      expect(position, heading).toBeGreaterThan(previous)
+      previous = position
+    }
+    expect(toc).not.toContain('Hidden supervision')
+  }, 120_000)
+
   it.skipIf(!hasLatexmk() || !hasPdftotext())('builds a copied scaffold document alone, even when its name matches a section', async () => {
     const root = await starter({
       'content/education.yml': '[]\n',

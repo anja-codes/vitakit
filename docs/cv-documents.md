@@ -57,10 +57,21 @@ sections:
 |---|---|
 | `\vitadocument{name}` | which generated directory to read |
 | `\vitaheader` | name, tagline and contact line from `profile.yml` |
-| `\vitasection{id}` | heading + the generated entries; omitted when the selection is empty |
+| `\vitasection[Heading]{id}` | heading + the generated entries; heading argument optional, section omitted when the selection is empty |
 | `\vitainput{id}` | the generated file only, no heading or list (profile, publications) |
 | `\vitasectiontitle{id}{Text}` | heading wording for this document |
 | `\vitaentry{date}{title}{context}`, `\vitanote{…}` | what generated files emit |
+
+Choose a heading at the point of use with the optional argument:
+
+```tex
+\vitasection[Public engagement]{outreach}
+```
+
+It applies to that invocation only. Without it, the heading comes from the
+document's YAML `title`, then `\vitasectiontitle` in the shared preamble, then
+the literal section ID. Inline headings are ordinary LaTeX, so write `\&` for
+an ampersand, for example.
 
 Because `\vitasection` emits a real `\section`, `\tableofcontents` and PDF bookmarks
 work as usual.
@@ -128,14 +139,14 @@ the `.tex`:
 \newpage
 \section{Publications}\vitainput{publications} % 3. publications
 \input{prose/research-statement.tex}      % 4. research statement
-\vitasection{teaching}                    % 5. courses taught
+\vitasection[Courses taught]{teaching}    % 5. courses taught
 \vitasection{supervision}                 % 6. supervised theses
 \input{prose/teaching-statement.tex}      % 7. teaching statement
 \end{document}
 ```
 
-Use `\vitasectiontitle{teaching}{Courses taught}` in the preamble when the call
-prescribes the wording too.
+The optional argument sets the prescribed wording directly in the document.
+Use `\vitasectiontitle` in the preamble for labels shared across documents.
 
 ## Prose
 
