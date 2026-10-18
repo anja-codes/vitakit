@@ -10,7 +10,7 @@
  * Presentation stays with each side: the website joins with `·` and renders
  * HTML, the emitter joins with `,` and escapes. Only the *selection* is shared.
  */
-import type { Entry, Institution } from './types'
+import type { DateRange, Entry, Institution, Link } from './types'
 
 /** Fields tried, in order, for the headline. */
 export const TITLE_FIELDS: readonly string[] = ['title', 'position', 'degree', 'role', 'student']
@@ -39,6 +39,30 @@ export function entryTitleField(entry: Entry, fields: readonly string[] = TITLE_
 export type SecondaryPart
   = | { kind: 'text', text: string }
     | { kind: 'institution', institution: Institution }
+
+/** Values used by VitaSection's default web rendering, also available to slots. */
+export interface VitaSectionDisplay {
+  /** Build-time rendered HTML, respecting the component's titleFields. */
+  titleHtml: string
+  titleUrl?: string
+  date?: DateRange
+  /** A teaching term replaces the normal date label. */
+  term?: string
+  /** Structured context, preserving institution links. */
+  meta: SecondaryPart[]
+  note?: string
+  /** Additional links; does not include the title's link. */
+  links: Link[]
+  ongoing: boolean
+}
+
+/** Shared context for VitaSection's title, meta, note and default (body) slots. */
+export interface VitaSectionSlotProps {
+  entry: Entry
+  /** Zero-based position in the displayed list, after limiting. */
+  index: number
+  display: VitaSectionDisplay
+}
 
 /**
  * The context line, as structured parts. The field used for the title is
