@@ -12,7 +12,8 @@ import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
-import { fail, formatZodIssues } from '../issues'
+import { fail, formatZodIssues, messageOf } from '../issues'
+import type { SectionSource } from '../sections'
 import { atMost } from '../shared/visibility'
 import type { Entry, Visibility } from '../shared/types'
 
@@ -42,7 +43,7 @@ const sectionOptions = z.strictObject({
   since: z.number().int().optional(),
   /** Drop entries starting after this year. */
   until: z.number().int().optional(),
-  /** Heading used by `\vitasection`; defaults to the section id, capitalised. */
+  /** Heading used by `\vitasection`; overrides the shared preamble's label. */
   title: z.string().min(1).optional(),
 })
 
@@ -90,7 +91,13 @@ export async function discoverDocuments(cvDir: string): Promise<DocumentSource[]
     const raw = await readFile(optionsFile, 'utf8').catch(() => undefined)
     let options = DEFAULTS
     if (raw !== undefined) {
-      const parsed = documentSchema.safeParse(parseYaml(raw) ?? {})
+      let data: unknown
+      try {
+        data = parseYaml(raw)
+      } catch (error) {
+        fail(`cv-tex/${name}.yml`, messageOf(error))
+      }
+      const parsed = documentSchema.safeParse(data ?? {})
       if (!parsed.success) fail(`cv-tex/${name}.yml`, `invalid\n${formatZodIssues(parsed.error)}`)
       options = parsed.data
     }
@@ -101,6 +108,27 @@ export async function discoverDocuments(cvDir: string): Promise<DocumentSource[]
   return documents
 }
 
+/** Check filter names against schemas, including fields absent from all entries. */
+export function validateDocumentSections(document: DocumentSource, sources: SectionSource[]): void {
+  const where = `cv-tex/${document.name}.yml`
+  const sections = new Map(sources.map(source => [source.id, source.schema]))
+  for (const [id, options] of Object.entries(document.options.sections)) {
+    const schema = sections.get(id)
+    if (!schema) fail(where, `sections.${id}: unknown section; the sections are ${[...sections.keys()].join(', ') || '(none)'}`)
+
+    // section() and extendSection() produce arrays of objects. Do not infer
+    // fields from entries: optional fields and empty collections are valid.
+    if (schema instanceof z.ZodArray && schema.element instanceof z.ZodObject) {
+      const fields = new Set(['year', ...Object.keys(schema.element.shape)])
+      for (const field of Object.keys(options.where)) {
+        if (!fields.has(field)) {
+          fail(where, `sections.${id}.where.${field}: unknown field; the fields are ${[...fields].join(', ')}`)
+        }
+      }
+    }
+  }
+}
+
 /** The comparable value of a field: `year` from the date, text from rich fields. */
 function valueOf(entry: Entry, field: string): unknown {
   if (field === 'year') return (entry.date as { from?: { year: number } } | undefined)?.from?.year
@@ -108,6 +136,7 @@ function valueOf(entry: Entry, field: string): unknown {
   if (typeof value === 'object' && value !== null && 'text' in value) return (value as { text: string }).text
   // An institution or link compares against its name or label.
   if (typeof value === 'object' && value !== null && 'name' in value) return (value as { name: string }).name
+  if (typeof value === 'object' && value !== null && 'label' in value) return (value as { label: string }).label
   return value
 }
 

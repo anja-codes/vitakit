@@ -128,7 +128,8 @@ try {
     if (!name) throw new Error(`missing name.\n\n${HELP.add}`)
     const written = await addSection(name, root, { component: !rest.includes('--no-component') })
     for (const file of written) console.log(`  ${file.path.padEnd(34)} ${file.note}`)
-    console.log(`\nShow it with <${pascal(name)}Section /> on a page,`)
+    const component = rest.includes('--no-component') ? `VitaSection id="${name}"` : `${pascal(name)}Section`
+    console.log(`\nShow it with <${component} /> on a page,`)
     console.log(`or add \\vitasection{${name}} to cv-tex/cv.tex for the PDF.`)
   } else if (command === 'list') {
     const items = await listEjectable()

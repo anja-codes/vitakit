@@ -1,5 +1,6 @@
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -79,6 +80,18 @@ describe('vitakit add', () => {
     const other = await project()
     await addSection('a-thing', other)
     expect(existsSync(join(other, 'app/components/AThingSection.vue'))).toBe(true)
+  })
+
+  it('recommends the generic component when no component was created', async () => {
+    const root = await project()
+    const output = execFileSync(process.execPath, [join(process.cwd(), 'src/bin/vitakit.mjs'), 'add', 'outreach', '--no-component'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
+    expect(output).toContain('<VitaSection id="outreach" />')
+    expect(output).not.toContain('<OutreachSection />')
+    expect(output).toContain('\\vitasection{outreach}')
+    expect(existsSync(join(root, 'app/components/OutreachSection.vue'))).toBe(false)
   })
 
   it('refuses to overwrite an existing schema', async () => {

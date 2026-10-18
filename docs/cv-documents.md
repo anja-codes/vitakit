@@ -26,7 +26,7 @@ document class.
 \vitadocument{cv}                          % selects generated/cv/
 \addbibresource{../content/publications.bib}
 \input{preamble.tex}
-\input{generated/cv/profile.tex}           % header data from profile.yml
+\vitainput{profile}                       % header data and document settings
 
 \begin{document}
 \vitaheader
@@ -57,8 +57,8 @@ sections:
 |---|---|
 | `\vitadocument{name}` | which generated directory to read |
 | `\vitaheader` | name, tagline and contact line from `profile.yml` |
-| `\vitasection{id}` | heading + the generated entries for that section |
-| `\vitainput{id}` | the generated file only, no heading or list (publications) |
+| `\vitasection{id}` | heading + the generated entries; omitted when the selection is empty |
+| `\vitainput{id}` | the generated file only, no heading or list (profile, publications) |
 | `\vitasectiontitle{id}{Text}` | heading wording for this document |
 | `\vitaentry{date}{title}{context}`, `\vitanote{…}` | what generated files emit |
 
@@ -87,7 +87,17 @@ this belongs in a hand-written `.tex` or an
 [ejected template](./customising.md), which is already how everything else specific
 is done here.
 
-Unknown keys are an error, naming the file — so a typo is never silently ignored.
+Unknown options and section IDs are errors naming the document's YAML file.
+For schemas made with `section()` or `extendSection()`, `where` field names are
+checked against the schema too, including optional fields absent from the data.
+
+Empty selections are omitted by `\vitasection`, including their headings.
+Manually written headings, such as `\section{Publications}`, remain yours to show
+or remove.
+
+A YAML `title` overrides the label from the shared preamble. Keep
+`\vitainput{profile}` after `\input{preamble.tex}`: the generated profile also
+contains the document's title overrides and empty-section markers.
 
 ## Making a variant
 
@@ -102,6 +112,8 @@ Change `\vitadocument{cv}` to `\vitadocument{teaching-uni-x}` in the copy, reord
 `\vitasection` lines, adjust the YAML, then `pnpm build:cv teaching-uni-x`.
 
 **The data is untouched**, so your website and every other variant are unaffected.
+If an older document uses `\input{generated/cv/profile.tex}`, replace that line
+with `\vitainput{profile}` first, so the copy reads its own generated profile.
 
 ## A prescribed order
 
@@ -114,7 +126,7 @@ the `.tex`:
 \newpage
 \tableofcontents                          % 2. table of contents
 \newpage
-\vitasection{publications}                % 3. publications
+\section{Publications}\vitainput{publications} % 3. publications
 \input{prose/research-statement.tex}      % 4. research statement
 \vitasection{teaching}                    % 5. courses taught
 \vitasection{supervision}                 % 6. supervised theses
@@ -149,6 +161,8 @@ directory in the LaTeX search path.
 
 A template whose name matches no section is an error rather than a file that is
 silently never read — so `talk.eta` tells you it meant `talks.eta`.
+A local `_generic.eta` is the fallback for sections without a named template;
+named templates (local or bundled) take precedence.
 
 ## What the build writes
 
@@ -161,7 +175,13 @@ cv-tex/
                                          auxiliary output
 ```
 
-`cv-tex/generated/` is disposable: delete it whenever a build looks stale.
+Obsolete generated section files are removed on each build, so deleting a data
+source cannot silently leave its old entries in the PDF. Remove its
+`\vitasection` line too; an input for a missing source is an error, not an empty
+selection. Bibliography output is regenerated even when no publications remain.
+
+`cv-tex/generated/` is disposable; latexmk's auxiliary files are kept between
+builds, and you can delete the directory for a completely clean build.
 
 ## Bibliography
 

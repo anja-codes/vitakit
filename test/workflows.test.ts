@@ -65,7 +65,7 @@ const STARTER: Record<string, string> = {
     '\\vitadocument{cv}',
     '\\addbibresource{../content/publications.bib}',
     '\\input{preamble.tex}',
-    '\\input{generated/cv/profile.tex}',
+    '\\vitainput{profile}',
     '\\begin{document}',
     '\\vitaheader',
     '\\vitasection{employment}',
@@ -641,6 +641,55 @@ describe('full pipeline', () => {
     expect(generated).toContain('vitakit-cv.cls')
     expect(generated).toContain('cv.aux')
     expect(generated).toContain('cv.log')
+  }, 120_000)
+
+  it.skipIf(!hasLatexmk() || !hasPdftotext())('typesets empty selections, YAML headings and escaped teaching roles', async () => {
+    const root = await starter({
+      'content/employment.yml': '[]\n',
+      'content/supervision.yml': '- { date: 2025, student: A, title: Hidden thesis, visibility: private }\n',
+      'content/teaching.yml': '- { date: 2025, title: A course, role: "Lead & examiner: 50% #1" }\n',
+      'cv-tex/cv.tex': STARTER['cv-tex/cv.tex']!.replace('\\vitasection{talks}', '\\vitasection{talks}\n\\vitasection{supervision}\n\\vitasection{teaching}'),
+      'cv-tex/preamble.tex': [
+        '\\vitasectiontitle{employment}{Empty employment}',
+        '\\vitasectiontitle{talks}{Filtered talks}',
+        '\\vitasectiontitle{supervision}{Hidden supervision}',
+        '\\vitasectiontitle{teaching}{Old teaching label}',
+      ].join('\n'),
+      'cv-tex/cv.yml': 'visibility: public\nsections:\n  talks: { since: 2030 }\n  teaching:\n    title: "Courses & exams #1"\npublications: { groups: [] }\n',
+    })
+    const [pdf] = await buildCv({ rootDir: root })
+    const text = execFileSync('pdftotext', [pdf!, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ')
+    expect(text).toContain('Courses & exams #1')
+    expect(text).toContain('Lead & examiner: 50% #1')
+    for (const omitted of ['Empty employment', 'Filtered talks', 'Hidden supervision', 'Old teaching label', 'Hidden thesis']) {
+      expect(text).not.toContain(omitted)
+    }
+  }, 120_000)
+
+  it.skipIf(!hasLatexmk() || !hasPdftotext())('builds a copied scaffold document alone, even when its name matches a section', async () => {
+    const root = await starter({
+      'content/education.yml': '[]\n',
+      'content/teaching.yml': '- { date: 2025, title: Teaching-only course }\n',
+      'content/supervision.yml': '[]\n',
+    })
+    await cp(join(PACKAGE, 'create/template/cv-tex'), join(root, 'cv-tex'), { recursive: true })
+    const source = await readFile(join(root, 'cv-tex/cv.tex'), 'utf8')
+    await writeFile(join(root, 'cv-tex/teaching.tex'), source.replace('\\vitadocument{cv}', '\\vitadocument{teaching}'))
+    const [pdf] = await buildCv({ rootDir: root, only: ['teaching'] })
+    expect(existsSync(join(root, 'cv-tex/generated/cv'))).toBe(false)
+    expect(pdf).toBe(join(root, 'cv-tex/teaching.pdf'))
+    const text = execFileSync('pdftotext', [pdf!, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ')
+    expect(text).toContain('Jane Doe')
+    expect(text).toContain('Teaching-only course')
+    expect(text).toContain('Large random')
+  }, 120_000)
+
+  it.skipIf(!hasLatexmk())('fails rather than including stale TeX after a section source is deleted', async () => {
+    const root = await starter()
+    await buildCv({ rootDir: root })
+    await rm(join(root, 'content/talks.yml'))
+    await expect(buildCv({ rootDir: root })).rejects.toThrow(/latexmk exited/)
+    expect(existsSync(join(root, 'cv-tex/generated/cv/talks.tex'))).toBe(false)
   }, 120_000)
 
   it.skipIf(!hasLatexmk() || !hasPdftotext())('prints a .bib url that is a path on the site as an absolute URL', async () => {

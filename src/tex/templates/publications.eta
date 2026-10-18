@@ -1,3 +1,4 @@
+<% if (it.groups.length) { %>
 \begin{refsection}
 \nocite{*}
 <% for (const group of it.groups) { %>
@@ -5,3 +6,4 @@
 \printbibliography[check=vita-<%~ group.id %>, title={<%~ it.tex(group.label) %>}, heading=subbibliography]
 <% } %>
 \end{refsection}
+<% } %>

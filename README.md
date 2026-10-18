@@ -123,7 +123,7 @@ No `-shell-escape`, no Python.
 \vitadocument{cv}
 \addbibresource{../content/publications.bib}
 \input{preamble.tex}
-\input{generated/cv/profile.tex}
+\vitainput{profile}
 
 \begin{document}
 \vitaheader
