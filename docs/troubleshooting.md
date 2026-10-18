@@ -118,6 +118,12 @@ Add the group there, or correct the entry.
 
 ## Development
 
+**Adding or removing an ejected Vue component briefly restarts dev** — when a
+local component takes over a packaged VitaKit component (or gives it back),
+VitaKit requests a normal Nuxt soft restart so existing imports use the new
+component. Editing an existing override still uses HMR; content and schema
+changes still reload in place.
+
 **The dev server shows a red banner** — content problems. The site keeps working
 around them; fix the file and it recovers without a restart. The same problems fail a
 build.

@@ -20,6 +20,7 @@ import {
 import { createRequire } from 'node:module'
 import type { NuxtModule } from '@nuxt/schema'
 import { loadContent } from './content'
+import { watchComponentOverrides } from './dev-overrides'
 import type { VitakitContent } from './shared/types'
 
 export interface ModuleOptions {
@@ -114,6 +115,8 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
     addPrerenderRoutes(content.pages.map(page => page.route))
 
     if (!nuxt.options.dev) return
+
+    await watchComponentOverrides(nuxt, resolver.resolve('./runtime/components'))
 
     // Watch paths are relative to srcDir (`app/`).
     nuxt.options.watch.push('../content', '../schemas')
