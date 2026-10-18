@@ -84,6 +84,17 @@ A GitHub Pages site built from a private repository is still **served publicly**
 private source does not mean a private site. And on the free plan, Pages requires a
 public repository at all.
 
-This is why **Cloudflare Pages is the recommended target**: it builds from private
-repositories on the free tier, so your content stays private while the site is
-public — which is exactly the intended arrangement.
+**Cloudflare Workers is recommended for new Cloudflare deployments**: it can serve
+the static site while your GitHub source repository stays private, and Cloudflare
+now recommends Workers over Pages for new projects. The included GitHub Actions
+workflow checks the build and uploads only `.output/public`. The Pages preset is
+still available for existing projects. Static hosting and CI usage limits apply.
+
+GitLab Pages also supports public sites from private source projects on Free; set
+Pages access separately from repository visibility. Codeberg Pages uses git-pages
+to upload built files, but **Codeberg-hosted Actions runners require public,
+freely licensed source**. If your CV source contains private data, use your own
+compatible runner rather than making the repository public to get hosted CI.
+
+See [publishing and setup](./getting-started.md#5-publish) for account requirements,
+URLs and the other deployment choices.

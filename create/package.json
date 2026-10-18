@@ -28,6 +28,7 @@
   "files": [
     "index.mjs",
     "scaffold.mjs",
+    "deployments.mjs",
     "template",
     "README.md",
     "LICENSE"

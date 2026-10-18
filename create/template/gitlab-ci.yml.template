@@ -1,0 +1,28 @@
+# Builds and checks the site, then publishes only the static output.
+# Requires GitLab 17.10+ with Pages and a Docker-compatible CI runner enabled.
+# Private source projects are supported; set Pages access to Everyone for a
+# public website (Settings -> General -> Visibility, project features, permissions).
+# For a root-level custom domain, set NUXT_APP_BASE_URL=/ in CI/CD variables.
+image: node:22-bookworm
+
+stages: [deploy]
+
+deploy-pages:
+  stage: deploy
+  before_script:
+    - corepack enable
+    - corepack install
+    - pnpm install --frozen-lockfile
+  script:
+    # CI_PAGES_URL handles unique domains, project paths and subgroup paths.
+    # An explicit CI/CD variable can override it for a custom domain.
+    - |
+      if [ -z "${NUXT_APP_BASE_URL:-}" ]; then
+        NUXT_APP_BASE_URL="$(node -e 'const path = new URL(process.env.CI_PAGES_URL).pathname; process.stdout.write(path.endsWith("/") ? path : path + "/")')"
+        export NUXT_APP_BASE_URL
+      fi
+    - pnpm check
+  pages:
+    publish: .output/public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
