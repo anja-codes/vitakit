@@ -144,7 +144,7 @@ by hand or not.
 
 **2.** `schemas/outreach.ts` — the shape
 
-```ts
+```ts twoslash
 import { section, dateRange, richText, institution, z } from '@anja.codes/vitakit'
 
 export default section({
@@ -188,7 +188,7 @@ export default section({
 A schema in your repository always wins for `content/teaching.yml`. If you would
 rather extend the built-in than own the whole shape:
 
-```ts
+```ts twoslash
 import { schemas, extendSection, z } from '@anja.codes/vitakit'
 
 export default extendSection(schemas.teaching, {

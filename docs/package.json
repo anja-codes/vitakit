@@ -1,0 +1,19 @@
+{
+  "name": "@anja.codes/vitakit-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "@anja.codes/vitakit": "workspace:*",
+    "@mdit/plugin-katex": "^1.1.3",
+    "@shikijs/vitepress-twoslash": "^2.5.0",
+    "github-slugger": "^2.0.0",
+    "katex": "^0.18.10",
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4"
+  }
+}
