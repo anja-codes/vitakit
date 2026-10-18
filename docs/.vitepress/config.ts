@@ -7,6 +7,7 @@ export default defineConfig({
   title: "vitakit",
   description: "Structured CV data in, academic website and LaTeX CV out.",
   cleanUrls: true,
+  sitemap: { hostname: "https://vitakit.anja.codes" },
   // docs/README.md stays the folder index on GitHub and becomes / on the site
   rewrites: { "README.md": "index.md" },
   // same heading IDs as GitHub, so existing #anchors keep working

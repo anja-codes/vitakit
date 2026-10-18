@@ -1,6 +1,7 @@
 packages:
   - .
   - create
+  - docs
   - examples/scaffolded
 
 onlyBuiltDependencies:

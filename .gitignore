@@ -11,3 +11,7 @@ examples/scaffolded/.nuxt
 examples/scaffolded/.output
 examples/scaffolded/cv-tex/generated
 examples/scaffolded/cv-tex/*.pdf
+
+# vitekit docs
+docs/.vitepress/cache
+docs/.vitepress/dist
