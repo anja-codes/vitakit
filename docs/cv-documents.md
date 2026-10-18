@@ -4,13 +4,23 @@ A **document** is a `.tex` file you own. vitakit renders `content/` into
 `cv-tex/generated/<document>/`, one file per section; `latexmk` typesets it. There is
 no `-shell-escape` and no Python: LaTeX only typesets what is already on disk.
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm build:cv                 # every document
 pnpm build:cv cv              # one document
 pnpm build:cv --no-pdf        # only generate .tex (no TeX installation needed)
 ```
 
-After `pnpm build:cv --no-pdf`, a plain `latexmk cv.tex` in `cv-tex/` works as well,
+```bash [npm]
+npm run build:cv                    # every document
+npm run build:cv -- cv              # one document
+npm run build:cv -- --no-pdf        # only generate .tex (no TeX installation needed)
+```
+
+:::
+
+After `build:cv --no-pdf`, a plain `latexmk cv.tex` in `cv-tex/` works as well,
 e.g. from an editor or a CI action: `cv-tex/latexmkrc` lets LaTeX find the generated
 document class.
 
@@ -99,7 +109,7 @@ cp cv-tex/cv.yml cv-tex/teaching-uni-x.yml      # optional
 ```
 
 Change `\vitadocument{cv}` to `\vitadocument{teaching-uni-x}` in the copy, reorder the
-`\vitasection` lines, adjust the YAML, then `pnpm build:cv teaching-uni-x`.
+`\vitasection` lines, adjust the YAML, then `build:cv teaching-uni-x`.
 
 **The data is untouched**, so your website and every other variant are unaffected.
 
@@ -139,9 +149,9 @@ those changes the design without touching anything vitakit produces:
 \renewcommand{\vitaentry}[3]{\item[#1]\textsc{#2}\par{\small #3}}
 ```
 
-For deeper changes, `pnpm vitakit eject vitakit-cv.cls` copies the class into
+For deeper changes, `vitakit eject vitakit-cv.cls` copies the class into
 `cv-tex/`, where it is yours and takes precedence, and
-`pnpm vitakit eject talks.eta` copies the template that generates a section.
+`vitakit eject talks.eta` copies the template that generates a section.
 
 **Do not edit `cv-tex/generated/`.** Everything there — the section files, the
 profile header and the copy of the class — is rewritten on every build. An ejected file always wins: `cv-tex/` comes before the generated

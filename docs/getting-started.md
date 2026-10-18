@@ -1,11 +1,22 @@
 # Getting started
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm create @anja.codes/vitakit my-site
 cd my-site
 pnpm install
 pnpm dev
 ```
+
+```bash [npm]
+npm create @anja.codes/vitakit my-site
+cd my-site
+npm install
+npm run dev
+```
+
+:::
 
 `http://localhost:3000` now serves a complete example site. Everything below is
 editing files in a repository you own.
@@ -36,13 +47,21 @@ Content is validated, so mistakes are caught immediately and named:
 
 The development server keeps running, the affected page shows the error in place, a
 red banner lists every problem, and saving a fix recovers without a restart. The same
-problem fails `pnpm generate`, so a broken file cannot reach your website.
+problem fails `nuxt generate`, so a broken file cannot reach your website.
 
 ## 3. Build the PDF
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm build:cv
 ```
+
+```bash [npm]
+npm run build:cv
+```
+
+:::
 
 This renders `content/` into `cv-tex/generated/cv/` and runs `latexmk`, producing
 `cv-tex/cv.pdf`. It needs a TeX distribution; if you do not have one locally, the
@@ -53,9 +72,17 @@ The order of the PDF is decided in `cv-tex/cv.tex`, which is yours: moving a
 
 ## 4. Check what CI will check
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm check     # typecheck + generate + assertions on the generated HTML
 ```
+
+```bash [npm]
+npm run check     # typecheck + generate + assertions on the generated HTML
+```
+
+:::
 
 The last step verifies that pages were generated, mathematics was typeset, the
 deployment base path is right, the bibliography is fully formatted, and **no entry marked
@@ -63,7 +90,7 @@ deployment base path is right, the bibliography is fully formatted, and **no ent
 
 ## 5. Publish
 
-`pnpm create @anja.codes/vitakit` wrote a workflow for the target you chose.
+The creator wrote a workflow for the target you chose.
 
 | Target | Notes |
 |---|---|

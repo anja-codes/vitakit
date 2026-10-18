@@ -129,9 +129,17 @@ See [CV documents](./cv-documents.md).
 
 Three files, wired by file name, no configuration:
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm vitakit add outreach
 ```
+
+```bash [npm]
+npx vitakit add outreach
+```
+
+:::
 
 writes all three for you: a YAML stub, a schema, and a component. If
 `content/outreach.yml` already exists, the schema is **drafted from it** — types
@@ -181,9 +189,17 @@ renders it without a component of your own. The PDF gets it too:
 
 Copy its schema into your project and edit it:
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm vitakit eject teaching      # -> schemas/teaching.ts
 ```
+
+```bash [npm]
+npx vitakit eject teaching      # -> schemas/teaching.ts
+```
+
+:::
 
 The file is the definition vitakit itself uses, not a paraphrase, so adding a
 field is editing a list:
@@ -225,7 +241,9 @@ eject. Neither needs the other.
 To change what a built-in component or TeX template *emits*, copy it into your
 project, where it then wins:
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm vitakit list                    # what can be copied
 pnpm vitakit eject VitaSection       # -> app/components/VitaSection.vue
 pnpm vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
@@ -233,6 +251,17 @@ pnpm vitakit eject publications      # -> schemas/publications.ts
 pnpm vitakit eject publications.csl  # -> content/publications.csl
 pnpm vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
 ```
+
+```bash [npm]
+npx vitakit list                    # what can be copied
+npx vitakit eject VitaSection       # -> app/components/VitaSection.vue
+npx vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
+npx vitakit eject publications      # -> schemas/publications.ts
+npx vitakit eject publications.csl  # -> content/publications.csl
+npx vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
+```
+
+:::
 
 `publications.csl` is the citation style of the website's publication list; any CSL
 style works in its place (see [content reference](./content-reference.md#citation-style)).
@@ -246,7 +275,7 @@ row of buttons, or as "arXiv:2301.00001" from `badge.value`, without parsing any
 HTML:
 
 ```vue
-<!-- the template of app/components/VitaPublication.vue, after `pnpm vitakit eject VitaPublication` -->
+<!-- the template of app/components/VitaPublication.vue, after `vitakit eject VitaPublication` -->
 <template>
   <li class="csl-entry">
     <div v-html="entry.html" />
@@ -262,8 +291,8 @@ HTML:
 `VitaPublications` decides the groups, headings and list around them; eject it
 only to change those.
 
-`eject` saves you finding a package default inside `node_modules/.pnpm/…`, whose
-path changes on every update.
+`eject` saves you finding a package default deep inside `node_modules/`, where
+any edit would be lost on the next install.
 
 **An ejected file is yours forever**: improvements to it in later vitakit releases
 will not reach you. Everything that can carry a bug stays in the package, so this is

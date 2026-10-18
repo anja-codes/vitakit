@@ -50,17 +50,27 @@ default `cv`.
    co-author name is usually public for some other entry; if a match is still a
    coincidence, run `vitakit-check --no-leak-check`.
 
-```
+::: code-group
+
+```text [pnpm]
 $ pnpm check
   ok  4 page(s) generated
   ok  1 non-public entr(ies) absent from the site
 ```
 
+```text [npm]
+$ npm run check
+  ok  4 page(s) generated
+  ok  1 non-public entr(ies) absent from the site
+```
+
+:::
+
 Run it in CI (the scaffolded workflows do) so a leak fails the deployment.
 
 ## PDFs are not published
 
-`pnpm build:cv` writes to `cv-tex/`. Nothing copies a PDF into `public/`, and the
+`build:cv` writes to `cv-tex/`. Nothing copies a PDF into `public/`, and the
 `CV` workflow attaches it to the run as an artifact rather than deploying it. The
 website already renders your CV information directly, so there is usually nothing to
 gain from publishing the PDF as well.

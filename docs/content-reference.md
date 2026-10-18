@@ -56,7 +56,7 @@ slides: /slides/aofa2025.pdf # public/slides/aofa2025.pdf
 
 On the website, a path gets the deployment base path, like paths in Markdown. The
 PDF has no site to be relative to, so where it prints such a link it needs your
-site's address, `url` in `content/profile.yml`; without it, `pnpm build:cv` stops and
+site's address, `url` in `content/profile.yml`; without it, `build:cv` stops and
 says so. Links the PDF does not print, such as `slides` of a talk, need nothing.
 
 ### Text with mathematics
@@ -250,9 +250,17 @@ The groups, the badges after each reference and the fields passed to the website
 set in `schemas/publications.ts`. The website, `vitakit-check` and the PDF all read
 it, so they always agree. Start from the defaults:
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm vitakit eject publications   # -> schemas/publications.ts
 ```
+
+```bash [npm]
+npx vitakit eject publications   # -> schemas/publications.ts
+```
+
+:::
 
 ```ts twoslash
 import { badgePresets, publications } from "@anja.codes/vitakit";
@@ -291,9 +299,17 @@ To change how references look on the website, put a CSL file at
 `content/publications.csl`. It is picked up without configuration — by the dev server
 (live), the build and `vitakit-check` alike. Start from the bundled style:
 
-```bash
+::: code-group
+
+```bash [pnpm]
 pnpm vitakit eject publications.csl   # -> content/publications.csl
 ```
+
+```bash [npm]
+npx vitakit eject publications.csl   # -> content/publications.csl
+```
+
+:::
 
 or save any style from the [Zotero style repository](https://www.zotero.org/styles)
 under that name. Delete the file to return to the default. The PDF is not affected:

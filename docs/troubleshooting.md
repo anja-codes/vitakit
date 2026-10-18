@@ -41,9 +41,9 @@ and a `$$ … $$` block work; if it still looks inline, check for a stray `$`.
 **Every link and asset is broken on the deployed site** — the base path is wrong. A
 project site at `https://user.github.io/repo/` needs
 `NUXT_APP_BASE_URL=/repo/`; a user site or custom domain needs `/`. The scaffolded
-workflow sets it; `pnpm check` verifies it.
+workflow sets it; `check` verifies it.
 
-**`ERR_PNPM_BAD_PM_VERSION` in CI** — the pnpm version is given twice: in the workflow
+**`ERR_PNPM_BAD_PM_VERSION` in CI (pnpm)** — the pnpm version is given twice: in the workflow
 and in `packageManager`. Remove the `version:` line from `pnpm/action-setup`.
 
 **`SyntaxError: … does not provide an export named 'styleText'` in CI** — the runner's
@@ -69,10 +69,10 @@ older one, restart the dev server.
 way vitakit could not rewrite for the base path. Markdown images, raw `<img>`
 in Markdown (including `srcset`, `<video>`, `<source>`) and `profile.avatar` are
 all handled; a path hard-coded in a Vue file is not — use `<NuxtLink>`, or prefix
-it with `useRuntimeConfig().app.baseURL`. `pnpm check` reports these when the site
+it with `useRuntimeConfig().app.baseURL`. `check` reports these when the site
 uses a base path.
 
-**`vitakit-check: no generated site`** — run `pnpm generate` first; `pnpm check` does
+**`vitakit-check: no generated site`** — run `nuxt generate` first; `check` does
 both.
 
 **`… entry 2 is marked "cv" but its text appears in …`** — a non-public entry's title
@@ -84,7 +84,7 @@ appears on that page for another reason is a false positive: pass
 ## The PDF
 
 **`latexmk not found`** — install a TeX distribution (TeX Live, MacTeX), or use
-`pnpm build:cv --no-pdf` and let CI build the PDF.
+`build:cv --no-pdf` and let CI build the PDF.
 
 **The bibliography is empty** — biber has not run, or the `.bib` path in
 `\addbibresource` is wrong. `latexmk` runs biber automatically; delete
@@ -105,7 +105,7 @@ style, the PDF uses biblatex. To change the website's, see
 **A `<text variable="DOI"/>` in my CSL style prints nothing** — by design: an
 identifier vitakit already links (as the title link or a badge) is withheld from the
 style, so that it is not printed twice. Remove the badge in `schemas/publications.ts`
-(`pnpm vitakit eject publications`) if you would rather print it.
+(`vitakit eject publications`) if you would rather print it.
 
 **`… is a path on the website, and the PDF can only link it …`** — a link such as
 `/slides/talk.pdf` works on the website, but a PDF has no site to be relative to. Add
