@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "favicons": "node scripts/favicons.mjs"
   },
   "devDependencies": {
     "@anja.codes/vitakit": "workspace:*",
@@ -13,6 +14,7 @@
     "@shikijs/vitepress-twoslash": "^2.5.0",
     "github-slugger": "^2.0.0",
     "katex": "^0.18.10",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   }

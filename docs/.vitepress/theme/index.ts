@@ -3,10 +3,15 @@ import DefaultTheme from "vitepress/theme";
 import TwoslashFloatingVue from "@shikijs/vitepress-twoslash/client";
 import "@shikijs/vitepress-twoslash/style.css";
 import "katex/dist/katex.min.css";
+import './custom.css'
+import { useSyncedCodeGroups } from "./sync-code-groups";
 
 export default {
   extends: DefaultTheme,
   enhanceApp({ app }) {
     app.use(TwoslashFloatingVue);
+  },
+  setup() {
+    useSyncedCodeGroups();
   },
 } satisfies Theme;
