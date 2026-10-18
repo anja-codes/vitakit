@@ -30,7 +30,9 @@ other override mechanism to learn.
 }
 ```
 
-Tailwind reads these, so `text-primary` and `font-serif` follow everywhere.
+`--color-primary` changes the links; `--font-sans` changes the default text font.
+`--font-serif` only affects elements using `font-serif`; the scaffold does not use
+that class by default.
 
 Below that, the same file styles the classes vitakit components emit. They are yours
 to restyle; the components only provide structure.
@@ -72,12 +74,13 @@ Pages are ordinary files in `app/pages/`, scaffolded into your project and reada
 ```vue
 <script setup lang="ts">
 const profile = useProfile()
+const page = usePage('/')
 const talks = useSection('talks')
 </script>
 
 <template>
   <h1>{{ profile.name }}</h1>
-  <VitaMarkdown :html="profile.blurbHtml" />
+  <VitaMarkdown v-if="page" :html="page.bodyHtml" />
   <VitaSection :entries="talks" :limit="3" />
 </template>
 ```
@@ -114,6 +117,10 @@ prose, add `app/pages/outreach.vue`; a concrete route wins over the Markdown
 catch-all. `app/pages/publications.vue` is the worked example: prose from Markdown,
 then a component.
 
+To remove a page, delete its Markdown file and remove its navigation entry from
+`content/profile.yml`. If it also has a concrete route in `app/pages/`, delete that
+Vue file too.
+
 ## Layer 4 — the PDF
 
 See [CV documents](./cv-documents.md).
@@ -129,6 +136,11 @@ pnpm vitakit add outreach
 writes all three for you: a YAML stub, a schema, and a component. If
 `content/outreach.yml` already exists, the schema is **drafted from it** — types
 guessed from your data, ready to correct. Nothing is overwritten.
+
+The schema decides which fields are **accepted**, not which are **shown**. The
+generated component starts with date, title and note; edit it to display fields
+such as venue or audience. Adding a field to a built-in schema likewise does not
+change its renderer.
 
 The rest of this section describes what those files are, whether you wrote them
 by hand or not.
@@ -250,8 +262,8 @@ HTML:
 `VitaPublications` decides the groups, headings and list around them; eject it
 only to change those.
 
-This is the only command that creates files for you, and only because the path it
-copies from is inside `node_modules/.pnpm/…` and changes on every update.
+`eject` saves you finding a package default inside `node_modules/.pnpm/…`, whose
+path changes on every update.
 
 **An ejected file is yours forever**: improvements to it in later vitakit releases
 will not reach you. Everything that can carry a bug stays in the package, so this is
