@@ -6,7 +6,11 @@
  * the data — exactly as `cv.tex` decides them for the PDF.
  */
 const profile = useProfile()
-const page = usePage('/cv/')!
+const page = usePage('/cv/')
+
+if (!page) {
+  throw createError({ statusCode: 404, statusMessage: 'No page for /cv/ (expected content/pages/cv.md)', fatal: true })
+}
 
 const sections = [
   { id: 'employment', label: 'Employment' },
@@ -14,7 +18,7 @@ const sections = [
   { id: 'teaching', label: 'Teaching' },
   { id: 'supervision', label: 'Supervised theses' },
   { id: 'talks', label: 'Talks' },
-]
+].filter(section => useSection(section.id).length)
 
 useHead({
   title: `${page.title} – ${profile.name}`,
@@ -24,12 +28,10 @@ useHead({
 
 <template>
   <article>
-    <h1 class="text-3xl font-semibold">
-      {{ page.title }}
-    </h1>
+    <h1 class="text-3xl font-semibold" v-html="page.titleHtml" />
     <VitaMarkdown class="mt-6" :html="page.bodyHtml" />
 
-    <section v-for="section in sections" :key="section.id" class="mt-10">
+    <section v-for="section in sections" :id="section.id" :key="section.id" class="mt-10">
       <h2 class="text-xl font-semibold">
         {{ section.label }}
       </h2>
