@@ -36,10 +36,13 @@ const titleOf = (entry: Entry): string => {
   return (field && richHtml(entry[field])) || ''
 }
 
-const secondaryOf = (entry: Entry): string =>
-  entrySecondaryParts(entry, titleFieldOf(entry))
-    .map(part => (part.kind === 'institution' ? part.institution.name : part.text))
-    .join(' · ')
+const termOf = (entry: Entry): string | undefined =>
+  typeof entry.term === 'string' && entry.term.length > 0 ? entry.term : undefined
+
+const secondaryOf = (entry: Entry) =>
+  // A teaching term belongs in the date column, not in both places. Keep this
+  // web-only choice out of the shared field selection used by LaTeX.
+  entrySecondaryParts(termOf(entry) ? { ...entry, term: undefined } : entry, titleFieldOf(entry))
 
 const linkOf = (entry: Entry): string | undefined =>
   typeof entry.url === 'string' ? entry.url : undefined
@@ -48,13 +51,27 @@ const linkOf = (entry: Entry): string | undefined =>
 <template>
   <ul v-if="items.length" class="vita-section">
     <VitaEntry v-for="item in items" :key="item.id" :date="item.date as never">
+      <template v-if="termOf(item)" #date>{{ termOf(item) }}</template>
       <p class="vita-entry__title">
         <!-- eslint-disable vue/no-v-html -- build-time rendered Markdown -->
         <a v-if="linkOf(item)" :href="linkOf(item)" v-html="titleOf(item)" />
         <span v-else v-html="titleOf(item)" />
+        <span v-if="item.ongoing === true" class="vita-entry__status"> (in progress)</span>
       </p>
-      <p v-if="secondaryOf(item)" class="vita-entry__meta">{{ secondaryOf(item) }}</p>
+      <p v-if="secondaryOf(item).length" class="vita-entry__meta">
+        <template v-for="(part, index) in secondaryOf(item)" :key="index">
+          <template v-if="index"> · </template>
+          <template v-if="part.kind === 'institution'">
+            <a v-if="part.institution.url" :href="part.institution.url">{{ part.institution.name }}</a>
+            <template v-else>{{ part.institution.name }}</template>
+          </template>
+          <template v-else>{{ part.text }}</template>
+        </template>
+      </p>
       <p v-if="typeof item.note === 'string'" class="vita-entry__note">{{ item.note }}</p>
+      <p v-if="typeof item.slides === 'string' && item.slides" class="vita-entry__links">
+        <a :href="item.slides">Slides</a>
+      </p>
     </VitaEntry>
   </ul>
 </template>
