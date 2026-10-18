@@ -14,6 +14,8 @@ export {
   SECONDARY_FIELDS,
   INSTITUTION_FIELDS,
   type SecondaryPart,
+  type VitaSectionDisplay,
+  type VitaSectionSlotProps,
 } from './entry'
 export { richSource, richHtml } from './rich'
 export type * from './types'

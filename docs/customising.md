@@ -8,13 +8,13 @@ layer invalidates the previous one.
 |---|---|---|
 | 1 | YAML, Markdown, BibTeX | none |
 | 2 | `app/assets/css/main.css` | CSS variables |
-| 3 | `app/pages/*.vue` | rearranging markup |
+| 3 | `app/pages/*.vue`, component slots | rearranging markup |
 | 4 | `cv-tex/*.tex` | basic LaTeX |
 | 5 | `schemas/*.ts` | copying a typed example |
 | 6 | ejected components | Vue |
 
-**One rule governs all of it: a file in your repository always wins.** There is no
-other override mechanism to learn.
+**One rule governs file overrides: a file in your repository always wins.** For
+smaller markup changes, try component slots before copying a whole component.
 
 ---
 
@@ -109,6 +109,97 @@ across two, without touching the data.
 `VitaPublication`, `VitaMarkdown`, `VitaIssues`. All take props and emit markup; anything that could be
 *wrong* — sorting, date formatting, filtering, citation rendering — lives in the
 package, where it can be fixed for everyone.
+
+### Customising a section with slots
+
+Use `VitaSection` scoped slots to show an extra research detail or change a row's
+markup without ejecting. The component stays in the package, so you keep its
+updates. Without slots, rendering is unchanged.
+
+There are exactly four slots:
+
+| Slot | Replaces |
+|---|---|
+| `title` | the whole title region, including its wrapper, link and ongoing status |
+| `meta` | the whole secondary line, including its wrapper |
+| `note` | the whole note region, including its wrapper |
+| `default` | the entire body, including title, meta, note and links |
+
+All four receive the same typed context: `{ entry, index, display }`.
+`entry` is the current processed `Entry`, not raw YAML; custom fields remain
+`unknown`, with no schema-specific type generation. Narrow them with checks such
+as `typeof`. `index` is zero-based in the displayed list, after `limit`.
+
+`display` contains the values the default web renderer uses:
+
+| Field | Value |
+|---|---|
+| `titleHtml`, `titleUrl?` | rendered title HTML and optional title link |
+| `date?`, `term?` | `DateRange` and optional teaching-term label |
+| `meta` | structured `SecondaryPart[]`: `{ kind: 'text', text }` or `{ kind: 'institution', institution }`, retaining institution URLs |
+| `note?` | plain string |
+| `links` | `Link[]`, currently the Slides link |
+| `ongoing` | boolean |
+
+For example, supervision already accepts `coSupervisor`. Show it as a note while
+keeping the built-in title, metadata and links:
+
+```vue
+<VitaSection id="supervision">
+  <template #note="{ entry }">
+    <p v-if="typeof entry.coSupervisor === 'string'" class="vita-entry__note">
+      Co-supervisor: {{ entry.coSupervisor }}
+    </p>
+  </template>
+</VitaSection>
+```
+
+Named slots run even when the corresponding default field is absent. A supplied
+empty slot, or one whose condition renders nothing, hides that region rather
+than falling back. Supply your own wrapper, such as
+`<p class="vita-entry__meta">`, to retain the default styling.
+
+To replace the whole body, use `#default` (there is no `#body` alias). For a
+software section whose schema accepts `name` and `language`:
+
+```vue
+<VitaSection id="software">
+  <template #default="{ entry }">
+    <p v-if="typeof entry.name === 'string'" class="vita-entry__title">
+      {{ entry.name }}
+    </p>
+    <p v-if="typeof entry.language === 'string'" class="vita-entry__meta">
+      Written in {{ entry.language }}
+    </p>
+  </template>
+</VitaSection>
+```
+
+The default slot takes precedence over all named slots. It replaces the complete
+default body, including links, but keeps the list, each `<li>`, date column and
+body wrapper. There is no links slot: put custom links in the body, meta or note.
+There is no date slot on `VitaSection`, and these slots cannot change or hide the
+date column. For custom date content, use your own loop with `VitaEntry` and its
+`date` slot; for a different layout, use your own markup.
+
+For Markdown or math, use compiled, trusted HTML rather than interpolating the
+processed rich-text object. A title override can use `display.titleHtml`:
+
+```vue
+<VitaSection id="talks">
+  <template #title="{ display }">
+    <p class="vita-entry__title"><span v-html="display.titleHtml" /></p>
+  </template>
+</VitaSection>
+```
+
+For another compiled `richText` field, `richHtml` from
+`@anja.codes/vitakit/shared` reads its rendered HTML. Only pass trusted compiled
+HTML to `v-html`, never arbitrary raw YAML strings; use `{{ }}` for plain text.
+A title override also owns any title link or ongoing label you want to retain.
+
+Slots change this web rendering only: they do not change schemas, LaTeX output
+or your generated custom components.
 
 ### A new page
 
@@ -231,15 +322,15 @@ Two different axes, easily confused:
 | You want to change | Do this |
 |---|---|
 | what a section *contains* (fields) | `vitakit eject <section>`, then edit `schemas/<name>.ts` |
-| what a section *looks like* (markup) | `vitakit eject <Component>` |
+| what a section *looks like* (markup) | `VitaSection` slots first; `vitakit eject <Component>` for deeper changes |
 
-Adding a field to supervision is a schema change; restyling the list is an
-eject. Neither needs the other.
+Adding a field to supervision is a schema change; displaying it can be a slot
+change. Neither requires owning the whole component.
 
 ## Layer 6 — ejecting
 
-To change what a built-in component or TeX template *emits*, copy it into your
-project, where it then wins:
+When slots are not enough, or to change a TeX template, copy the built-in into
+your project, where it then wins:
 
 ::: code-group
 

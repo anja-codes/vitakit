@@ -3,15 +3,16 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { compileScript, compileTemplate, parse } from 'vue/compiler-sfc'
 import ts from 'typescript'
-import type { Component } from 'vue'
+import type { Component, Slots } from 'vue'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 
 const require = createRequire(import.meta.url)
 
-export function compileVue(file: URL, imports: Record<string, unknown> = {}): Component {
+/** Optional source lets tests compile real parent templates without temporary files. */
+export function compileVue(file: URL, imports: Record<string, unknown> = {}, source?: string): Component {
   const filename = file.pathname
-  const { descriptor, errors } = parse(readFileSync(file, 'utf8'), { filename })
+  const { descriptor, errors } = parse(source ?? readFileSync(file, 'utf8'), { filename })
   if (errors.length) throw errors[0]
   const script = compileScript(descriptor, { id: filename })
   const template = compileTemplate({
@@ -34,8 +35,8 @@ export function compileVue(file: URL, imports: Record<string, unknown> = {}): Co
   return Object.assign(exports.default!, { ssrRender: exports.ssrRender })
 }
 
-export async function renderVue(component: Component, props: Record<string, unknown>, components: Record<string, Component> = {}): Promise<string> {
-  const app = createSSRApp({ render: () => h(component, props) })
+export async function renderVue(component: Component, props: Record<string, unknown>, components: Record<string, Component> = {}, slots?: Slots): Promise<string> {
+  const app = createSSRApp({ render: () => h(component, props, slots) })
   for (const [name, child] of Object.entries(components)) app.component(name, child)
   return renderToString(app)
 }
