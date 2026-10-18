@@ -30,10 +30,10 @@ useHead({
         <h1 class="text-3xl font-semibold">
           {{ profile.name }}
         </h1>
-        <p v-if="profile.title" class="text-neutral-600">
+        <p v-if="profile.title || profile.affiliation" class="text-neutral-600">
           {{ profile.title }}
+          <template v-if="profile.title && profile.affiliation"> · </template>
           <template v-if="profile.affiliation">
-            ·
             <a v-if="profile.affiliation.url" :href="profile.affiliation.url">{{ profile.affiliation.name }}</a>
             <template v-else>{{ profile.affiliation.name }}</template>
           </template>

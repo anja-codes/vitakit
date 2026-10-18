@@ -6,7 +6,11 @@
  * escape hatch when a page needs prose *and* components.
  */
 const profile = useProfile()
-const page = usePage('/publications/')!
+const page = usePage('/publications/')
+
+if (!page) {
+  throw createError({ statusCode: 404, statusMessage: 'No page for /publications/ (expected content/pages/publications.md)', fatal: true })
+}
 
 useHead({
   title: `${page.title} – ${profile.name}`,
@@ -16,9 +20,7 @@ useHead({
 
 <template>
   <article>
-    <h1 class="text-3xl font-semibold">
-      {{ page.title }}
-    </h1>
+    <h1 class="text-3xl font-semibold" v-html="page.titleHtml" />
     <VitaMarkdown class="mt-6" :html="page.bodyHtml" />
     <VitaPublications class="mt-8" />
   </article>
