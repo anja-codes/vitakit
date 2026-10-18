@@ -14,6 +14,7 @@ import { existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { schemas } from './schemas'
+import { commands, detectPackageManager } from './package-manager'
 
 export interface AddOptions {
   /**
@@ -169,7 +170,7 @@ export async function addSection(id: string, rootDir: string, options: AddOption
     throw new Error(
       `"${id}" is a built-in section: create content/${id}.yml and it works.\n`
       + `  To change which fields it may contain, copy its schema into your project:\n`
-      + `      pnpm vitakit eject ${id}\n`
+      + `      ${commands(detectPackageManager(rootDir)).bin('vitakit', `eject ${id}`)}\n`
       + `  and edit schemas/${id}.ts.`,
     )
   }

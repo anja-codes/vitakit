@@ -11,6 +11,36 @@ export const DEPLOYMENTS = {
   'none': { label: 'None for now', keep: [], host: undefined },
 }
 
+/** Package managers a project can be written for; the first is the default. */
+export const PACKAGE_MANAGERS = ['pnpm', 'npm']
+
+/**
+ * The package manager that started `create`, from the user agent every package
+ * manager sets for the processes it runs (`npm/11.6.0 node/v22.18.0 …`).
+ * Anything but npm (pnpm, another one, or running this file directly) gets
+ * the default.
+ */
+export function detectPackageManager(userAgent = '') {
+  return userAgent.startsWith('npm/') ? 'npm' : 'pnpm'
+}
+
+/**
+ * The template is written for pnpm. For npm, its commands are translated in
+ * every text file (scripts, workflows, comments, the pages' own instructions),
+ * so a project never mentions a package manager its owner does not use.
+ */
+function forNpm(text, scripts) {
+  return text
+    // The pnpm setup step, together with the comment lines directly above it.
+    .replace(/^(?:[ \t]*#.*\n)*[ \t]*- uses: \S*pnpm\/action-setup@\S+\n/gm, '')
+    .replace(/cache: pnpm\b/g, 'cache: npm')
+    .replace(/pnpm install --frozen-lockfile/g, 'npm ci')
+    .replace(/pnpm vitakit\b/g, 'npx vitakit')
+    // `pnpm build:cv --no-pdf` -> `npm run build:cv -- --no-pdf`
+    .replace(/pnpm ([\w:-]+)((?: --?[\w-]+)*)/g, (command, script, args) =>
+      scripts.includes(script) ? `npm run ${script}${args ? ` --${args}` : ''}` : command)
+}
+
 /** YAML placeholders represent whole scalars; prose/TeX placeholders stay raw. */
 function fill(text, answers) {
   const values = {
@@ -29,6 +59,7 @@ function fill(text, answers) {
 }
 
 const TEXT_FILE = /\.(md|ya?ml|json|ts|vue|css|bib|tex|svg|txt|yml|template)$/
+const TEXT_NAMES = new Set(['package.json', '.gitignore', 'latexmkrc'])
 
 /** Internal creator implementation, separate from the interactive CLI. */
 export async function scaffold(target, answers) {
@@ -55,15 +86,27 @@ export async function scaffold(target, answers) {
     await rename(path, join(target, name))
   }
 
-  // Substitute placeholders in every text file.
+  const manifest = join(target, 'package.json')
+  const npm = answers.packageManager === 'npm'
+  const scripts = Object.keys(JSON.parse(await readFile(manifest, 'utf8')).scripts)
+
+  // Substitute placeholders in every text file, and translate commands for npm.
   const walk = async (dir) => {
     for (const item of await readdir(dir, { withFileTypes: true })) {
       const path = join(dir, item.name)
       if (item.isDirectory()) await walk(path)
-      else if (TEXT_FILE.test(item.name) || item.name === 'package.json' || item.name === '.gitignore') {
-        await writeFile(path, fill(await readFile(path, 'utf8'), answers))
+      else if (TEXT_FILE.test(item.name) || TEXT_NAMES.has(item.name)) {
+        const text = fill(await readFile(path, 'utf8'), answers)
+        await writeFile(path, npm ? forNpm(text, scripts) : text)
       }
     }
   }
   await walk(target)
+
+  // `packageManager` pins pnpm for Corepack and for pnpm/action-setup.
+  if (npm) {
+    const pkg = JSON.parse(await readFile(manifest, 'utf8'))
+    delete pkg.packageManager
+    await writeFile(manifest, `${JSON.stringify(pkg, null, 2)}\n`)
+  }
 }

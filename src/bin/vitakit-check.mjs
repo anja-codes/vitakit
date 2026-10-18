@@ -4,13 +4,17 @@
  */
 import process from 'node:process'
 import { checkStatic } from '../../dist/check.mjs'
+import { commands, detectPackageManager } from '../../dist/cli.mjs'
+
+// Commands in the help text are written the way this project runs them.
+const run = commands(detectPackageManager(process.cwd()))
 
 const HELP = `vitakit-check — verify the generated site
 
 Usage
-  pnpm check:static [--out <dir>]
+  ${run.script('check:static', '[--out <dir>]')}
 
-Run after \`nuxt generate\`; \`pnpm check\` does both. Checks the built HTML,
+Run after \`nuxt generate\`; \`${run.script('check')}\` does both. Checks the built HTML,
 not your content, because a schema cannot catch a renderer that silently did
 nothing:
 

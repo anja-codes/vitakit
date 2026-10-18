@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { addSection } from '../src/scaffold'
 import { eject } from '../src/cli'
 import { loadContent } from '../src/content'
@@ -135,6 +135,10 @@ describe('ejecting a built-in schema', () => {
 
   it('points at eject when add is used on a built-in section', async () => {
     const root = await project()
+    vi.stubEnv('npm_config_user_agent', 'pnpm/10.29.1 npm/? node/?')
     await expect(addSection('supervision', root)).rejects.toThrow(/pnpm vitakit eject supervision/)
+    vi.stubEnv('npm_config_user_agent', 'npm/11.19.0 node/v24.21.0')
+    await expect(addSection('supervision', root)).rejects.toThrow(/npx vitakit eject supervision/)
+    vi.unstubAllEnvs()
   })
 })

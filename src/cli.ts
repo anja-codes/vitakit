@@ -2,8 +2,9 @@
  * `@anja.codes/vitakit/cli` — the two commands that exist, and why only these.
  *
  * vitakit has no scaffolding CLI: a CV variant is a copied `.tex`, a page is a
- * new file. Ejecting is the exception, because the file to copy lives at a
- * pnpm store path nobody can type and that changes on every update.
+ * new file. Ejecting is the exception, because the file to copy lives inside
+ * node_modules, with pnpm at a store path nobody can type and that changes on
+ * every update.
  */
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -12,6 +13,7 @@ import { resolveAsset } from './assets'
 import { bundledTexDir } from './tex/emit'
 
 export { addSection, type AddOptions, type WrittenFile } from './scaffold'
+export { aligned, commands, detectPackageManager, type Commands, type PackageManager } from './package-manager'
 
 export interface EjectableItem {
   /** Name to pass to `eject`, e.g. `VitaSection`, `talks.eta` or `teaching`. */

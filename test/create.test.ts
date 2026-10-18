@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,7 @@ import { loadContent } from '../src/content'
 
 const creator = fileURLToPath(new URL('../create/index.mjs', import.meta.url))
 const scaffoldUrl = new URL('../create/scaffold.mjs', import.meta.url).href
+const { detectPackageManager } = await import(scaffoldUrl) as { detectPackageManager: (userAgent?: string) => string }
 const defaults = {
   name: 'Your Name',
   title: 'Postdoctoral Researcher',
@@ -32,7 +33,7 @@ afterEach(async () => {
 
 // Run the creator's import-safe implementation in native Node, just as the
 // published CLI does, without a bundler transforming it or an interactive TTY.
-function scaffold(root: string, answers = defaults) {
+function scaffold(root: string, answers: typeof defaults & { packageManager?: string } = defaults) {
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import { scaffold } from ${JSON.stringify(scaffoldUrl)}
     await scaffold(process.argv[1], JSON.parse(process.argv[2]))
@@ -118,14 +119,108 @@ describe('published creator personalisation', () => {
     const target = join(root, 'my-site')
     const output = execFileSync(process.execPath, [creator, target], {
       encoding: 'utf8',
-      env: { ...process.env, VITAKIT_CREATE_DEFAULTS: '1' },
+      env: { ...process.env, VITAKIT_CREATE_DEFAULTS: '1', npm_config_user_agent: 'pnpm/10.29.1 npm/? node/v22.18.0' },
     })
     expect(output).toContain(`Created ${target}`)
+    expect(output).toContain('pnpm install')
+    expect(output).toContain('pnpm dev')
     const profile = parseYaml(await readFile(join(target, 'content/profile.yml'), 'utf8'))
     expect(profile.name).toBe(defaults.name)
     expect(profile.title).toBe(defaults.title)
     expect(JSON.parse(await readFile(join(target, 'package.json'), 'utf8')).name).toBe('my-site')
     expect(await readFile(join(target, '.gitignore'), 'utf8')).toContain('node_modules')
     expect(await readFile(join(target, '.github/workflows/deploy.yml'), 'utf8')).toContain('GitHub Pages')
+  })
+})
+
+/** Every file of a scaffolded project, path relative to its root. */
+async function files(root: string, dir = root): Promise<Map<string, string>> {
+  const result = new Map<string, string>()
+  for (const item of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, item.name)
+    if (item.isDirectory()) for (const entry of await files(root, path)) result.set(...entry)
+    else result.set(path.slice(root.length + 1), await readFile(path, 'utf8'))
+  }
+  return result
+}
+
+describe('package manager', () => {
+  it.each([
+    ['npm/11.6.0 node/v22.18.0 darwin arm64 workspaces/false', 'npm'],
+    ['pnpm/10.29.1 npm/? node/v22.18.0 darwin arm64', 'pnpm'],
+    ['yarn/4.9.0 npm/? node/v22.18.0 darwin arm64', 'pnpm'],
+    ['bun/1.2.0 npm/? node/v22.18.0 darwin arm64', 'pnpm'],
+    ['', 'pnpm'],
+    [undefined, 'pnpm'],
+  ])('detects %j as %s', (userAgent, expected) => {
+    expect(detectPackageManager(userAgent)).toBe(expected)
+  })
+
+  it.each(['github-pages', 'cloudflare', 'rsync', 'none'])('writes an npm project without a trace of pnpm (%s)', async (deployment) => {
+    const root = await project()
+    scaffold(root, { ...defaults, deployment, packageManager: 'npm' })
+    const written = await files(root)
+
+    for (const [path, contents] of written) {
+      expect(contents, path).not.toMatch(/pnpm/)
+    }
+    const pkg = JSON.parse(written.get('package.json')!)
+    expect(pkg.packageManager).toBeUndefined()
+    expect(pkg.scripts.check).toBe('npm run typecheck && npm run generate && npm run check:static')
+  })
+
+  it('translates the workflows to npm', async () => {
+    const root = await project()
+    scaffold(root, { ...defaults, packageManager: 'npm' })
+    const deploy = await readFile(join(root, '.github/workflows/deploy.yml'), 'utf8')
+    const cv = await readFile(join(root, '.github/workflows/cv.yml'), 'utf8')
+
+    expect(deploy).toContain('cache: npm')
+    expect(deploy).toContain('- run: npm ci')
+    expect(deploy).toContain('- run: npm run check')
+    // the step after the removed pnpm setup follows checkout directly
+    expect(deploy).toMatch(/- uses: actions\/checkout@v\d+\n\s+- uses: actions\/setup-node@v\d+/)
+    expect(cv).toContain('- run: npm run build:cv -- --no-pdf')
+    expect(parseYaml(deploy).jobs.build.steps).toHaveLength(5)
+  })
+
+  it('translates the instructions in the project itself', async () => {
+    const root = await project()
+    scaffold(root, { ...defaults, packageManager: 'npm' })
+    expect(await readFile(join(root, 'content/pages/cv.md'), 'utf8')).toContain('`npm run build:cv`')
+    expect(await readFile(join(root, 'content/pages/index.md'), 'utf8')).toContain('`npx vitakit add outreach`')
+    expect(await readFile(join(root, 'cv-tex/cv.tex'), 'utf8')).toContain('npx vitakit eject vitakit-cv.cls')
+  })
+
+  it('leaves a pnpm project exactly as the template is', async () => {
+    const [implicit, explicit] = [await project(), await project()]
+    scaffold(implicit)
+    scaffold(explicit, { ...defaults, packageManager: 'pnpm' })
+    expect(await files(explicit)).toEqual(await files(implicit))
+    expect(JSON.parse(await readFile(join(implicit, 'package.json'), 'utf8')).packageManager).toMatch(/^pnpm@/)
+  })
+
+  it('prints npm commands when started by npm', async () => {
+    const root = await project()
+    const output = execFileSync(process.execPath, [creator, join(root, 'my-site')], {
+      encoding: 'utf8',
+      env: { ...process.env, VITAKIT_CREATE_DEFAULTS: '1', npm_config_user_agent: 'npm/11.6.0 node/v22.18.0' },
+    })
+    expect(output).toContain('npm install')
+    expect(output).toContain('npm run dev')
+    expect(output).toContain('npm run check')
+    expect(output).not.toMatch(/pnpm/)
+  })
+
+  it('falls back to pnpm when run directly, without a package manager', async () => {
+    const root = await project()
+    const target = join(root, 'my-site')
+    const { npm_config_user_agent: _, ...env } = process.env
+    const output = execFileSync(process.execPath, [creator, target], {
+      encoding: 'utf8',
+      env: { ...env, VITAKIT_CREATE_DEFAULTS: '1' },
+    })
+    expect(output).toContain('pnpm install')
+    expect(JSON.parse(await readFile(join(target, 'package.json'), 'utf8')).packageManager).toMatch(/^pnpm@/)
   })
 })

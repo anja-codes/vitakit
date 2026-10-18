@@ -12,6 +12,9 @@ pnpm build:cv       # cv-tex/cv.pdf (needs a TeX distribution)
 pnpm check          # what CI runs
 ```
 
+`npm create @anja.codes/vitakit my-site` works too: the project is then written
+for npm, with `npm run …` in its scripts, workflows and instructions.
+
 It asks for your name, position, affiliation, email and a deployment target
 (GitHub Pages, Cloudflare Pages, rsync, or none), copies the template and
 substitutes those few values.

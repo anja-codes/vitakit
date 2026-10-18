@@ -5,12 +5,15 @@
  */
 import process from 'node:process'
 import { relative } from 'node:path'
-import { addSection, eject, listEjectable } from '../../dist/cli.mjs'
+import { addSection, aligned, commands, detectPackageManager, eject, listEjectable } from '../../dist/cli.mjs'
+
+// Commands in help texts are written the way this project runs them.
+const run = commands(detectPackageManager(process.cwd()))
 
 const USAGE = `vitakit — files for a vitakit project
 
 Usage
-  pnpm vitakit <command> [options]
+  ${run.bin('vitakit', '<command> [options]')}
 
 Commands
   add <name>        set up a new section: content file, schema, component
@@ -20,8 +23,10 @@ Commands
 Run a command with --help for details and examples.
 
 Related commands, from the same package:
-  pnpm build:cv     render content/ into cv-tex/ and run latexmk
-  pnpm check        typecheck, generate the site, and verify the output
+${aligned([
+  [run.script('build:cv'), 'render content/ into cv-tex/ and run latexmk'],
+  [run.script('check'), 'typecheck, generate the site, and verify the output'],
+])}
 `
 
 const HELP = {
@@ -31,7 +36,7 @@ A section is a file in content/, a schema describing what it may contain, and
 usually a component deciding how it looks. This writes whichever of those are
 missing; it never overwrites a file you have.
 
-  pnpm vitakit add outreach
+  ${run.bin('vitakit', 'add outreach')}
 
   content/outreach.yml                 your data — edit this first
   schemas/outreach.ts                  the shape of an entry
@@ -41,7 +46,7 @@ If content/<name>.yml already exists, the schema is drafted from it: field
 types are guessed from your data — dates, URLs, enums, and which fields are
 optional — so you correct a draft instead of writing one.
 
-  pnpm vitakit add outreach            # after writing content/outreach.yml
+${aligned([[run.bin('vitakit', 'add outreach'), '# after writing content/outreach.yml']])}
 
 Options
   --no-component    do not write a component; the section then renders through
@@ -79,14 +84,16 @@ Prints each item, what kind of thing it is, and where a copy would land:
 
 The copy wins from then on: vitakit always prefers a file in your project over
 its own. This is the only command that exists purely for convenience — the
-files live inside node_modules/.pnpm/…, at a path that changes with every
-update, so copying them by hand is impractical.
+files live deep inside node_modules/, where finding them is tedious and any
+edit is lost on the next install.
 
-  pnpm vitakit eject VitaSection       # restyle how sections look
-  pnpm vitakit eject teaching          # add or remove fields of a section
-  pnpm vitakit eject talks.eta         # change how talks appear in the PDF
-  pnpm vitakit eject publications.csl  # change the citation style of the website
-  pnpm vitakit eject vitakit-cv.cls    # take over the LaTeX document class
+${aligned([
+  [run.bin('vitakit', 'eject VitaSection'), '# restyle how sections look'],
+  [run.bin('vitakit', 'eject teaching'), '# add or remove fields of a section'],
+  [run.bin('vitakit', 'eject talks.eta'), '# change how talks appear in the PDF'],
+  [run.bin('vitakit', 'eject publications.csl'), '# change the citation style of the website'],
+  [run.bin('vitakit', 'eject vitakit-cv.cls'), '# take over the LaTeX document class'],
+])}
 
 Use \`vitakit list\` to see the names.
 
@@ -136,10 +143,10 @@ try {
     for (const item of items) {
       console.log(`${item.name.padEnd(width)}  ${item.kind.padEnd(9)}  -> ${item.target}`)
     }
-    console.log('\nCopy one with `pnpm vitakit eject <name>`; see --help for what each kind does.')
+    console.log(`\nCopy one with \`${run.bin('vitakit', 'eject <name>')}\`; see --help for what each kind does.`)
   } else if (command === 'eject') {
     const name = rest.find(argument => !argument.startsWith('-'))
-    if (!name) throw new Error(`missing name. Run \`pnpm vitakit list\` to see the options.`)
+    if (!name) throw new Error(`missing name. Run \`${run.bin('vitakit', 'list')}\` to see the options.`)
     const { item, path } = await eject(name, root, { force: rest.includes('--force') })
     console.log(`vitakit: wrote ${relative(root, path)}`)
     const hints = {

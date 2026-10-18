@@ -24,7 +24,10 @@ const creator = join(root, 'create/index.mjs')
 
 function run(command, args, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit', env: { ...process.env, VITAKIT_CREATE_DEFAULTS: '1' } })
+    // The creator writes the project for the package manager that started it;
+    // the committed example is the pnpm variant, however this script was run.
+    const env = { ...process.env, VITAKIT_CREATE_DEFAULTS: '1', npm_config_user_agent: 'pnpm' }
+    const child = spawn(command, args, { cwd, stdio: 'inherit', env })
     child.on('error', reject)
     child.on('exit', code => (code === 0 ? resolve() : reject(new Error(`${command} exited with ${code}`))))
   })

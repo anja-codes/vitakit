@@ -4,19 +4,25 @@
  */
 import process from 'node:process'
 import { buildCv } from '../../dist/tex.mjs'
+import { aligned, commands, detectPackageManager } from '../../dist/cli.mjs'
+
+// Commands in the help text are written the way this project runs them.
+const run = commands(detectPackageManager(process.cwd()))
 
 const HELP = `vitakit-build-cv — build the PDF documents in cv-tex/
 
 Usage
-  pnpm build:cv [document...] [options]
+  ${run.script('build:cv', '[document...] [options]')}
 
 Renders content/ into cv-tex/generated/<document>/, one .tex file per section,
 then runs latexmk. The finished PDF is written next to its source, as
 cv-tex/<document>.pdf; everything else stays in the generated directory.
 
-  pnpm build:cv                  every document in cv-tex/
-  pnpm build:cv cv               just cv.tex
-  pnpm build:cv cv application   several
+${aligned([
+  [run.script('build:cv'), 'every document in cv-tex/'],
+  [run.script('build:cv', 'cv'), 'just cv.tex'],
+  [run.script('build:cv', 'cv application'), 'several'],
+])}
 
 Options
   --no-pdf     write the .tex files but do not run latexmk. Useful without a
