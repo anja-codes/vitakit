@@ -1,5 +1,5 @@
 ---
-title: Your Name
+title: "Your Name"
 order: 0
 ---
 
