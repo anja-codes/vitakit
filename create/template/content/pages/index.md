@@ -1,5 +1,5 @@
 ---
-title: __NAME__
+title: __YAML_NAME__
 order: 0
 ---
 

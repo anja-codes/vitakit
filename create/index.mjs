@@ -6,74 +6,16 @@
  * a deployment workflow. Deliberately the *only* scaffolding step vitakit has:
  * everything afterwards is editing files in a repository you own.
  */
-import { cp, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { basename, resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import process from 'node:process'
-
-const TEMPLATE = fileURLToPath(new URL('template', import.meta.url))
-
-const DEPLOYMENTS = {
-  'github-pages': { label: 'GitHub Pages (public repository)', keep: ['deploy.yml', 'cv.yml'], host: '_github' },
-  'cloudflare': { label: 'Cloudflare Pages (works with a private repository)', keep: ['cloudflare.yml', 'cv.yml'], host: '_github' },
-  'rsync': { label: 'Web space via rsync (Forgejo)', keep: ['deploy.yml'], host: '_forgejo' },
-  'none': { label: 'None for now', keep: [], host: undefined },
-}
+import { DEPLOYMENTS, scaffold } from './scaffold.mjs'
 
 function slugify(value) {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'my-site'
-}
-
-/** Replace the placeholders the template uses. */
-function fill(text, answers) {
-  return text
-    .replaceAll('__NAME__', answers.name)
-    .replaceAll('__TITLE__', answers.title)
-    .replaceAll('__AFFILIATION__', answers.affiliation)
-    .replaceAll('__EMAIL__', answers.email)
-    .replaceAll('__SLUG__', answers.slug)
-}
-
-const TEXT_FILE = /\.(md|ya?ml|json|ts|vue|css|bib|tex|svg|txt|yml|template)$/
-
-async function scaffold(target, answers) {
-  await mkdir(target, { recursive: true })
-  await cp(TEMPLATE, target, { recursive: true })
-
-  // Files that cannot be shipped under their final name: `.gitignore` is
-  // excluded by npm, and `package.json` would make the template a workspace.
-  for (const [from, to] of [['.gitignore.template', '.gitignore'], ['package.json.template', 'package.json']]) {
-    await rename(join(target, from), join(target, to))
-  }
-
-  const deployment = DEPLOYMENTS[answers.deployment]
-  for (const [dir, name] of [['_github', '.github'], ['_forgejo', '.forgejo']]) {
-    const path = join(target, dir)
-    if (deployment.host !== dir) {
-      await rm(path, { recursive: true, force: true })
-      continue
-    }
-    const workflows = join(path, 'workflows')
-    for (const file of await readdir(workflows)) {
-      if (!deployment.keep.includes(file)) await rm(join(workflows, file))
-    }
-    await rename(path, join(target, name))
-  }
-
-  // Substitute placeholders in every text file.
-  const walk = async (dir) => {
-    for (const item of await readdir(dir, { withFileTypes: true })) {
-      const path = join(dir, item.name)
-      if (item.isDirectory()) await walk(path)
-      else if (TEXT_FILE.test(item.name) || item.name === 'package.json' || item.name === '.gitignore') {
-        await writeFile(path, fill(await readFile(path, 'utf8'), answers))
-      }
-    }
-  }
-  await walk(target)
 }
 
 async function main() {

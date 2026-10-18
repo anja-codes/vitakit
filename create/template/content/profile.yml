@@ -1,9 +1,9 @@
 # You, and the shape of your site. The only file that is not a CV section.
-name: __NAME__
-title: __TITLE__
+name: __YAML_NAME__
+title: __YAML_TITLE__
 affiliation:
-  name: __AFFILIATION__
-email: __EMAIL__
+  name: __YAML_AFFILIATION__
+email: __YAML_EMAIL__
 
 # Where the site is published. Only the PDF needs it, to link files on the
 # site such as /slides/talk.pdf; delete the # once you know the address.
@@ -19,8 +19,7 @@ links:
 
 # One or two sentences for search engines and link previews. What visitors
 # read is content/pages/index.md, not this.
-summary: >-
-  __TITLE__ at __AFFILIATION__, working on your research area.
+summary: __YAML_SUMMARY__
 
 # Navigation, in the order it should appear. Adding a page does not change
 # this list: the wording and the order are yours.

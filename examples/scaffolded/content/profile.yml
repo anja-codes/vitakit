@@ -1,9 +1,9 @@
 # You, and the shape of your site. The only file that is not a CV section.
-name: Your Name
-title: Postdoctoral Researcher
+name: "Your Name"
+title: "Postdoctoral Researcher"
 affiliation:
-  name: Department of Mathematics, University of Graz
-email: you@example.org
+  name: "Department of Mathematics, University of Graz"
+email: "you@example.org"
 
 # Where the site is published. Only the PDF needs it, to link files on the
 # site such as /slides/talk.pdf; delete the # once you know the address.
@@ -19,8 +19,7 @@ links:
 
 # One or two sentences for search engines and link previews. What visitors
 # read is content/pages/index.md, not this.
-summary: >-
-  Postdoctoral Researcher at Department of Mathematics, University of Graz, working on your research area.
+summary: "Postdoctoral Researcher at Department of Mathematics, University of Graz, working on your research area."
 
 # Navigation, in the order it should appear. Adding a page does not change
 # this list: the wording and the order are yours.
