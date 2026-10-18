@@ -54,7 +54,8 @@ export default section({
 ```
 
 Check what it guessed — especially the enum, which may need more values than
-your current entries show.
+your current entries show. The schema controls accepted fields; the generated
+component starts with date, title and note. Edit the component to show other fields.
 
 | Option | |
 |---|---|
@@ -134,8 +135,9 @@ Two are worth knowing about: **nothing marked `visibility: cv` or `private` may
 appear in the site**, and every asset and link — `href`, `src`, `srcset`,
 `poster`, … — must use the deployment base path, a check that only bites when
 the site is served from a subdirectory, which is exactly when it is hard to
-notice by hand. Every such link must also lead somewhere: `slides: /slides/talk.pdf`
-fails the check until `public/slides/talk.pdf` exists.
+notice by hand. Every such link must also lead somewhere: a Markdown link
+`[Slides](/slides/talk.pdf)` fails the check until `public/slides/talk.pdf` exists.
+The check inspects links emitted into HTML, not URL fields that a renderer omits.
 
 The checks assume nothing about *what* your site contains: which pages exist
 comes from `content/pages/`, and a bibliography is only checked where it is

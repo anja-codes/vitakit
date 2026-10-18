@@ -27,6 +27,7 @@
   },
   "files": [
     "index.mjs",
+    "scaffold.mjs",
     "template",
     "README.md",
     "LICENSE"
