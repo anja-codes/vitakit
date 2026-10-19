@@ -202,6 +202,15 @@ describe('explain', () => {
     expect(route.out).toMatch(/menu\s+in the menu/)
   })
 
+  it('a copied document that still names the original', async () => {
+    const root = await project()
+    await cp(join(root, 'cv-tex/cv.tex'), join(root, 'cv-tex/application-eth.tex'))
+    const result = await cli(['explain', 'application-eth'], { cwd: root })
+    expect(result.out).toMatch(/settings\s+none \(no cv-tex\/application-eth\.yml\) · visibility: cv/)
+    expect(result.out).toMatch(/cv-tex\/application-eth\.tex:\d+\n\s+\\vitadocument\{cv\} does not match the file name; expected \\vitadocument\{application-eth\}/)
+    expect((await cli(['validate'], { cwd: root })).code).toBe(1)
+  })
+
   it('asks which one when a section and a document share a name', async () => {
     const root = await project({ 'content/cv.yml': '[]\n', 'schemas/cv.ts': `import { section, text } from '${join(process.cwd(), 'src/index.ts')}'\nexport default section({ title: text })\n` })
     const result = await cli(['explain', 'cv'], { cwd: root })
