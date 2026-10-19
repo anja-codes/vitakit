@@ -16,6 +16,10 @@ website and the PDF build:
 | `vitakit status` | what is in this project, what is broken, where sections appear |
 | `vitakit explain <name>` | where a section, PDF document or page comes from, and where it goes |
 | `vitakit validate` | check everything a build would check, without building |
+| `vitakit add section <name>` | a section: its file, a schema drafted from your entries, its place on a page and in a PDF |
+| `vitakit add field <section> <name>` | one more field a section accepts |
+| `vitakit add page <name>` | a website page that can show sections, in the menu |
+| `vitakit customize <section>` | make one section yours: what its entries may contain |
 | `vitakit pdf` | build the PDF documents (what the `pdf` script runs) |
 | `vitakit verify` | check the generated website (the last step of `check`) |
 | `vitakit eject <file>` | take over a shared vitakit file (advanced) |
@@ -149,6 +153,165 @@ reports all problems at once:
 It exits with 1 if anything is wrong. It is not a replacement for `check`,
 which builds the website and checks what was built.
 
+## `vitakit add section <name>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add section grants
+```
+
+```bash [npm]
+npx vitakit add section grants
+```
+
+:::
+
+A section is a file `content/<name>.yml`. `add section` creates whatever is
+missing, and asks where the section should appear:
+
+```
+Show grants on which page of your website?
+  1  /  (app/pages/index.vue)
+  2  /cv/  (app/pages/cv.vue)   (Enter)
+  3  /publications/  (app/pages/publications.vue)
+  4  a new page, /grants/
+  5  not on the website, for now
+```
+
+then shows everything it is about to do, and asks before writing:
+
+```
+= content/grants.yml   2 entries
++ schemas/grants.ts   drafted from the 2 entries in content/grants.yml; check its comments
+    import { dateRange, linked, richText, section, text, z } from '@anja.codes/vitakit'
+
+    export default section({
+      date: dateRange,
+      // Markdown and $math$ allowed
+      title: richText,
+      // a name, or { name, url }
+      funder: linked,
+      amount: z.number(),
+      role: text,
+    })
+~ app/pages/cv.vue   shows grants after education
+        <VitaSection id="education" title="Education" />
+  +     <VitaSection id="grants" title="Grants" />
+~ cv-tex/cv.tex   includes grants after education
+    \vitasection[Education]{education}
+  + \vitasection[Grants]{grants}
+
+Write these changes? [Y/n]
+```
+
+**Write your entries first**, and the schema is drafted from them: every value
+of every entry is looked at, nothing is restricted on a guess, and what could
+reasonably be different is said in a comment above the field — a set of values
+that could be a fixed list, a date written in a form vitakit does not read, a
+field name that needs quotes. If an entry does not fit the draft (an empty
+value, a number in one entry and text in another), you are told which entry
+and what to change. Without a file, you get one example entry and a schema with
+date, title and note.
+
+A **built-in** section (education, employment, teaching, talks, supervision)
+needs no schema; for it, `add section` only creates the file, empty, with an
+example entry as a comment. A section whose entries fit another section's
+schema can share it: `--like talks`.
+
+Where it appears is one line in each place, after the section you choose —
+`<VitaSection id="grants" title="Grants" />` in a page, `\vitasection[Grants]{grants}`
+in a PDF document — exactly what you would have written. Running it again only
+adds what is missing.
+
+| Option | |
+|---|---|
+| `--page <route>` | show it on this page, e.g. `/cv/`; a route like `/grants/` that does not exist yet becomes a new page |
+| `--document <name>` | include it in this PDF document, e.g. `cv` |
+| `--after <section>` | place it after this section, on the page and in the document |
+| `--title <text>` | its heading |
+| `--like <section>` | use that section's schema |
+
+## `vitakit add field <section> <name>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add field teaching evaluation --type number
+```
+
+```bash [npm]
+npx vitakit add field teaching evaluation --type number
+```
+
+:::
+
+Lets a section accept one more field. Without `--type`, it asks:
+
+| Type | In YAML |
+|---|---|
+| `text` | `Analysis 1` |
+| `formatted-text` | Markdown and `$math$` |
+| `number` | `4.6` |
+| `yes-no` | `true` |
+| `date` | `2024`, `2024-03`, `{ from: 2019, to: present }` |
+| `web-address` | `https://…`, `/slides/talk.pdf` |
+| `link` | `University of Graz`, or `{ name: University of Graz, url: https://… }` |
+| `choice` | one of the values given with `--choice`, once per value |
+
+`--several` allows a list of them, `--required` makes every entry need it.
+
+For a built-in section, the first field creates `schemas/<section>.ts`, which
+keeps all of vitakit's fields and adds yours; later fields are added to that
+file, without touching anything else in it. In a schema the command cannot
+change safely — one you have rewritten in your own way — it shows the line to
+paste instead.
+
+**A field that is accepted is not shown yet.** Showing it on the website or in
+the PDF is the next step.
+
+## `vitakit add page <name>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add page talks --title Talks
+```
+
+```bash [npm]
+npx vitakit add page talks --title Talks
+```
+
+:::
+
+A page at `/talks/` that can show sections: `content/pages/talks.md` for its
+title and text, `app/pages/talks.vue` for its sections, and an entry in the menu
+in `content/profile.yml` (`--no-menu` leaves the menu alone). A page that is
+only text needs no command: it is one Markdown file in `content/pages/`.
+
+## `vitakit customize <section> --schema`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching --schema          # add fields to a built-in section
+pnpm vitakit customize teaching --schema --copy   # take over its whole definition
+pnpm vitakit customize publications               # groups, badges and fields
+```
+
+```bash [npm]
+npx vitakit customize teaching --schema          # add fields to a built-in section
+npx vitakit customize teaching --schema --copy   # take over its whole definition
+npx vitakit customize publications               # groups, badges and fields
+```
+
+:::
+
+Without `--copy`, `schemas/<section>.ts` keeps vitakit's fields — which keep
+improving — and adds yours. With `--copy` it is vitakit's complete definition,
+to change or remove any rule; later improvements to it will not reach you. An
+existing schema is never replaced.
+
 ## `pdf`
 
 ::: code-group
@@ -253,6 +416,9 @@ given.
 | `--no-pdf` | `--tex-only` |
 | `check:static` script, `vitakit-check` | `vitakit verify` |
 | `vitakit list` | `vitakit eject --list` |
+| `vitakit add <name>` | `vitakit add section <name>` |
+| `vitakit eject <section>` (a schema) | `vitakit customize <section> --schema --copy` |
+| `vitakit eject publications` | `vitakit customize publications` |
 
 In an existing project, change the scripts in `package.json` to
 `"pdf": "vitakit pdf"` and

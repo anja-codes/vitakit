@@ -253,14 +253,15 @@ npx vitakit add section outreach
 
 :::
 
-writes all three for you: a YAML stub, a schema, and a component. If
-`content/outreach.yml` already exists, the schema is **drafted from it** — types
-guessed from your data, ready to correct. Nothing is overwritten.
+writes what is missing: a YAML stub, a schema, and one line on a page and in a
+PDF document, where you choose. If `content/outreach.yml` already exists, the
+schema is **drafted from it** — types guessed from your data, ready to correct.
+Nothing is overwritten. See [commands](./cli.md#vitakit-add-section-name).
 
 The schema decides which fields are **accepted**, not which are **shown**. The
-generated component starts with date, title and note; edit it to display fields
-such as venue or audience. Adding a field to a built-in schema likewise does not
-change its renderer.
+standard layout shows date, title, the usual secondary fields and a note; to
+display fields such as venue or audience, use [slots](#customising-a-section-with-slots).
+Adding a field to a built-in schema likewise does not change its renderer.
 
 The rest of this section describes what those files are, whether you wrote them
 by hand or not.
@@ -291,42 +292,31 @@ Build the schema from the vitakit primitives (`dateRange`, `linked`,
 `richText`, `text`, `url`) and your section sorts, filters and formats like a
 built-in one. `visibility` is added for you.
 
-**3.** A page, or nothing at all
+**3.** A line on a page, and one in a PDF document
 
-`useSection('outreach')` is available immediately, and `<VitaSection id="outreach" />`
-renders it without a component of your own. The PDF gets it too:
-`\vitasection{outreach}` in `cv-tex/cv.tex`.
+`useSection('outreach')` is available immediately, and
+`<VitaSection id="outreach" title="Outreach" />` renders it without a component
+of your own. The PDF gets it with `\vitasection[Outreach]{outreach}` in
+`cv-tex/cv.tex`.
 
 ### Changing a built-in section
 
-Copy its schema into your project and edit it:
+To accept one more field, let the command write it:
 
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit customize teaching --schema  # -> schemas/teaching.ts
+pnpm vitakit add field teaching evaluationScore --type number
 ```
 
 ```bash [npm]
-npx vitakit customize teaching --schema  # -> schemas/teaching.ts
+npx vitakit add field teaching evaluationScore --type number
 ```
 
 :::
 
-The file is the definition vitakit itself uses, not a paraphrase, so adding a
-field is editing a list:
-
-```ts
-export default section({
-  date: dateRange,
-  title: richText,
-  evaluationScore: z.number().optional(),   // added
-  …
-})
-```
-
-A schema in your repository always wins for `content/teaching.yml`. If you would
-rather extend the built-in than own the whole shape:
+The first field creates `schemas/teaching.ts`, which keeps vitakit's fields and
+adds yours; you can also write it yourself:
 
 ```ts twoslash
 import { schemas, extendSection, z } from '@anja.codes/vitakit'
@@ -336,13 +326,32 @@ export default extendSection(schemas.teaching, {
 })
 ```
 
+A field listed there that vitakit already has replaces vitakit's rule for it.
+To change or remove built-in rules wholesale, take over the whole definition —
+the file vitakit itself uses, not a paraphrase:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching --schema --copy  # -> schemas/teaching.ts
+```
+
+```bash [npm]
+npx vitakit customize teaching --schema --copy  # -> schemas/teaching.ts
+```
+
+:::
+
+A schema in your repository always wins for `content/teaching.yml`; a copied one
+no longer gets vitakit's improvements to it.
+
 ### Eject or schema?
 
 Two different axes, easily confused:
 
 | You want to change | Do this |
 |---|---|
-| what a section *contains* (fields) | `vitakit customize <section> --schema`, then edit `schemas/<name>.ts` |
+| what a section *contains* (fields) | `vitakit add field <section> <name>`, or edit `schemas/<name>.ts` |
 | what a section *looks like* (markup) | `VitaSection` slots first; `vitakit eject <Component>` for deeper changes |
 
 Adding a field to supervision is a schema change; displaying it can be a slot

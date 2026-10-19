@@ -35,7 +35,7 @@ async function explainSection(context: CommandContext, inv: Inventory, section: 
       ...(field.fields ?? []).map(child => [`    ${child.path}`, fieldSummary(child)]),
     ])))
   } else if (section.schema.origin === 'none') {
-    lines.push('', `  There is no built-in schema for "${section.id}". Create`, STARTER(section.id))
+    lines.push('', `  There is no built-in schema for "${section.id}". \`${context.run.bin('vitakit', `add section ${section.id}`)}\``, '  drafts one from its entries; or write', STARTER(section.id))
   }
   lines.push('')
 

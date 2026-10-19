@@ -42,6 +42,8 @@ export interface CommandSpec {
   options: Record<string, OptionSpec>
   /** Longer help after the usage line; receives the project's invocation. */
   help: (run: Commands) => string
+  /** Usage lines, when one generated from the positionals does not say enough. */
+  usage?: (run: Commands) => string[]
   /** Whether the command needs a project root. */
   project: boolean
   /** Whether `--json` is accepted. */
@@ -131,7 +133,7 @@ export function commandHelp(spec: CommandSpec, run: Commands): string {
     `vitakit ${spec.name} — ${spec.summary}`,
     '',
     'Usage',
-    `  ${usageLine(spec, run)}`,
+    ...(spec.usage ? spec.usage(run) : [usageLine(spec, run)]).map(line => `  ${line}`),
     '',
     spec.help(run).trim(),
     '',

@@ -107,9 +107,13 @@ async function newest(paths: string[]): Promise<number> {
   return latest
 }
 
-/** `export { default } from './talks'`: a schema shared with another section. */
+/**
+ * A schema shared with another section: `export { default } from './talks'`,
+ * or a built-in one as it is, `export default schemas.talks`.
+ */
 function sharedSchema(source: string): string | undefined {
   return /export\s*\{\s*default\s*\}\s*from\s*['"]\.\/([a-z0-9-]+)(?:\.ts)?['"]/.exec(source)?.[1]
+    ?? /^export\s+default\s+schemas\.([a-z]\w*)\s*;?\s*$/m.exec(source)?.[1]
 }
 
 function belongsTo(problem: Problem, file: SectionFile): boolean {

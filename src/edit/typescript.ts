@@ -34,7 +34,8 @@ export interface SchemaModule {
   properties: { start: number, end: number }[]
 }
 
-export type Recognized<T> = { ok: true, value: T } | { ok: false, reason: string }
+export type { Recognized } from './text'
+import type { Recognized } from './text'
 
 function parseModule(source: string) {
   return parse(source, { sourceType: 'module', plugins: ['typescript'] }).program

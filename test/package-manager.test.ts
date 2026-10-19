@@ -73,6 +73,8 @@ describe('help texts', () => {
     [['pdf', '--help']],
     [['verify', '--help']],
     [['eject', '--help']],
+    [['add', '--help']],
+    [['customize', '--help']],
   ])('vitakit %s speaks npm when run by npm, pnpm when run by pnpm', async (args) => {
     const npm = await help(args, 'npm/11.19.0 node/v24.21.0')
     expect(npm).not.toMatch(/pnpm/)

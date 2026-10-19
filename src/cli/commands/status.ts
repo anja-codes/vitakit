@@ -99,7 +99,7 @@ Next: \`${run.bin('vitakit', 'explain <section>')}\` for the details of one sect
     }
     if (count) {
       lines.push(`${count} ${count === 1 ? 'problem' : 'problems'}. Details: \`${run.bin('vitakit', 'validate')}\`${
-        missingSchemas.length ? `; for a section without schema: \`${run.bin('vitakit', `explain ${missingSchemas[0]!.id}`)}\`` : ''}`)
+        missingSchemas.length ? `; to draft a schema from a section's entries: \`${run.bin('vitakit', `add section ${missingSchemas[0]!.id}`)}\`` : ''}`)
     } else {
       lines.push(style.green('No problems.'))
     }

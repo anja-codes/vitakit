@@ -6,13 +6,13 @@
  * while building the plan, so a refused plan has changed nothing.
  */
 import { existsSync } from 'node:fs'
-import { mkdir, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { CommandError } from './command'
 import type { Io, Style } from './io'
 
 export type PlanItem
-  = | { kind: 'create', path: string, content: string, reason: string }
+  = | { kind: 'create', path: string, content: string, reason: string, show?: boolean }
     | { kind: 'replace', path: string, content: string, reason: string }
     | { kind: 'edit', path: string, before: string, after: string, reason: string }
     | { kind: 'keep', path: string, reason: string }
@@ -45,7 +45,10 @@ export function diff(before: string, after: string, context = 2): string[] {
 export function printPlan(io: Io, style: Style, _root: string, plan: Plan): void {
   const lines: string[] = []
   for (const item of plan.items) {
-    if (item.kind === 'create') lines.push(`${style.green('+')} ${item.path}   ${style.dim(item.reason)}`)
+    if (item.kind === 'create') {
+      lines.push(`${style.green('+')} ${item.path}   ${style.dim(item.reason)}`)
+      if (item.show) lines.push(...item.content.trimEnd().split('\n').map(line => style.dim(`    ${line}`)))
+    }
     else if (item.kind === 'replace') lines.push(`${style.yellow('!')} ${item.path}   ${style.dim(item.reason)}`)
     else if (item.kind === 'keep') lines.push(`${style.dim('=')} ${item.path}   ${style.dim(item.reason)}`)
     else if (item.kind === 'edit') {
@@ -106,4 +109,66 @@ export async function applyPlan(root: string, plan: Plan): Promise<string[]> {
       written.length ? `\n  Already written: ${written.join(', ')}` : '\n  Nothing was written.'}`)
   }
   return written
+}
+
+/**
+ * The project as a command is about to change it. Operations read files
+ * through it -- seeing what earlier operations of the same command already
+ * planned -- and record what they would write; nothing touches the disk until
+ * the plan is applied.
+ */
+export class Workspace {
+  private readonly items: PlanItem[] = []
+
+  constructor(readonly root: string) {}
+
+  private find(path: string): PlanItem | undefined {
+    return this.items.find(item => item.path === path && item.kind !== 'paste' && item.kind !== 'keep')
+  }
+
+  /** The file as it will be: planned contents first, the disk otherwise. */
+  async read(path: string): Promise<string | undefined> {
+    const planned = this.find(path)
+    if (planned?.kind === 'create' || planned?.kind === 'replace') return planned.content
+    if (planned?.kind === 'edit') return planned.after
+    return readFile(join(this.root, path), 'utf8').catch(() => undefined)
+  }
+
+  exists(path: string): boolean {
+    return Boolean(this.find(path)) || existsSync(join(this.root, path))
+  }
+
+  /** A new file; `show` prints its contents in the plan, for short files worth reading. */
+  create(path: string, content: string, reason: string, { show = false }: { show?: boolean } = {}): void {
+    if (this.exists(path)) throw new CommandError(`${path} exists already; nothing was written`)
+    this.items.push({ kind: 'create', path, content, reason, ...(show ? { show } : {}) })
+  }
+
+  /** Change a file; for a file this plan creates, the change becomes part of it. */
+  async edit(path: string, after: string, reason: string): Promise<void> {
+    const planned = this.find(path)
+    if (planned?.kind === 'create' || planned?.kind === 'replace') {
+      planned.content = after
+      return
+    }
+    if (planned?.kind === 'edit') {
+      planned.after = after
+      planned.reason = `${planned.reason}; ${reason}`
+      return
+    }
+    const before = await readFile(join(this.root, path), 'utf8')
+    this.items.push({ kind: 'edit', path, before, after, reason })
+  }
+
+  keep(path: string, reason: string): void {
+    this.items.push({ kind: 'keep', path, reason })
+  }
+
+  paste(path: string, snippet: string, reason: string): void {
+    this.items.push({ kind: 'paste', path, snippet, reason })
+  }
+
+  plan(): Plan {
+    return { items: [...this.items] }
+  }
 }
