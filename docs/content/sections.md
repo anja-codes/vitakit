@@ -38,7 +38,7 @@ To add a field to one of them, `vitakit add field` (see [schemas](./schemas.md))
 | `position`                                       | text              | yes      |
 | `institution`                                    | link              | yes      |
 | `project.title`                                  | formatted text          | —        |
-| `project.funder`, `project.grant`, `project.url` | text / text / url | no       |
+| `project.funder`, `project.grant`, `project.url` | text, text, web address | no       |
 | `note`                                           | text              | no       |
 
 ## `content/teaching.yml`
