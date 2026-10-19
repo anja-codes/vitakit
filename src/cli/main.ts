@@ -50,18 +50,19 @@ export async function main(argv: string[], io: Io = processIo()): Promise<number
   const run = commands(detectPackageManager(io.cwd, io.env))
   const color = io.tty && !io.env.NO_COLOR && !argv.includes('--no-color')
 
-  if (name === undefined) {
-    // The fox greets people who type just `vitakit`; help stays plain.
+  if (name === undefined || name === 'help' || name === '--help' || name === '-h') {
+    const topic = name === 'help' ? rest[0] : undefined
+    const command = topic ? COMMANDS.find(candidate => candidate.name === topic) : undefined
+    if (command) {
+      io.out(commandHelp(command, run))
+      return 0
+    }
+    // The overview comes with the fox, where the terminal is wide enough;
+    // the help of a single command stays plain.
     const paint = style(color)
     const room = io.columns === undefined || io.columns >= BANNER_WIDTH
     io.out(`${room ? `${banner(version(), { fox: paint.orange, bold: paint.bold })}\n\n` : ''}${overview(run)}`)
-    return 0
-  }
-  if (name === 'help' || name === '--help' || name === '-h') {
-    const topic = name === 'help' ? rest[0] : undefined
-    const command = topic ? COMMANDS.find(candidate => candidate.name === topic) : undefined
-    io.out(command ? commandHelp(command, run) : overview(run))
-    return topic && !command ? 2 : 0
+    return topic ? 2 : 0
   }
   if (name === '--version' || name === '-v') {
     io.out(`${version()}\n`)

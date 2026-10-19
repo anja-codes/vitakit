@@ -76,6 +76,18 @@ describe('usage errors', () => {
     expect(result.err).toMatch(/--help/)
   })
 
+  it('leaves the fox out where the terminal is too narrow', async () => {
+    const narrow = await cli([], { cwd: tmpdir(), columns: 60 })
+    expect(narrow.out).toMatch(/^vitakit — /)
+    expect((await cli([], { cwd: tmpdir(), columns: 61 })).out).toContain('one leap')
+  })
+
+  it('shows the installed version, read from the package', async () => {
+    const { version } = JSON.parse(await readFile(join(process.cwd(), 'package.json'), 'utf8')) as { version: string }
+    expect((await cli([], { cwd: tmpdir() })).out).toContain(`vitakit ${version}\n`)
+    expect((await cli(['--version'], { cwd: tmpdir() })).out).toBe(`${version}\n`)
+  })
+
   it('greets with the fox and lists the commands without arguments', async () => {
     const result = await cli([], { cwd: tmpdir() })
     expect(result.code).toBe(0)
@@ -84,9 +96,12 @@ describe('usage errors', () => {
     expect(result.out).toContain('one leap, two landings:')
     for (const command of ['status', 'explain', 'validate', 'pdf', 'verify', 'eject']) expect(result.out).toContain(`  ${command}`)
 
-    const help = await cli(['--help'], { cwd: tmpdir() })
-    expect(help.out).not.toContain('one leap')
-    expect(help.out).toBe(result.out.slice(result.out.indexOf('vitakit —')))
+    for (const args of [['help'], ['--help'], ['-h']]) {
+      expect((await cli(args, { cwd: tmpdir() })).out).toBe(result.out)
+    }
+    const command = await cli(['help', 'status'], { cwd: tmpdir() })
+    expect(command.out).toMatch(/^vitakit status — /)
+    expect((await cli(['status', '--help'], { cwd: tmpdir() })).out).toBe(command.out)
   })
 })
 

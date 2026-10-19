@@ -15,6 +15,8 @@ export interface CliOptions {
   env?: NodeJS.ProcessEnv
   /** Answers to questions, in order; makes the session interactive. */
   answers?: string[]
+  /** Terminal width. */
+  columns?: number
 }
 
 export async function cli(args: string[], options: CliOptions): Promise<CliResult> {
@@ -29,6 +31,7 @@ export async function cli(args: string[], options: CliOptions): Promise<CliResul
     err: (text) => { err += text },
     interactive: options.answers !== undefined,
     tty: false,
+    ...(options.columns ? { columns: options.columns } : {}),
     async ask(question) {
       asked.push(question)
       if (!answers.length) throw new Error(`unexpected question: ${question}`)
