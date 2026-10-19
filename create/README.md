@@ -34,7 +34,8 @@ pnpm create @anja.codes/vitakit --deployment-help
 - **GitLab Pages:** private source supported on Free; uses GitLab CI/CD.
 - **Codeberg Pages:** uses git-pages and Forgejo Actions. Hosted CI requires public,
   freely licensed source; use your own runner for sensitive CV source.
-- **SSH/rsync:** needs existing web space; the preset uses Forgejo Actions.
+- **SSH/rsync:** needs existing web space; uses GitHub Actions via
+  `.github/workflows/rsync.yml`.
 
 Choosing to decide later adds no workflows and leaves all hosting options open.
 

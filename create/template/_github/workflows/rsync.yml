@@ -2,10 +2,15 @@
 #
 # Secret: SSH_DEPLOY_KEY (private key with write access to the target).
 # Adjust NUXT_APP_BASE_URL and the rsync target below.
+name: Deploy (SSH/rsync)
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -13,17 +18,17 @@ jobs:
     env:
       NUXT_APP_BASE_URL: /
     steps:
-      - uses: https://github.com/actions/checkout@v7
-      - run: apt update && apt install -y rsync
-      - uses: https://github.com/pnpm/action-setup@v6
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update && sudo apt-get install -y rsync
+      - uses: pnpm/action-setup@v6
       # The runner image may ship an older Node than Nuxt requires.
-      - uses: https://github.com/actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - uses: https://github.com/webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
       - run: |

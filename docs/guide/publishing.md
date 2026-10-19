@@ -166,9 +166,9 @@ hosting account or domain: the server determines the URL, such as
 and write permission for the web directory; FTP/SFTP-only web space is not enough
 for this preset. Source visibility is independent of the hosting method.
 
-**The current workflow runs on Forgejo Actions, not GitHub Actions.** In
-`.forgejo/workflows/deploy.yml`, configure `SSH_DEPLOY_KEY` and replace the example
-rsync destination with your SSH user, host and web directory. Set
+The preset uses GitHub Actions. In `.github/workflows/rsync.yml`, replace the
+example rsync destination with your SSH user, host and web directory. Add
+`SSH_DEPLOY_KEY` as a GitHub Actions repository secret. Set
 `NUXT_APP_BASE_URL` to the URL's path (`/~username/` in the example, or `/` for a
 root-level site). Configure SSH host-key verification before using the template;
 its current example disables that check. Check the destination carefully:
