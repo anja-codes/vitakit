@@ -44,9 +44,9 @@ describe('text', () => {
 })
 
 describe('linked and url', () => {
-  it('renders institution and link shapes through the same operation', () => {
+  it('renders linked values and explicit targets through the same operation', () => {
     const expected = '\\href{https://example.org/?a=1\\&b=2}{A \\& B}'
-    expect(String(h.linked({ name: 'A & B', url: 'https://example.org/?a=1&b=2' }))).toBe(expected)
+    expect(() => h.linked({ name: 'A & B' })).toThrow(/use `linked` in the section schema/)
     expect(String(h.linked({ label: 'A & B', url: 'https://example.org/?a=1&b=2' }))).toBe(expected)
     expect(String(h.linked('A & B', 'https://example.org/?a=1&b=2'))).toBe(expected)
   })
@@ -59,11 +59,11 @@ describe('linked and url', () => {
   })
 
   it('falls back to unlinked text and never infers a URL from a label string', () => {
-    expect(String(h.linked({ name: 'A & B' }))).toBe('A \\& B')
+    expect(String(h.linked({ label: 'A & B' }))).toBe('A \\& B')
     expect(String(h.linked({ label: 'A & B' }))).toBe('A \\& B')
     expect(String(h.linked('https://example.org'))).toBe('https://example.org')
     expect(h.linked(undefined)).toBe('')
-    expect(h.linked({ name: '' })).toBe('')
+    expect(h.linked({ label: '' })).toBe('')
   })
 
   it('rejects unsupported objects and non-string URL targets', () => {
@@ -81,7 +81,7 @@ describe('linked and url', () => {
 
   it('retains actionable diagnostics for unresolved paths on the website', () => {
     expect(() => h.url('/slides/talk.pdf')).toThrow(/content\/teaching\.yml:.*content\/profile\.yml/)
-    expect(() => h.linked({ name: 'Slides', url: '/slides/talk.pdf' })).toThrow(/content\/profile\.yml/)
+    expect(() => h.linked({ label: 'Slides', url: '/slides/talk.pdf' })).toThrow(/content\/profile\.yml/)
   })
 })
 
@@ -169,7 +169,7 @@ describe('vita macros', () => {
     expect(String(h.vita.entry({
       date: h.date(dateRange.parse({ from: 2020, to: 2025 })),
       title: rich('Random $k$-ary trees'),
-      context: h.linked({ name: 'A & B', url: 'https://example.org' }),
+      context: h.linked({ label: 'A & B', url: 'https://example.org' }),
     }))).toBe('\\vitaentry{2020--2025}{Random $k$-ary trees}{\\href{https://example.org}{A \\& B}}')
   })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dateRange, institution, link, section, text, url, z } from '../src/primitives'
+import { dateRange, linked, requiredLink, section, text, url, z } from '../src/primitives'
 import { sitePathMarker } from '../src/site-paths'
 import { formatDateRange } from '../src/shared/format'
 
@@ -70,8 +70,8 @@ describe('url', () => {
 
   it('marks a path on the site, to be resolved once the base URL is known', () => {
     expect(parse(url, '/slides/talk.pdf').data).toEqual(sitePathMarker('/slides/talk.pdf'))
-    expect(parse(link, { label: 'CV', url: '/cv.pdf' }).data).toEqual({ label: 'CV', url: sitePathMarker('/cv.pdf') })
-    expect(parse(link, '/cv.pdf').data).toEqual({ label: '/cv.pdf', url: sitePathMarker('/cv.pdf') })
+    expect(parse(linked, { label: 'CV', url: '/cv.pdf' }).data).toEqual({ label: 'CV', url: sitePathMarker('/cv.pdf') })
+    expect(parse(linked, '/cv.pdf').data).toEqual({ label: '/cv.pdf', url: sitePathMarker('/cv.pdf') })
   })
 
   it('rejects anything else, saying what is expected', () => {
@@ -83,19 +83,32 @@ describe('url', () => {
   })
 })
 
-describe('institution and link shorthands', () => {
-  it('accepts a bare string or a full object', () => {
-    expect(parse(institution, 'TU Graz').data).toEqual({ name: 'TU Graz' })
-    expect(parse(institution, { name: 'TU Graz', url: 'https://tugraz.at' }).data)
-      .toEqual({ name: 'TU Graz', url: 'https://tugraz.at' })
+describe('linked', () => {
+  it('accepts a label, a URL, or an object with label or name', () => {
+    expect(parse(linked, 'TU Graz').data).toEqual({ label: 'TU Graz' })
+    expect(parse(linked, 'https://example.org/a').data).toEqual({ label: 'example.org/a', url: 'https://example.org/a' })
+    expect(parse(linked, 'mailto:jane@example.org').data).toEqual({ label: 'jane@example.org', url: 'mailto:jane@example.org' })
+    expect(parse(linked, { label: 'TU Graz', url: 'https://tugraz.at' }).data)
+      .toEqual({ label: 'TU Graz', url: 'https://tugraz.at' })
+    expect(parse(linked, { name: 'TU Graz', url: 'https://tugraz.at' }).data)
+      .toEqual({ label: 'TU Graz', url: 'https://tugraz.at' })
+    expect(parse(linked, { name: 'TU Graz' }).data).toEqual({ label: 'TU Graz' })
   })
 
-  it('derives a label from a bare URL', () => {
-    expect(parse(link, 'https://example.org/a').data).toEqual({ label: 'example.org/a', url: 'https://example.org/a' })
+  it('treats text that is not a URL as a label, even when it has a colon', () => {
+    expect(parse(linked, 'Talk: an introduction').data).toEqual({ label: 'Talk: an introduction' })
   })
 
-  it('rejects unknown keys', () => {
-    expect(parse(institution, { name: 'X', link: 'https://x.org' }).success).toBe(false)
+  it('rejects unknown keys, both label and name, and invalid URLs in objects', () => {
+    expect(parse(linked, { name: 'X', link: 'https://x.org' }).success).toBe(false)
+    expect(parse(linked, { name: 'X', label: 'Y' }).success).toBe(false)
+    expect(parse(linked, { label: 'X', url: 'javascript:alert(1)' }).success).toBe(false)
+    expect(parse(linked, '').success).toBe(false)
+  })
+
+  it('can require a URL', () => {
+    expect(parse(requiredLink, 'https://example.org').success).toBe(true)
+    expect(parse(requiredLink, { label: 'ORCID' }).error?.issues[0]?.message).toMatch(/expected a URL/)
   })
 })
 

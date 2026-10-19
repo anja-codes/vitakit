@@ -134,8 +134,7 @@ function valueOf(entry: Entry, field: string): unknown {
   if (field === 'year') return (entry.date as { from?: { year: number } } | undefined)?.from?.year
   const value = entry[field]
   if (typeof value === 'object' && value !== null && 'text' in value) return (value as { text: string }).text
-  // An institution or link compares against its name or label.
-  if (typeof value === 'object' && value !== null && 'name' in value) return (value as { name: string }).name
+  // A `linked` value compares against its label.
   if (typeof value === 'object' && value !== null && 'label' in value) return (value as { label: string }).label
   return value
 }

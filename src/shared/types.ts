@@ -50,14 +50,15 @@ export interface RichText {
   html: string
 }
 
-export interface Link {
+/** A label that may link: an institution, a funder, a person. See `linked`. */
+export interface Linked {
   label: string
-  url: string
+  url?: string
 }
 
-export interface Institution {
-  name: string
-  url?: string
+/** A label that always links. */
+export interface Link extends Linked {
+  url: string
 }
 
 /** Fields every section entry has, whatever else its schema adds. */
@@ -131,7 +132,7 @@ export interface Page {
 export interface Profile {
   name: string
   title?: string
-  affiliation?: Institution
+  affiliation?: Linked
   email?: string
   links: Link[]
   /** Short plain-text description used for page metadata, not rendered. */

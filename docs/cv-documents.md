@@ -102,8 +102,8 @@ publications:
 ```
 
 That is the whole list, and it is meant to stay that way. `where` compares against
-the field as written (for rich-text fields, their source text; for an institution,
-its name). There is no query language, no `or`, no negation: selection subtler than
+the field as written (for rich-text fields, their source text; for a link,
+its label). There is no query language, no `or`, no negation: selection subtler than
 this belongs in a hand-written `.tex` or an
 [ejected template](./customising.md), which is already how everything else specific
 is done here.
@@ -217,7 +217,7 @@ passed directly to other helpers without being escaped twice.
 |---|---|
 | `it.text(value)` | text, numbers, or booleans; absent values become empty output |
 | `it.date(value)` | a normalized date or range from a `dateRange` schema field |
-| `it.linked(value)` | text, or a `{ name, url? }` / `{ label, url? }` object; links only when a URL exists |
+| `it.linked(value)` | text, or a `{ label, url? }` value (a **link** field); links only when a URL exists |
 | `it.linked(label, url)` | the same operation with a separate label and URL |
 | `it.url(value)` | a URL target for hand-written LaTeX, not a complete visible link |
 | `it.join(values, separator)` | combine nonempty values; separator defaults to `, ` |

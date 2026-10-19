@@ -193,12 +193,12 @@ describe('add a new data collection', () => {
   ].join('\n')
 
   const SCHEMA = (packageDir: string) => [
-    `import { section, dateRange, richText, institution, z } from '${join(packageDir, 'src/index.ts')}'`,
+    `import { section, dateRange, richText, linked, z } from '${join(packageDir, 'src/index.ts')}'`,
     '',
     'export default section({',
     '  date: dateRange,',
     '  title: richText,',
-    '  venue: institution.optional(),',
+    '  venue: linked.optional(),',
     "  audience: z.enum(['school', 'public', 'press']),",
     '})',
     '',
@@ -211,8 +211,8 @@ describe('add a new data collection', () => {
     })
     const content = await loadContent(root)
     expect(content.sections.outreach).toHaveLength(2)
-    // Sorted newest first, math-capable, institution shorthand expanded.
-    expect(content.sections.outreach![0]!.venue).toEqual({ name: 'BRG Viktring' })
+    // Sorted newest first, math-capable, linked shorthand expanded.
+    expect(content.sections.outreach![0]!.venue).toEqual({ label: 'BRG Viktring' })
     expect((content.sections.outreach![0]!.title as { html: string }).html).toContain('random tree')
   })
 

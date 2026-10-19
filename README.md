@@ -70,12 +70,12 @@ A file `content/<name>.yml` is a section. Its schema is found by convention:
 
 ```ts
 // schemas/outreach.ts
-import { section, dateRange, richText, institution } from '@anja.codes/vitakit'
+import { section, dateRange, richText, linked } from '@anja.codes/vitakit'
 
 export default section({
   date: dateRange,
   title: richText,          // Markdown and $math$ allowed
-  venue: institution.optional(),
+  venue: linked.optional(),
 })
 ```
 

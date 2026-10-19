@@ -217,8 +217,8 @@ describe('VitaSection public slot context', () => {
       title: 'Ignored title',
       role: { text: '*Chosen* title', html: '<em>Chosen</em> title' },
       date, term: 'Winter <2025/26>', event: 'Winter <2025/26>',
-      institution: { name: 'University', url: '/base/university/' },
-      issuer: { name: 'Not selected', url: '/unused/' }, location: 'Graz',
+      institution: { label: 'University', url: '/base/university/' },
+      issuer: { label: 'Not selected', url: '/unused/' }, location: 'Graz',
       url: '/base/talk/', note: '', slides: '/base/slides.pdf', ongoing: true,
       arbitrary: { nested: ['kept', 42] }, links: [{ label: 'Not a default link', url: '/other/' }],
     })
@@ -236,7 +236,7 @@ describe('VitaSection public slot context', () => {
       titleHtml: '<em>Chosen</em> title', titleUrl: '/base/talk/', date, term: 'Winter <2025/26>',
       meta: [
         { kind: 'text', text: 'Winter <2025/26>' },
-        { kind: 'institution', institution: { name: 'University', url: '/base/university/' } },
+        { kind: 'linked', linked: { label: 'University', url: '/base/university/' } },
         { kind: 'text', text: 'Graz' },
       ],
       note: '', links: [{ label: 'Slides', url: '/base/slides.pdf' }], ongoing: true,
@@ -305,7 +305,7 @@ describe('VitaSection public slot context', () => {
       expect(received[0]!.display.titleUrl).toBe('/my-site/talk/')
       expect(received[0]!.display.links).toEqual([{ label: 'Slides', url: '/my-site/slides/talk.pdf' }])
       expect(received[1]!.display.meta).toContainEqual({
-        kind: 'institution', institution: { name: 'Uni', url: '/my-site/university/' },
+        kind: 'linked', linked: { label: 'Uni', url: '/my-site/university/' },
       })
       expect(html).toContain('<h2>A <em>rich</em> talk</h2>')
       expect(html).toContain('href="/my-site/university/"')

@@ -10,7 +10,7 @@
  * Presentation stays with each side: the website joins with `·` and renders
  * HTML, the emitter joins with `,` and escapes. Only the *selection* is shared.
  */
-import type { DateRange, Entry, Institution, Link } from './types'
+import type { DateRange, Entry, Link, Linked } from './types'
 
 /** Fields tried, in order, for the headline. */
 export const TITLE_FIELDS: readonly string[] = ['title', 'position', 'degree', 'role', 'student']
@@ -18,8 +18,8 @@ export const TITLE_FIELDS: readonly string[] = ['title', 'position', 'degree', '
 /** Plain-text fields tried, in order, for the context line. */
 export const SECONDARY_FIELDS: readonly string[] = ['student', 'role', 'event', 'term', 'degree']
 
-/** Fields that may hold an institution, in order of preference. */
-export const INSTITUTION_FIELDS: readonly string[] = ['institution', 'issuer', 'organisation']
+/** `linked` fields tried, in order, for the place on the context line. */
+export const LINKED_FIELDS: readonly string[] = ['institution', 'issuer', 'organisation']
 
 /**
  * The field holding the entry's headline, or `undefined` when nothing fits.
@@ -35,10 +35,10 @@ export function entryTitleField(entry: Entry, fields: readonly string[] = TITLE_
   })
 }
 
-/** A piece of the context line: plain text, or an institution that may link. */
+/** A piece of the context line: plain text, or a `linked` value that may link. */
 export type SecondaryPart
   = | { kind: 'text', text: string }
-    | { kind: 'institution', institution: Institution }
+    | { kind: 'linked', linked: Linked }
 
 /** Values used by VitaSection's default web rendering, also available to slots. */
 export interface VitaSectionDisplay {
@@ -48,7 +48,7 @@ export interface VitaSectionDisplay {
   date?: DateRange
   /** A teaching term replaces the normal date label. */
   term?: string
-  /** Structured context, preserving institution links. */
+  /** Structured context, preserving links. */
   meta: SecondaryPart[]
   note?: string
   /** Additional links; does not include the title's link. */
@@ -77,10 +77,10 @@ export function entrySecondaryParts(entry: Entry, titleField?: string): Secondar
     if (typeof value === 'string' && value.length > 0) parts.push({ kind: 'text', text: value })
   }
 
-  for (const field of INSTITUTION_FIELDS) {
-    const value = entry[field] as Institution | undefined
-    if (value?.name) {
-      parts.push({ kind: 'institution', institution: value })
+  for (const field of LINKED_FIELDS) {
+    const value = entry[field] as Linked | undefined
+    if (value?.label) {
+      parts.push({ kind: 'linked', linked: value })
       break
     }
   }

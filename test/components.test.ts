@@ -32,7 +32,7 @@ describe('VitaSection SSR', () => {
       title: { text: 'A title', html: '<em>A title</em>' },
       url: 'https://example.org/talk',
       role: 'Speaker', event: 'Conference',
-      institution: { name: 'University', url: 'https://uni.example.org/' },
+      institution: { label: 'University', url: 'https://uni.example.org/' },
       location: 'Graz', note: 'An extra note',
     })])
     expect(html).toContain('<a href="https://example.org/talk"><em>A title</em></a>')
@@ -43,15 +43,15 @@ describe('VitaSection SSR', () => {
   })
 
   it.each(['institution', 'issuer', 'organisation'])('links the selected %s field', async (field) => {
-    const html = await render([entry({ [field]: { name: 'Selected', url: 'https://selected.example/' } })])
+    const html = await render([entry({ [field]: { label: 'Selected', url: 'https://selected.example/' } })])
     expect(html).toContain('<p class="vita-entry__meta"><a href="https://selected.example/">Selected</a></p>')
   })
 
   it('keeps an institution without URL as text, and does not use a lower-priority institution', async () => {
     const html = await render([entry({
-      institution: { name: 'First' },
-      issuer: { name: 'Second', url: 'https://second.example/' },
-      organisation: { name: 'Third', url: 'https://third.example/' },
+      institution: { label: 'First' },
+      issuer: { label: 'Second', url: 'https://second.example/' },
+      organisation: { label: 'Third', url: 'https://third.example/' },
     })])
     expect(html).toContain('<p class="vita-entry__meta">First</p>')
     expect(html).not.toContain('<a ')
@@ -63,7 +63,7 @@ describe('VitaSection SSR', () => {
   it('escapes secondary text, institution names, notes and link attributes', async () => {
     const html = await render([entry({
       event: '<b>Conference</b> & friends',
-      institution: { name: '<em>Uni</em>', url: 'https://example.org/?a=1&b="x"' },
+      institution: { label: '<em>Uni</em>', url: 'https://example.org/?a=1&b="x"' },
       location: '<Graz>', note: '<script>bad()</script>',
     })])
     expect(html).toContain('&lt;b&gt;Conference&lt;/b&gt; &amp; friends · ')
@@ -101,7 +101,7 @@ describe('VitaSection SSR', () => {
   it('uses a teaching term instead of the date and removes only the term from the secondary line', async () => {
     const html = await render([entry({
       date: dateRange.parse(2024), term: 'Winter <2025/26>',
-      role: 'Lecturer', institution: { name: 'Uni' },
+      role: 'Lecturer', institution: { label: 'Uni' },
     })])
     expect(html).toContain('<div class="vita-entry__date">Winter &lt;2025/26&gt;</div>')
     expect(html).not.toContain('<time')
@@ -130,7 +130,7 @@ describe('VitaSection SSR', () => {
   })
 
   it('preserves custom title fields and does not duplicate the title in metadata', async () => {
-    const html = await render([entry({ role: 'Lecturer', institution: { name: 'Uni' } })], { titleFields: ['role'] })
+    const html = await render([entry({ role: 'Lecturer', institution: { label: 'Uni' } })], { titleFields: ['role'] })
     expect(html).toContain('<span>Lecturer</span>')
     expect(html).toContain('<p class="vita-entry__meta">Uni</p>')
     expect(html.match(/Lecturer/g)).toHaveLength(1)

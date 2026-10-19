@@ -46,7 +46,7 @@ function genericHelpers(h: ReturnType<typeof createTemplateHelpers>) {
     },
     context(entry: Entry) {
       return h.join(entrySecondaryParts(entry, entryTitleField(entry))
-        .map(part => part.kind === 'institution' ? h.linked(part.institution) : part.text))
+        .map(part => part.kind === 'linked' ? h.linked(part.linked) : part.text))
     },
   }
 }

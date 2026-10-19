@@ -136,7 +136,7 @@ as `typeof`. `index` is zero-based in the displayed list, after `limit`.
 |---|---|
 | `titleHtml`, `titleUrl?` | rendered title HTML and optional title link |
 | `date?`, `term?` | `DateRange` and optional teaching-term label |
-| `meta` | structured `SecondaryPart[]`: `{ kind: 'text', text }` or `{ kind: 'institution', institution }`, retaining institution URLs |
+| `meta` | structured `SecondaryPart[]`: `{ kind: 'text', text }` or `{ kind: 'linked', linked }`, retaining link URLs |
 | `note?` | plain string |
 | `links` | `Link[]`, currently the Slides link |
 | `ongoing` | boolean |
@@ -256,17 +256,17 @@ by hand or not.
 **2.** `schemas/outreach.ts` — the shape
 
 ```ts twoslash
-import { section, dateRange, richText, institution, z } from '@anja.codes/vitakit'
+import { section, dateRange, richText, linked, z } from '@anja.codes/vitakit'
 
 export default section({
   date: dateRange,
   title: richText,                 // Markdown and $math$
-  venue: institution.optional(),
+  venue: linked.optional(),
   audience: z.enum(['school', 'public', 'press']),
 })
 ```
 
-Build the schema from the vitakit primitives (`dateRange`, `institution`, `link`,
+Build the schema from the vitakit primitives (`dateRange`, `linked`,
 `richText`, `text`, `url`) and your section sorts, filters and formats like a
 built-in one. `visibility` is added for you.
 

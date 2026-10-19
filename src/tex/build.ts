@@ -56,7 +56,7 @@ function profilePreamble(content: VitakitContent, document: DocumentSource): str
     if (isSitePath(url)) fail('content/profile.yml', `links: ${url} ${SITE_PATH_HELP}`)
     return escapeUrl(url)
   }
-  const affiliation = profile.affiliation?.name ? escapeTex(profile.affiliation.name) : ''
+  const affiliation = profile.affiliation?.label ? escapeTex(profile.affiliation.label) : ''
   const tagline = [profile.title && escapeTex(profile.title), affiliation].filter(Boolean).join(', ')
   const contact = [
     profile.email && `\\href{mailto:${escapeUrl(profile.email)}}{${escapeTex(profile.email)}}`,

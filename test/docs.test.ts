@@ -3,11 +3,11 @@
  * would otherwise only be verified by a reader trying them.
  */
 import { describe, expect, it } from 'vitest'
-import { extendSection, schemas, section, dateRange, richText, institution, link, text, url, z } from '../src/index'
+import { extendSection, schemas, section, dateRange, richText, linked, text, url, z } from '../src/index'
 
 describe('documented API', () => {
   it('exports every primitive the docs tell people to import', () => {
-    for (const primitive of [section, dateRange, richText, institution, link, text, url, z]) {
+    for (const primitive of [section, dateRange, richText, linked, text, url, z]) {
       expect(primitive).toBeDefined()
     }
   })
@@ -21,11 +21,11 @@ describe('documented API', () => {
     expect(extended.safeParse([{ date: 2024, titel: 'Course' }]).success).toBe(false)
   })
 
-  it('accepts the institution and link shorthands shown in the reference', () => {
-    const outreach = section({ date: dateRange, title: richText, venue: institution.optional() })
+  it('accepts the linked shorthands shown in the reference', () => {
+    const outreach = section({ date: dateRange, title: richText, venue: linked.optional() })
     const parsed = outreach.safeParse([{ date: '2025-03-14', title: 'A $k$-ary talk', venue: 'BRG Viktring' }])
     expect(parsed.success).toBe(true)
-    expect(parsed.data![0]!.venue).toEqual({ name: 'BRG Viktring' })
+    expect(parsed.data![0]!.venue).toEqual({ label: 'BRG Viktring' })
   })
 
   it('documents the talk kinds used by document filters', () => {

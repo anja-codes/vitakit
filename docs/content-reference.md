@@ -27,16 +27,22 @@ as is a range that ends before it starts.
 Entries are sorted newest first automatically. Formatting follows the precision you
 wrote: `2024`, `Mar 2024`, `2019–2023`, `2023–present`.
 
-### Institutions
+### Links
+
+A field of type **link** is a name or label that may link somewhere: an
+institution, a funder, a supervisor.
 
 ```yaml
 institution: University of Graz
 institution: { name: University of Graz, url: https://uni-graz.at }
+institution: { label: University of Graz, url: https://uni-graz.at }   # the same
+institution: https://uni-graz.at       # label derived from the URL
 ```
 
-The short form is expanded for you; with a `url`, the name is linked in both outputs.
+`name` and `label` mean the same; use whichever reads better. With a `url`, the
+label is linked in both outputs. In code, every form arrives as `{ label, url? }`.
 
-### Links
+The `links` in `content/profile.yml` are links that must have a URL:
 
 ```yaml
 links:
@@ -97,7 +103,7 @@ The only file that is not a CV section: who you are, plus the shape of the site.
 | ------------- | ----------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | `name`        | text                    | yes      | Site header, page titles and CV header                                                                                |
 | `title`       | text                    | no       | e.g. `Postdoctoral Researcher`                                                                                        |
-| `affiliation` | institution             | no       |                                                                                                                       |
+| `affiliation` | link                    | no       |                                                                                                                       |
 | `email`       | email                   | no       |                                                                                                                       |
 | `links`       | list of links           | no       | ORCID, GitHub, arXiv, …                                                                                               |
 | `summary`     | text                    | no       | One or two sentences for metadata; not rendered on the page — prose belongs in `content/pages/index.md`               |
@@ -143,10 +149,10 @@ Relative paths (`img/tree.svg`) and full URLs are left alone.
 | ------------------- | ------------ | -------- |
 | `date`              | date         | yes      |
 | `degree`            | text         | yes      |
-| `institution`       | institution  | yes      |
+| `institution`       | link         | yes      |
 | `thesis.title`      | **rich**     | —        |
 | `thesis.type`       | text         | no       |
-| `thesis.supervisor` | text or link | no       |
+| `thesis.supervisor` | link         | no       |
 | `thesis.url`        | url          | no       |
 | `note`              | text         | no       |
 
@@ -166,7 +172,7 @@ Relative paths (`img/tree.svg`) and full URLs are left alone.
 | ------------------------------------------------ | ----------------- | -------- |
 | `date`                                           | date              | yes      |
 | `position`                                       | text              | yes      |
-| `institution`                                    | institution       | yes      |
+| `institution`                                    | link              | yes      |
 | `project.title`                                  | **rich**          | —        |
 | `project.funder`, `project.grant`, `project.url` | text / text / url | no       |
 | `note`                                           | text              | no       |
@@ -178,7 +184,7 @@ Relative paths (`img/tree.svg`) and full URLs are left alone.
 | `date`        | date        | yes      |                                                      |
 | `title`       | **rich**    | yes      |                                                      |
 | `role`        | text        | no       | `Lecturer`, `Teaching Assistant`, …                  |
-| `institution` | institution | no       |                                                      |
+| `institution` | link        | no       |                                                      |
 | `term`        | text        | no       | `2024W`, `Winter 2023/24`; shown instead of the date |
 | `url`         | url         | no       |                                                      |
 | `note`        | text        | no       |                                                      |
@@ -206,7 +212,7 @@ Relative paths (`img/tree.svg`) and full URLs are left alone.
 | `title`        | **rich**    | yes      |
 | `ongoing`      | boolean     | no       | `true` for a thesis still in progress; defaults to `false` |
 | `degree`       | text        | no       |
-| `institution`  | institution | no       |
+| `institution`  | link        | no       |
 | `coSupervisor` | text        | no       |
 
 ## `content/publications.bib`

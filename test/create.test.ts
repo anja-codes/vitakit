@@ -387,7 +387,7 @@ describe('published creator personalisation', () => {
     expect(content.issues).toEqual([])
     expect(content.profile.name).toBe(answers.name)
     expect(content.profile.title).toBe(answers.title)
-    expect(content.profile.affiliation).toEqual({ name: answers.affiliation })
+    expect(content.profile.affiliation).toEqual({ label: answers.affiliation })
     expect(content.profile.email).toBe(answers.email)
     expect(content.profile.summary).toBe(`${answers.title} at ${answers.affiliation}, working on your research area.`)
     expect(content.pages.find(page => page.route === '/')?.title).toBe(answers.name)

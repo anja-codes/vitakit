@@ -12,7 +12,7 @@ export {
   entrySecondaryParts,
   TITLE_FIELDS,
   SECONDARY_FIELDS,
-  INSTITUTION_FIELDS,
+  LINKED_FIELDS,
   type SecondaryPart,
   type VitaSectionDisplay,
   type VitaSectionSlotProps,

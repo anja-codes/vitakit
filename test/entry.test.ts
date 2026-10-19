@@ -44,18 +44,18 @@ describe('entrySecondaryParts', () => {
     const parts = entrySecondaryParts(entry({
       title: 'A talk',
       event: 'AofA 2025',
-      institution: { name: 'TU Graz', url: 'https://tugraz.at' },
+      institution: { label: 'TU Graz', url: 'https://tugraz.at' },
       location: 'Graz',
     }), 'title')
     expect(parts).toEqual([
       { kind: 'text', text: 'AofA 2025' },
-      { kind: 'institution', institution: { name: 'TU Graz', url: 'https://tugraz.at' } },
+      { kind: 'linked', linked: { label: 'TU Graz', url: 'https://tugraz.at' } },
       { kind: 'text', text: 'Graz' },
     ])
   })
 
   it('takes only the first institution-like field', () => {
-    const parts = entrySecondaryParts(entry({ institution: { name: 'A' }, issuer: { name: 'B' } }))
-    expect(parts).toEqual([{ kind: 'institution', institution: { name: 'A' } }])
+    const parts = entrySecondaryParts(entry({ institution: { label: 'A' }, issuer: { label: 'B' } }))
+    expect(parts).toEqual([{ kind: 'linked', linked: { label: 'A' } }])
   })
 })

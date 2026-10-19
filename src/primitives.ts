@@ -117,18 +117,42 @@ export const dateRange = z.union([
   return { from, to, ongoing, point: typeof value === 'string' }
 })
 
-export const institution = z.union([
-  text.transform(name => ({ name })),
-  z.strictObject({ name: text, url: url.optional() }),
-])
+/** What a URL looks like as link text: no scheme, no trailing slash. */
+function urlLabel(value: string | SitePathMarker): string {
+  return typeof value === 'string' ? value.replace(/^(?:https?:\/\/|mailto:)/, '').replace(/\/$/, '') : value[PATH_KEY]
+}
 
-export const link = z.union([
-  url.transform(value => ({
-    label: typeof value === 'string' ? value.replace(/^https?:\/\//, '').replace(/\/$/, '') : value[PATH_KEY],
-    url: value,
-  })),
-  z.strictObject({ label: text, url }),
-])
+/**
+ * A label, optionally with a URL: an institution, a funder, a supervisor, a
+ * link to slides. One shape for everything that is "a name that may link".
+ *
+ * ```yaml
+ * institution: University of Graz                     # a label
+ * institution: https://uni-graz.at                    # a URL, labelled by itself
+ * institution: { label: University of Graz, url: https://uni-graz.at }
+ * institution: { name: University of Graz, url: https://uni-graz.at }   # same
+ * ```
+ *
+ * `name` is accepted as a synonym of `label` because it reads better for
+ * people and institutions. Every form becomes `{ label, url? }`.
+ */
+export const linked = z.union([
+  url.transform(value => ({ label: urlLabel(value), url: value })),
+  text.transform(label => ({ label })),
+  z.strictObject({ label: text, url: url.optional() }),
+  z.strictObject({ name: text, url: url.optional() }).transform(({ name, url }) => ({ label: name, url })),
+]).transform((value): { label: string, url?: string | SitePathMarker } => {
+  // Without `url: undefined`, so that an entry compares and serialises as written.
+  const target = 'url' in value ? value.url : undefined
+  return target === undefined ? { label: value.label } : { label: value.label, url: target }
+})
+
+/** A `linked` value that must have a URL, e.g. the links in the profile. */
+export const requiredLink = linked.transform((value, context) => {
+  if (value.url !== undefined) return value as { label: string, url: string | SitePathMarker }
+  context.addIssue({ code: 'custom', message: 'expected a URL, or { label, url }' })
+  return z.NEVER
+})
 
 export const visibility: z.ZodDefault<z.ZodEnum<Record<Visibility, Visibility>>>
   = z.enum(['public', 'cv', 'private']).default('public')

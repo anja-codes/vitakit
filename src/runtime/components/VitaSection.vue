@@ -77,9 +77,9 @@ const rows = computed(() => {
         <p v-else-if="row.display.meta.length" class="vita-entry__meta">
           <template v-for="(part, index) in row.display.meta" :key="index">
             <template v-if="index"> · </template>
-            <template v-if="part.kind === 'institution'">
-              <a v-if="part.institution.url" :href="part.institution.url">{{ part.institution.name }}</a>
-              <template v-else>{{ part.institution.name }}</template>
+            <template v-if="part.kind === 'linked'">
+              <a v-if="part.linked.url" :href="part.linked.url">{{ part.linked.label }}</a>
+              <template v-else>{{ part.linked.label }}</template>
             </template>
             <template v-else>{{ part.text }}</template>
           </template>

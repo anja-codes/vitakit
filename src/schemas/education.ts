@@ -5,16 +5,16 @@
  * rewritten to `@anja.codes/vitakit`; it is therefore the single definition of
  * this section, not a copy of one.
  */
-import { dateRange, institution, link, richText, section, text, url, z } from '../primitives'
+import { dateRange, linked, richText, section, text, url, z } from '../primitives'
 
 export default section({
   date: dateRange,
   degree: text,
-  institution,
+  institution: linked,
   thesis: z.strictObject({
     title: richText,
     type: text.optional(),
-    supervisor: z.union([text, link]).optional(),
+    supervisor: linked.optional(),
     url: url.optional(),
   }).optional(),
   note: text.optional(),
