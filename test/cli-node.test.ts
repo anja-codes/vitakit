@@ -33,7 +33,9 @@ function vitakit(root: string, args: string[]): { code: number, out: string } {
   }
 }
 
-describe('schemas written by the CLI, loaded by Node', () => {
+// Every `vitakit` call here spawns Node and loads the built package (~1s each
+// on CI), so the default 5s is too tight for a test that runs several.
+describe('schemas written by the CLI, loaded by Node', { timeout: 30_000 }, () => {
   it('drafted, extended and shared schemas all load', async () => {
     const root = await installedProject({
       'content/grants.yml': '- { date: 2024, title: A grant, funder: FWF, amount: 1000 }\n',
