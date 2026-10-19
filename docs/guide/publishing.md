@@ -1,116 +1,9 @@
-# Getting started
+# Publishing
 
-::: code-group
+The website is static files in `.output/public`, built by `pnpm check` (which
+also verifies them). Any static host serves them; the creator sets one up for
+you when you choose a deployment target.
 
-```bash [pnpm]
-pnpm create @anja.codes/vitakit my-site
-cd my-site
-pnpm install
-pnpm dev
-```
-
-```bash [npm]
-npm create @anja.codes/vitakit my-site
-cd my-site
-npm install
-npm run dev
-```
-
-:::
-
-`http://localhost:3000` now serves a complete example site. Everything below is
-editing files in a repository you own.
-
-## 1. Make it yours
-
-| File | What to change |
-|---|---|
-| `content/profile.yml` | name, position, affiliation, email, links, navigation, footer |
-| `content/education.yml`, `employment.yml`, `teaching.yml`, `talks.yml`, `supervision.yml` | replace the examples |
-| `content/publications.bib` | your BibTeX export |
-| `content/pages/*.md` | the prose pages |
-
-Save and the page reloads. **Delete a file you do not need and its section
-disappears**; there is nothing else to switch off.
-
-Full field list: [content reference](./content-reference.md).
-
-## 2. When something is wrong
-
-Content is validated, so mistakes are caught immediately and named:
-
-```
-[vitakit] 1 content problem(s):
-  content/talks.yml: invalid
-    - 0: Unrecognized key: "titel"
-```
-
-The development server keeps running, the affected page shows the error in place, a
-red banner lists every problem, and saving a fix recovers without a restart. The same
-problem fails `nuxt generate`, so a broken file cannot reach your website.
-
-For an overview at any time — every section, where it appears on the website and
-in the PDF, and what is wrong — ask the project:
-
-::: code-group
-
-```bash [pnpm]
-pnpm vitakit status
-```
-
-```bash [npm]
-npx vitakit status
-```
-
-:::
-
-A section of your own is a YAML file plus a schema; write the file, then
-`pnpm vitakit add section <name>` drafts the schema from it and places the section
-on a page and in the PDF. See [commands](./cli.md).
-
-## 3. Build the PDF
-
-::: code-group
-
-```bash [pnpm]
-pnpm pdf
-```
-
-```bash [npm]
-npm run pdf
-```
-
-:::
-
-This renders `content/` into `cv-tex/generated/cv/` and runs `latexmk`, producing
-`cv-tex/cv.pdf`. It needs a TeX distribution; if you do not have one locally, the
-`CV` workflow included with the GitHub Pages, Cloudflare Workers and Cloudflare
-Pages presets builds it in CI and attaches it to the run. The GitLab, Codeberg and
-rsync presets only build/deploy the website; build the PDF locally or add a
-separate CI job.
-
-The order of the PDF is decided in `cv-tex/cv.tex`, which is yours: moving a
-`\vitasection{…}` line moves a section. See [CV documents](./cv-documents.md).
-
-## 4. Check what CI will check
-
-::: code-group
-
-```bash [pnpm]
-pnpm check     # typecheck + generate + assertions on the generated HTML
-```
-
-```bash [npm]
-npm run check     # typecheck + generate + assertions on the generated HTML
-```
-
-:::
-
-The last step verifies that pages were generated, mathematics was typeset, the
-deployment base path is right, the bibliography is fully formatted, and **no entry marked
-`cv` or `private` appears anywhere in the site**.
-
-## 5. Publish
 
 The creator adds a workflow for the target you choose, unless you choose to decide
 later. Enter `?` at the deployment prompt for a compact comparison, or read the
@@ -134,7 +27,7 @@ letter. The website build filters that data; making the source public would stil
 expose it. A public website does not require a public source repository. See
 [privacy](./privacy.md).
 
-### GitHub Pages
+## GitHub Pages
 
 The included GitHub Actions workflow publishes a public site at
 `https://<user>.github.io/<repo>/`. A repository named `<user>.github.io` instead
@@ -150,7 +43,7 @@ sets `NUXT_APP_BASE_URL` to `/<repo>/` for a project site. For a user site or a 
 domain served at `/`, remove that environment setting. A wrong base path breaks
 links and assets.
 
-### Cloudflare Workers — recommended for new Cloudflare projects
+## Cloudflare Workers — recommended for new Cloudflare projects
 
 [Cloudflare recommends Workers for new projects](https://developers.cloudflare.com/pages/).
 The preset serves **static assets only**, without a Worker script, SSR adapter or
@@ -191,7 +84,7 @@ Do not change the assets directory to the repository root: only the checked stat
 output should be uploaded. The included `CV` workflow keeps the PDF separate as a
 run artifact.
 
-### Cloudflare Pages — legacy option
+## Cloudflare Pages — legacy option
 
 Pages is the legacy option and remains available; use Workers for new deployments.
 This preset is for users who specifically want Pages, including existing Pages
@@ -210,7 +103,7 @@ with production branch `main`. Match its name in the `--project-name` argument i
 artifact, not as website content. A Direct Upload project cannot later be switched
 to Cloudflare Git integration without creating a new project.
 
-### GitLab Pages
+## GitLab Pages
 
 The included `.gitlab-ci.yml` runs the `check` script and publishes only `.output/public`
 on the project's **default branch**. It uses GitLab CI/CD, not GitHub Actions, and
@@ -234,7 +127,7 @@ set a project CI/CD variable `NUXT_APP_BASE_URL=/`; the predefined `CI_PAGES_URL
 continues to describe GitLab's own URL. Use your actual serving path if the custom
 domain serves the site below a subdirectory. No separate PDF job is included.
 
-### Codeberg Pages — powered by git-pages
+## Codeberg Pages — powered by git-pages
 
 [git-pages](https://git-pages.org/) is the open-source static-site server now
 powering Codeberg Pages, not another account-based hosting service. The included
@@ -265,7 +158,7 @@ The same upload action can target another git-pages server: change `site` and
 Codeberg token is not universally valid on unrelated servers. Self-hosting the
 server and its DNS/TLS setup is outside what the scaffolder configures.
 
-### Existing web space (SSH/rsync)
+## Existing web space (SSH/rsync)
 
 Use university web space or a server you already control. This option provides no
 hosting account or domain: the server determines the URL, such as
@@ -282,7 +175,7 @@ its current example disables that check. Check the destination carefully:
 `rsync --delete` removes remote files absent from the build output. There is no
 separate PDF-build workflow in this preset.
 
-### Decide later / deploy manually
+## Decide later / deploy manually
 
 No deployment or PDF-build workflows are added. The website and CV still work
 locally, and you can add automation later without re-scaffolding. Run the `check`
@@ -302,10 +195,17 @@ NUXT_APP_BASE_URL=/~username/ npm run check
 
 :::
 
-## Next
+## The base path
 
-- [Commands](./cli.md) — `vitakit status`, `add`, `customize`, `pdf`, `check`
-- [Content reference](./content-reference.md) — every field of every file
-- [Customising](./customising.md) — design, page structure, your own sections
-- [CV documents](./cv-documents.md) — variants, ordering, cover letters
-- [Privacy](./privacy.md) — what reaches the web, and what cannot
+A site served from a subdirectory — `https://user.github.io/my-site/` — must be
+built for it: `NUXT_APP_BASE_URL=/my-site/`. The scaffolded workflows set it;
+`pnpm check` verifies that every link and asset uses it. A user site, a custom
+domain or any site at the root of its domain needs `/`, the default.
+
+## The PDF
+
+The PDF is not published with the website (see
+[privacy](./privacy.md#pdfs-are-not-published)). The GitHub Pages and Cloudflare
+presets include a `CV` workflow that builds it in CI and attaches it to the run;
+the other presets only deploy the website — build the PDF locally, or add a job
+like that workflow. See [building the PDF](../pdf/building.md).

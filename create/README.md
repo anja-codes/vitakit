@@ -38,7 +38,7 @@ pnpm create @anja.codes/vitakit --deployment-help
 
 Choosing to decide later adds no workflows and leaves all hosting options open.
 
-See [publishing and setup](../docs/getting-started.md#5-publish) for details.
+See [publishing and setup](../docs/guide/publishing.md) for details.
 
 Everything afterwards is ordinary files in a repository you own. The
 `vitakit` command in the project helps with the common changes — `pnpm vitakit

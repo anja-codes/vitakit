@@ -2,7 +2,7 @@
  * Documents: one PDF, described by a `.tex` file the user owns and an optional
  * `.yml` beside it.
  *
- * The split is deliberate (see `docs/cv-documents.md`):
+ * The split is deliberate (see `docs/pdf/index.md`):
  *   `<name>.tex`  in what order things appear -- moving a line moves a section
  *   `<name>.yml`  what goes in them -- filters, limits, visibility
  *
