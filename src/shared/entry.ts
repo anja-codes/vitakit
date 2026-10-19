@@ -91,3 +91,14 @@ export function entrySecondaryParts(entry: Entry, titleField?: string): Secondar
 
   return parts
 }
+
+/**
+ * The `linked` values of a field, as a list: none, one, or several. For
+ * templates that show a field which may hold one link or a list of them.
+ */
+export function asLinkedList(value: unknown): Linked[] {
+  const isLinked = (item: unknown): item is Linked =>
+    typeof item === 'object' && item !== null && typeof (item as Linked).label === 'string'
+  if (Array.isArray(value)) return value.filter(isLinked)
+  return isLinked(value) ? [value] : []
+}

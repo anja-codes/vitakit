@@ -19,7 +19,7 @@ website and the PDF build:
 | `vitakit add section <name>` | a section: its file, a schema drafted from your entries, its place on a page and in a PDF |
 | `vitakit add field <section> <name>` | one more field a section accepts |
 | `vitakit add page <name>` | a website page that can show sections, in the menu |
-| `vitakit customize <section>` | make one section yours: what its entries may contain |
+| `vitakit customize <section>` | make one section yours: how it looks on the website and in the PDF, what it may contain |
 | `vitakit pdf` | build the PDF documents (what the `pdf` script runs) |
 | `vitakit verify` | check the generated website (the last step of `check`) |
 | `vitakit eject <file>` | take over a shared vitakit file (advanced) |
@@ -117,6 +117,9 @@ talks
                  template: vitakit's talks.eta
                  4 of 12 entries (where kind: invited −8)
 ```
+
+`--field <name>` adds the lines that show a field — for the component and
+template the section uses, or for a `VitaSection` slot and vitakit's template.
 
 For a section: its file, the fields its schema accepts, every place it appears,
 and for each PDF document the template used and which entries are selected —
@@ -268,7 +271,7 @@ change safely — one you have rewritten in your own way — it shows the line t
 paste instead.
 
 **A field that is accepted is not shown yet.** Showing it on the website or in
-the PDF is the next step.
+the PDF is the next step: `vitakit customize teaching --web --pdf --field evaluation`.
 
 ## `vitakit add page <name>`
 
@@ -289,7 +292,61 @@ title and text, `app/pages/talks.vue` for its sections, and an entry in the menu
 in `content/profile.yml` (`--no-menu` leaves the menu alone). A page that is
 only text needs no command: it is one Markdown file in `content/pages/`.
 
-## `vitakit customize <section> --schema`
+## `vitakit customize <section>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching                                  # asks what to change
+pnpm vitakit customize teaching --web --pdf --field evaluation   # show a field in both
+pnpm vitakit customize talks --web --list --component TalkList   # a list of your own
+pnpm vitakit customize talks-public --web --use TalkList         # the same component again
+```
+
+```bash [npm]
+npx vitakit customize teaching                                  # asks what to change
+npx vitakit customize teaching --web --pdf --field evaluation   # show a field in both
+npx vitakit customize talks --web --list --component TalkList   # a list of your own
+npx vitakit customize talks-public --web --use TalkList         # the same component again
+```
+
+:::
+
+**On the website**, a section is shown by a component. `--web` writes one of
+your own to `app/components/` and uses it everywhere the section appears — the
+page line `<VitaSection id="teaching" title="Teaching" />` becomes
+`<TeachingSection id="teaching" title="Teaching" />`, with everything else on
+the line kept. Two kinds:
+
+- **how each entry reads** (the default): a small component around
+  `VitaSection`, which keeps vitakit's list, sorting, dates and styling and
+  replaces one line of every entry — its note, or with `--region meta` its
+  secondary line — with the fields you choose;
+- **how the list is organised** (`--list`): the entries come from vitakit,
+  selected and sorted, and the list markup is yours, with a line for every
+  field to start from — for grouping by term, numbering, badges.
+
+The component is named for what it shows, `TeachingSection` or what
+`--component` says, and works for any section with the same fields: `--use`
+shows another section with it.
+
+**In the PDF**, a section is written by a template. `--pdf` copies the template
+in use — vitakit's own for the section, or the generic one — to
+`cv-tex/templates/<section>.eta`, where yours wins; with `--field`, with a note
+line for each field. `--from <section>` starts from another section's template
+instead, for two sections that should look alike.
+
+```eta
+<%~ it.vita.note(item.note) %>
+<%~ it.vita.note`Evaluation: ${item.evaluation}` %>
+```
+
+A component or template you have already is never rewritten: asked to show
+another field, the command prints the lines to add to it, and `--force` starts
+over, keeping yours as a `.backup`. The same lines, without writing anything:
+`vitakit explain teaching --field evaluation`.
+
+**What its entries may contain** (`--schema`):
 
 ::: code-group
 
@@ -311,6 +368,10 @@ Without `--copy`, `schemas/<section>.ts` keeps vitakit's fields — which keep
 improving — and adds yours. With `--copy` it is vitakit's complete definition,
 to change or remove any rule; later improvements to it will not reach you. An
 existing schema is never replaced.
+
+Publications are shown by `VitaPublications` and `VitaPublication`; to change
+those, `vitakit eject VitaPublication`. Their PDF template (`--pdf`) groups the
+references; each one is formatted by biblatex.
 
 ## `pdf`
 
@@ -419,6 +480,7 @@ given.
 | `vitakit add <name>` | `vitakit add section <name>` |
 | `vitakit eject <section>` (a schema) | `vitakit customize <section> --schema --copy` |
 | `vitakit eject publications` | `vitakit customize publications` |
+| `vitakit eject <section>.eta` | `vitakit customize <section> --pdf` |
 
 In an existing project, change the scripts in `package.json` to
 `"pdf": "vitakit pdf"` and

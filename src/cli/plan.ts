@@ -13,7 +13,7 @@ import type { Io, Style } from './io'
 
 export type PlanItem
   = | { kind: 'create', path: string, content: string, reason: string, show?: boolean }
-    | { kind: 'replace', path: string, content: string, reason: string }
+    | { kind: 'replace', path: string, content: string, reason: string, show?: boolean }
     | { kind: 'edit', path: string, before: string, after: string, reason: string }
     | { kind: 'keep', path: string, reason: string }
     | { kind: 'paste', path: string, snippet: string, reason: string }
@@ -49,7 +49,10 @@ export function printPlan(io: Io, style: Style, _root: string, plan: Plan): void
       lines.push(`${style.green('+')} ${item.path}   ${style.dim(item.reason)}`)
       if (item.show) lines.push(...item.content.trimEnd().split('\n').map(line => style.dim(`    ${line}`)))
     }
-    else if (item.kind === 'replace') lines.push(`${style.yellow('!')} ${item.path}   ${style.dim(item.reason)}`)
+    else if (item.kind === 'replace') {
+      lines.push(`${style.yellow('!')} ${item.path}   ${style.dim(item.reason)}`)
+      if (item.show) lines.push(...item.content.trimEnd().split('\n').map(line => style.dim(`    ${line}`)))
+    }
     else if (item.kind === 'keep') lines.push(`${style.dim('=')} ${item.path}   ${style.dim(item.reason)}`)
     else if (item.kind === 'edit') {
       lines.push(`${style.yellow('~')} ${item.path}   ${style.dim(item.reason)}`)
@@ -142,6 +145,11 @@ export class Workspace {
   create(path: string, content: string, reason: string, { show = false }: { show?: boolean } = {}): void {
     if (this.exists(path)) throw new CommandError(`${path} exists already; nothing was written`)
     this.items.push({ kind: 'create', path, content, reason, ...(show ? { show } : {}) })
+  }
+
+  /** Replace an existing file; the old one is kept as a backup. */
+  replace(path: string, content: string, reason: string, { show = false }: { show?: boolean } = {}): void {
+    this.items.push({ kind: 'replace', path, content, reason, ...(show ? { show } : {}) })
   }
 
   /** Change a file; for a file this plan creates, the change becomes part of it. */

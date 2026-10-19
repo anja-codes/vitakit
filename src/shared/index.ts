@@ -10,6 +10,7 @@ export { formatDateRange, dateSortKey, type DateFormatOptions } from './format'
 export {
   entryTitleField,
   entrySecondaryParts,
+  asLinkedList,
   TITLE_FIELDS,
   SECONDARY_FIELDS,
   LINKED_FIELDS,

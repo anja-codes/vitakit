@@ -211,6 +211,8 @@ export interface Placement {
   id: string
   title?: string
   after?: string
+  /** The component showing it on a page; VitaSection by default. */
+  component?: string
 }
 
 /** Show a section on a page. Returns where it went, for the summary. */

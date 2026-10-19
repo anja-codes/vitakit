@@ -22,7 +22,51 @@ function schemaText(section: SectionInventory): string {
   return schema.extendsBuiltIn ? `built-in, extended in ${schema.file}` : `${schema.file} (yours)`
 }
 
-async function explainSection(context: CommandContext, inv: Inventory, section: SectionInventory): Promise<string[]> {
+/** Lines to add for showing fields, where this section's files are. */
+async function fieldSnippets(context: CommandContext, inv: Inventory, section: SectionInventory, names: string[]): Promise<string[]> {
+  const { style, run, root } = context
+  const { webFieldSnippet, etaFieldSnippet } = await import('../snippets')
+  const { existsSync } = await import('node:fs')
+  const { join } = await import('node:path')
+  const id = section.id
+  const unknown = names.filter(name => !section.fields?.some(field => field.path === name))
+  if (unknown.length) {
+    throw new CommandError(`${id} has no field ${unknown.join(', ')}; its fields are ${section.fields?.map(field => field.path).join(', ') || '(unknown)'}`)
+  }
+  const fields = names.map(name => section.fields!.find(field => field.path === name)!)
+  const web = fields.map(field => webFieldSnippet(field))
+  const imports = [...new Set(web.flatMap(snippet => snippet.imports))]
+  const lines: string[] = ['', style.bold(`Showing ${names.join(', ')}`), '']
+
+  const components = [...new Set(webPlacementsOf(inv, id)
+    .filter(placement => placement.component !== 'code' && placement.component !== 'VitaSection')
+    .map(placement => placement.component))]
+  const indented = (snippets: string[]) => snippets.map(snippet => `    ${snippet}`)
+  if (components.length) {
+    for (const component of components) {
+      lines.push(block('website', [[`${inv.web.components.get(component)}: add where the entry's lines are, e.g. in its #note slot`]]))
+    }
+  } else {
+    lines.push(block('website', [[`${id} is shown by VitaSection. \`${run.bin('vitakit', `customize ${id} --web --field ${names.join(' --field ')}`)}\``]]))
+    lines.push(block('', [['creates a component that shows them; or, on the page, give VitaSection a slot:']]))
+    lines.push('', `    <VitaSection id="${id}">`, '      <template #note="{ entry, display }">',
+      '        <p v-if="display.note !== undefined" class="vita-entry__note">{{ display.note }}</p>')
+    lines.push(...web.map(snippet => `        ${snippet.markup}`), '      </template>', '    </VitaSection>')
+  }
+  if (components.length) lines.push('', ...indented(web.map(snippet => snippet.markup)))
+  if (imports.length) lines.push('', `    import { ${imports.join(', ')} } from '@anja.codes/vitakit/shared'`)
+
+  lines.push('')
+  if (existsSync(join(root, 'cv-tex', 'templates', `${id}.eta`))) {
+    lines.push(block('pdf', [[`cv-tex/templates/${id}.eta (yours): add inside its loop over the entries, after the notes`]]))
+  } else if (inv.documents.length) {
+    lines.push(block('pdf', [[`vitakit's template. \`${run.bin('vitakit', `customize ${id} --pdf --field ${names.join(' --field ')}`)}\` copies it with these lines:`]]))
+  }
+  if (inv.documents.length) lines.push('', ...indented(fields.map(field => etaFieldSnippet(field))))
+  return lines
+}
+
+async function explainSection(context: CommandContext, inv: Inventory, section: SectionInventory, fields: string[] = []): Promise<string[]> {
   const { style, run } = context
   const lines = [style.bold(section.id), '']
   lines.push(block('data', [[`${section.where}${countsText(section) ? ` · ${countsText(section)}` : ''}`]]))
@@ -86,6 +130,8 @@ async function explainSection(context: CommandContext, inv: Inventory, section: 
   } else {
     lines.push('', block('pdf', [['no documents in cv-tex/']]))
   }
+
+  if (fields.length) lines.push(...await fieldSnippets(context, inv, section, fields))
 
   // The missing schema was explained above.
   const problems = section.problems.filter(problem => !(section.schema.origin === 'none' && problem.message.startsWith('no schema')))
@@ -168,12 +214,14 @@ export const explain: CommandSpec = {
   options: {
     section: { type: 'boolean', description: 'the name is a section (when a document has the same name)' },
     document: { type: 'boolean', description: 'the name is a PDF document (when a section has the same name)' },
+    field: { type: 'string', multiple: true, value: '<name>', description: 'a section: lines that show this field, on the website and in the PDF' },
   },
   project: true,
   help: run => `
   ${run.bin('vitakit', 'explain talks')}       a section: its file, fields, pages and PDFs
   ${run.bin('vitakit', 'explain cv')}          a PDF document: what it includes, from where
   ${run.bin('vitakit', 'explain /cv/')}        a website page: its files and sections
+  ${run.bin('vitakit', 'explain teaching --field evaluation')}   lines that show a field
 
 For a section it shows which entries each PDF document selects, and which
 setting removed the others -- the answer to "why is this not in my PDF?".
@@ -195,7 +243,9 @@ Never prints entry contents, only counts.`,
       if (section && document && !values.section && !values.document) {
         throw new UsageError(`"${name}" is both a section and a PDF document; add --section or --document`, 'explain')
       }
-      if (section && !values.document) lines = await explainSection(context, inv, section)
+      const fields = (values.field as string[] | undefined) ?? []
+      if (fields.length && !(section && !values.document)) throw new UsageError('--field goes with a section', 'explain')
+      if (section && !values.document) lines = await explainSection(context, inv, section, fields)
       else if (document && !values.section) lines = await explainDocument(context, inv, document)
       else {
         const known = [

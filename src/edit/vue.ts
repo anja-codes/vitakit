@@ -36,6 +36,8 @@ export interface SectionElement {
   start: number
   end: number
   line: number
+  /** Whether it has content between its tags, such as slots. */
+  hasContent: boolean
 }
 
 /**
@@ -59,7 +61,10 @@ export function sectionElements(source: string, components: Iterable<string> = [
     if (node.type === ELEMENT && node.tag) {
       const tag = node.tag.includes('-') ? pascal(node.tag) : node.tag
       const id = known.has(tag) ? literalId(node) : undefined
-      if (id) elements.push({ id, tag: node.tag, start: node.loc.start.offset, end: node.loc.end.offset, line: node.loc.start.line })
+      if (id) {
+        const hasContent = (node.children ?? []).some(child => child.type !== 3 && !(child.type === 2 && !(child as unknown as { content: string }).content.trim()))
+        elements.push({ id, tag: node.tag, start: node.loc.start.offset, end: node.loc.end.offset, line: node.loc.start.line, hasContent })
+      }
     }
     for (const child of node.children ?? []) visit(child)
   }
@@ -109,4 +114,30 @@ export function addSectionToPage(source: string, placement: VuePlacement, compon
   }
   const indent = `${indentationAt(source, close)}  `
   return { ok: true, value: { source: insertLinesBefore(source, close, ['', `${indent}${element}`]) } }
+}
+
+/**
+ * Show a section through another component: every element with this section's
+ * id gets the new tag, keeping its attributes. An element with content of its
+ * own (slots) is not changed, since the new component may not take them.
+ */
+export function useComponentForSection(source: string, id: string, component: string, components: Iterable<string> = []): Recognized<{ source: string, changed: number[] }> {
+  const found = sectionElements(source, components)
+  if (!found.ok) return found
+  const elements = found.value.elements.filter(element => element.id === id)
+  if (!elements.length) return { ok: false, reason: `it does not show ${id}` }
+  const blocked = elements.find(element => element.hasContent)
+  if (blocked) return { ok: false, reason: `line ${blocked.line} has content of its own, such as slots; move it into the component` }
+  const changed: number[] = []
+  let result = source
+  // From the end, so earlier offsets stay valid.
+  for (const element of [...elements].reverse()) {
+    if (element.tag === component) continue
+    let text = result.slice(element.start, element.end)
+    text = `<${component}${text.slice(element.tag.length + 1)}`
+    if (text.endsWith(`</${element.tag}>`)) text = `${text.slice(0, -(element.tag.length + 3))}</${component}>`
+    result = result.slice(0, element.start) + text + result.slice(element.end)
+    changed.unshift(element.line)
+  }
+  return { ok: true, value: { source: result, changed } }
 }

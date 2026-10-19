@@ -2,6 +2,7 @@ import type { FieldDescription, FieldType } from '../../fields'
 import type { Inventory, SectionInventory } from '../../inventory'
 import { CommandError, UsageError, type CommandContext, type CommandSpec, type ParsedArgs } from '../command'
 import type { Workspace } from '../plan'
+import { asking, finish } from '../finish'
 
 type Values = ParsedArgs['values']
 
@@ -17,37 +18,6 @@ function onlyOptions(kind: string, values: Values, allowed: string[]): void {
 
 const strings = (value: Values[string]): string[] => (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String)
 
-/** Show the plan, ask, write; then say what is next. */
-async function finish(
-  context: CommandContext,
-  ws: Workspace,
-  values: Values,
-  { before = [], after = [] }: { before?: string[], after?: string[] },
-): Promise<number> {
-  const { io, style, root } = context
-  const { applyPlan, confirmPlan, printPlan } = await import('../plan')
-  const plan = ws.plan()
-  const writes = plan.items.some(item => item.kind === 'create' || item.kind === 'edit' || item.kind === 'replace')
-  io.out('\n')
-  printPlan(io, style, root, plan)
-  if (before.length) io.out(`\n${before.join('\n')}\n`)
-  if (!writes) {
-    io.out('\nNothing to write.\n')
-    if (after.length) io.out(`\n${after.join('\n')}\n`)
-    return 0
-  }
-  if (values['dry-run']) {
-    io.out(`\n${style.dim('Dry run: nothing was written.')}\n`)
-    return 0
-  }
-  if (!await confirmPlan(io, plan, values.yes === true)) return 1
-  await applyPlan(root, plan)
-  io.out(`\n${style.green('✓')} done.${after.length ? `\n\n${after.join('\n')}` : ''}\n`)
-  return 0
-}
-
-/** Ask the questions `--yes` and scripts answer with flags. */
-const asking = (context: CommandContext, values: Values) => context.io.interactive && values.yes !== true
 
 // add section ---------------------------------------------------------------
 
@@ -219,7 +189,7 @@ async function addSection(context: CommandContext, id: string, values: Values): 
   if (schemaResult.changes.length) next.push(`Then check them: \`${run.bin('vitakit', `validate ${id}`)}\``)
   const hidden = authoring.fieldsNotShown(schemaResult.fields)
   if (hidden.length && (pages.length || documents.length || shownOn.size || inDocuments.size)) {
-    next.push(`Accepted, but not shown by the standard layout: ${hidden.join(', ')}. To show them: \`${run.bin('vitakit', `customize ${id}`)}\``)
+    next.push(`Accepted, but not shown by the standard layout: ${hidden.join(', ')}. To show them: \`${run.bin('vitakit', `customize ${id} --web --pdf ${hidden.map(name => `--field ${name}`).join(' ')}`)}\``)
   }
   return finish(context, ws, values, { before, after: next })
 }
@@ -281,7 +251,7 @@ async function addField(context: CommandContext, id: string, name: string, value
   const after = [
     `Next: give entries in ${section.where} the new field, e.g.`,
     `    ${name}: ${example}`,
-    ...(outcome === 'pasted' ? [] : [`It is accepted now, not shown yet (${FIELD_TYPE_NAMES[type]}). To show it: \`${run.bin('vitakit', `customize ${id}`)}\``]),
+    ...(outcome === 'pasted' ? [] : [`It is accepted now, not shown yet (${FIELD_TYPE_NAMES[type]}). To show it: \`${run.bin('vitakit', `customize ${id} --web --pdf --field ${name}`)}\``]),
   ]
   return finish(context, ws, values, { before, after })
 }
