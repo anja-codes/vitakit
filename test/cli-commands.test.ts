@@ -76,10 +76,17 @@ describe('usage errors', () => {
     expect(result.err).toMatch(/--help/)
   })
 
-  it('lists the commands without arguments', async () => {
+  it('greets with the fox and lists the commands without arguments', async () => {
     const result = await cli([], { cwd: tmpdir() })
     expect(result.code).toBe(0)
+    expect(result.out).toMatch(/^ {38}__\.\.--''\/\\ \/\\\n/)
+    expect(result.out).toMatch(/ {20}\|  _\.-' {10}vitakit \d+\.\d+\.\d+\n/)
+    expect(result.out).toContain('one leap, two landings:')
     for (const command of ['status', 'explain', 'validate', 'pdf', 'verify', 'eject']) expect(result.out).toContain(`  ${command}`)
+
+    const help = await cli(['--help'], { cwd: tmpdir() })
+    expect(help.out).not.toContain('one leap')
+    expect(help.out).toBe(result.out.slice(result.out.indexOf('vitakit —')))
   })
 })
 

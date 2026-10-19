@@ -10,6 +10,7 @@ import { packageRoot } from '../assets'
 import { commands, detectPackageManager, type Commands } from '../package-manager'
 import { commandHelp, CommandError, parseCommandArgs, UsageError, type CommandSpec } from './command'
 import { resolveRoot } from './context'
+import { banner, BANNER_WIDTH } from './banner'
 import { processIo, style, type Io } from './io'
 import { COMMANDS, GROUPS } from './registry'
 
@@ -49,7 +50,14 @@ export async function main(argv: string[], io: Io = processIo()): Promise<number
   const run = commands(detectPackageManager(io.cwd, io.env))
   const color = io.tty && !io.env.NO_COLOR && !argv.includes('--no-color')
 
-  if (name === undefined || name === 'help' || name === '--help' || name === '-h') {
+  if (name === undefined) {
+    // The fox greets people who type just `vitakit`; help stays plain.
+    const paint = style(color)
+    const room = io.columns === undefined || io.columns >= BANNER_WIDTH
+    io.out(`${room ? `${banner(version(), { fox: paint.orange, bold: paint.bold })}\n\n` : ''}${overview(run)}`)
+    return 0
+  }
+  if (name === 'help' || name === '--help' || name === '-h') {
     const topic = name === 'help' ? rest[0] : undefined
     const command = topic ? COMMANDS.find(candidate => candidate.name === topic) : undefined
     io.out(command ? commandHelp(command, run) : overview(run))

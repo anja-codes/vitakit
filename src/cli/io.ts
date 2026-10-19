@@ -16,6 +16,8 @@ export interface Io {
   interactive: boolean
   /** Whether stdout is a terminal, for colour. */
   tty: boolean
+  /** Width of the terminal, when stdout is one. */
+  columns?: number
   /** Ask a question and return the answer; only called when `interactive`. */
   ask: (question: string) => Promise<string>
 }
@@ -28,6 +30,7 @@ export function processIo(): Io {
     err: text => process.stderr.write(text),
     interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
     tty: Boolean(process.stdout.isTTY),
+    ...(process.stdout.columns ? { columns: process.stdout.columns } : {}),
     async ask(question) {
       const rl = createInterface({ input: process.stdin, output: process.stdout })
       try {
@@ -46,22 +49,25 @@ export interface Style {
   red: (text: string) => string
   green: (text: string) => string
   yellow: (text: string) => string
+  /** The fox's orange, where the terminal has 256 colours. */
+  orange: (text: string) => string
 }
 
 export function style(color: boolean): Style {
-  const wrap = (open: number, close: number) => (text: string) => color ? `\u001B[${open}m${text}\u001B[${close}m` : text
+  const wrap = (open: number | string, close: number) => (text: string) => color ? `\u001B[${open}m${text}\u001B[${close}m` : text
   return {
     bold: wrap(1, 22),
     dim: wrap(2, 22),
     red: wrap(31, 39),
     green: wrap(32, 39),
     yellow: wrap(33, 39),
+    orange: wrap('38;5;208', 39),
   }
 }
 
 /** Lines of columns, padded to the widest cell of each column but the last. */
 export function table(rows: string[][], indent = '  ', gap = '   '): string {
-  const visible = (text: string) => text.replace(/\u001B\[\d+m/g, '').length
+  const visible = (text: string) => text.replace(/\u001B\[[\d;]+m/g, '').length
   const widths: number[] = []
   for (const row of rows) {
     row.forEach((cell, index) => { widths[index] = Math.max(widths[index] ?? 0, visible(cell)) })
