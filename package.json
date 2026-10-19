@@ -79,6 +79,7 @@
     "docs:build": "pnpm build && pnpm --filter ./docs build"
   },
   "dependencies": {
+    "@babel/parser": "^7.29.9",
     "@behackl/citation-js-extras": "^0.4.0",
     "@types/hast": "^3.0.5",
     "citation-js": "^0.7.22",
@@ -103,6 +104,7 @@
     "nuxt": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/types": "^7.29.8",
     "@nuxt/kit": "^4.5.2",
     "@nuxt/schema": "^4.5.2",
     "@types/node": "^26.4.1",
