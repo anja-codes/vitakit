@@ -1,0 +1,52 @@
+# Publishes @anja.codes/vitakit and @anja.codes/create-vitakit to npm when a
+# tag like v0.2.0 is pushed, with npm trusted publishing: no token, provenance
+# attached. Both packages, and the vitakit range the creator writes into new
+# projects, must have the tag's version (`node scripts/release.mjs set 0.2.0`).
+#
+# Each package needs this workflow registered once as its trusted publisher on
+# npmjs.com: package settings -> Trusted publisher -> GitHub Actions,
+# repository anja-codes/vitakit, workflow release.yml.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token npm exchanges for a publish credential
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer.
+      - run: npm install --global npm@latest
+
+      - name: Versions match the tag
+        id: version
+        run: echo "dist-tag=$(node scripts/release.mjs check "$GITHUB_REF_NAME")" >> "$GITHUB_OUTPUT"
+
+      - run: pnpm install --frozen-lockfile
+      # Typecheck, build, tests, and that examples/scaffolded matches the
+      # template -- what prepublishOnly would run, run once, here.
+      - run: pnpm check
+
+      # The package first: the creator's template depends on it.
+      - name: Publish @anja.codes/vitakit
+        run: npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
+      - name: Publish @anja.codes/create-vitakit
+        working-directory: create
+        run: npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
