@@ -45,7 +45,7 @@ cv-tex/preamble.tex cover most styling without taking anything over.`,
 
     const { applyPlan, printPlan, confirmPlan } = await import('../plan')
     const plan = await (await import('../eject')).ejectPlan(root, asset, { force: values.force === true })
-    printPlan(io, style, root, plan)
+    printPlan(io, style, plan)
     if (values['dry-run']) return 0
     if (!await confirmPlan(io, plan, values.yes === true)) return 1
     await applyPlan(root, plan)

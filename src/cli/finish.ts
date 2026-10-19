@@ -21,7 +21,7 @@ export async function finish(
   const plan = ws.plan()
   const writes = plan.items.some(item => item.kind === 'create' || item.kind === 'edit' || item.kind === 'replace')
   io.out('\n')
-  printPlan(io, style, root, plan)
+  printPlan(io, style, plan)
   if (before.length) io.out(`\n${before.join('\n')}\n`)
   if (!writes) {
     io.out('\nNothing to write.\n')

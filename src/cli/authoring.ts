@@ -1,5 +1,5 @@
 /**
- * The operations behind `add` and `customize --schema`. Each records what it
+ * The operations behind `add` and `customize`. Each records what it
  * would write in a `Workspace`; commands compose them into one plan.
  */
 import { parse as parseYaml } from 'yaml'
@@ -7,10 +7,9 @@ import type { z } from 'zod'
 import type { FieldDescription, FieldType } from '../fields'
 import type { Inventory, SectionInventory } from '../inventory'
 import { addSchemaField, ensurePackageImports, propertyKey } from '../edit/typescript'
-import { addSectionToDocument } from '../edit/tex'
+import { addSectionToDocument, vitasectionLine } from '../edit/tex'
 import { addSectionToPage, sectionElementSource } from '../edit/vue'
 import { addNavItem, yamlScalar } from '../edit/yaml'
-import { vitasectionLine } from '../edit/tex'
 import { CommandError } from './command'
 import type { Workspace } from './plan'
 

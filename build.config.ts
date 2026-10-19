@@ -35,7 +35,7 @@ export default defineBuildConfig({
       // emitter; the source layout mirrors dist/ so that running from source
       // (tests) and from the package resolve identically.
       await copy('src/tex/templates', 'dist/tex/templates')
-      // Section schema sources, copied verbatim by `vitakit eject <section>`.
+      // Section schema sources, copied by `vitakit customize <section> --schema --copy`.
       await copy('src/schemas', 'dist/schemas')
       await copy('src/tex/vitakit-cv.cls', 'dist/tex/vitakit-cv.cls')
     },

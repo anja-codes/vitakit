@@ -18,7 +18,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # typecheck, tests, build, and that examples/scaffolded still matches the
+      # typecheck, build, tests, and that examples/scaffolded still matches the
       # @anja.codes/create-vitakit template.
       - run: pnpm check
 

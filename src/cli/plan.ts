@@ -42,7 +42,7 @@ export function diff(before: string, after: string, context = 2): string[] {
   ]
 }
 
-export function printPlan(io: Io, style: Style, _root: string, plan: Plan): void {
+export function printPlan(io: Io, style: Style, plan: Plan): void {
   const lines: string[] = []
   for (const item of plan.items) {
     if (item.kind === 'create') {
