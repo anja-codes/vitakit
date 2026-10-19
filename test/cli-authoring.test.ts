@@ -1,46 +1,12 @@
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
 import { cli } from './cli'
+import { exampleProject as project, readProjectFile } from './project'
 
-const example = join(process.cwd(), 'examples/scaffolded')
-const temporary: string[] = []
-
-/**
- * A copy of the scaffolded example. `@anja.codes/vitakit` resolves to this
- * checkout's source, so that schemas written by the CLI load in the tests as
- * they would in a project.
- */
-async function project(changes: Record<string, string | null> = {}): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'vitakit-add-'))
-  temporary.push(root)
-  await cp(example, root, {
-    recursive: true,
-    filter: source => !/[/\\](node_modules|\.nuxt|\.output|generated)([/\\]|$)/.test(source) && !source.endsWith('.pdf'),
-  })
-  await writeFile(join(root, 'tsconfig.json'), '{}\n')
-  const shim = join(root, 'node_modules/@anja.codes/vitakit')
-  await mkdir(shim, { recursive: true })
-  await writeFile(join(shim, 'package.json'), JSON.stringify({ name: '@anja.codes/vitakit', type: 'module', exports: './index.ts' }))
-  await writeFile(join(shim, 'index.ts'), `export * from '${join(process.cwd(), 'src/index.ts')}'\n`)
-  for (const [path, contents] of Object.entries(changes)) {
-    if (contents === null) await rm(join(root, path))
-    else {
-      await mkdir(join(root, path, '..'), { recursive: true })
-      await writeFile(join(root, path), contents)
-    }
-  }
-  return root
-}
-
-afterAll(async () => {
-  await Promise.all(temporary.map(root => rm(root, { recursive: true, force: true })))
-})
-
-const read = (root: string, path: string) => readFile(join(root, path), 'utf8')
+const read = readProjectFile
 
 const GRANTS = [
   '- date: 2023',

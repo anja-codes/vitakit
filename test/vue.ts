@@ -40,3 +40,11 @@ export async function renderVue(component: Component, props: Record<string, unkn
   for (const [name, child] of Object.entries(components)) app.component(name, child)
   return renderToString(app)
 }
+
+/**
+ * An SFC as Nuxt compiles it: names Nuxt imports automatically (`useSection`,
+ * `computed`, …) are imported explicitly from `from`.
+ */
+export function withAutoImports(source: string, names: string[], from = '#imports'): string {
+  return source.replace(/<script setup( lang="ts")?>/, match => `${match}\nimport { ${names.join(', ')} } from '${from}'`)
+}

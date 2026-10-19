@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { aligned, commands, detectPackageManager } from '../src/package-manager'
 import { cli } from './cli'
+import { COMMANDS } from '../src/cli/registry'
 
 const temporary: string[] = []
 
@@ -65,17 +66,8 @@ describe('help texts', () => {
   const help = async (args: string[], userAgent: string) =>
     (await cli(args, { cwd: tmpdir(), env: { npm_config_user_agent: userAgent } })).out
 
-  it.each([
-    [['--help']],
-    [['status', '--help']],
-    [['explain', '--help']],
-    [['validate', '--help']],
-    [['pdf', '--help']],
-    [['verify', '--help']],
-    [['eject', '--help']],
-    [['add', '--help']],
-    [['customize', '--help']],
-  ])('vitakit %s speaks npm when run by npm, pnpm when run by pnpm', async (args) => {
+  // Every command, from the registry, so a new one cannot be forgotten here.
+  it.each([[['--help']], ...COMMANDS.map(command => [[command.name, '--help']])])('vitakit %s speaks npm when run by npm, pnpm when run by pnpm', async (args) => {
     const npm = await help(args, 'npm/11.19.0 node/v24.21.0')
     expect(npm).not.toMatch(/pnpm/)
     expect(npm).toMatch(/npm run |npx /)

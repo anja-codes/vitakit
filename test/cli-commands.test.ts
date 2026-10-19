@@ -1,35 +1,10 @@
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { cp, readFile, readdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { cli } from './cli'
-
-const example = join(process.cwd(), 'examples/scaffolded')
-const temporary: string[] = []
-
-/** A copy of the scaffolded example, without anything built or installed. */
-async function project(changes: Record<string, string | ((source: string) => string)> = {}): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'vitakit-cli-'))
-  temporary.push(root)
-  await cp(example, root, {
-    recursive: true,
-    filter: source => !/[/\\](node_modules|\.nuxt|\.output|generated)([/\\]|$)/.test(source) && !source.endsWith('.pdf'),
-  })
-  // The example's tsconfig extends .nuxt/, which is not there; the test
-  // runner's TypeScript transform of schemas/*.ts would trip over it.
-  await writeFile(join(root, 'tsconfig.json'), '{}\n')
-  for (const [path, change] of Object.entries(changes)) {
-    const file = join(root, path)
-    await mkdir(join(file, '..'), { recursive: true })
-    await writeFile(file, typeof change === 'string' ? change : change(await readFile(file, 'utf8')))
-  }
-  return root
-}
-
-afterAll(async () => {
-  await Promise.all(temporary.map(root => rm(root, { recursive: true, force: true })))
-})
+import { emptyDirectory, exampleProject as project } from './project'
 
 describe('finding the project', () => {
   it('walks up from a nested directory, and accepts --root', async () => {
@@ -41,8 +16,7 @@ describe('finding the project', () => {
   })
 
   it('prefers the nearest package depending on vitakit over a workspace root', async () => {
-    const workspace = await mkdtemp(join(tmpdir(), 'vitakit-ws-'))
-    temporary.push(workspace)
+    const workspace = await emptyDirectory()
     await writeFile(join(workspace, 'package.json'), JSON.stringify({ devDependencies: { '@anja.codes/vitakit': '*' } }))
     const site = join(workspace, 'site')
     await cp(await project(), site, { recursive: true })
@@ -51,8 +25,7 @@ describe('finding the project', () => {
   })
 
   it('explains what to do outside a project, while help still works', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'vitakit-none-'))
-    temporary.push(outside)
+    const outside = await emptyDirectory()
     const result = await cli(['status'], { cwd: outside })
     expect(result.code).toBe(1)
     expect(result.err).toMatch(/not inside a vitakit project.*--root/s)
