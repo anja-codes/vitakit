@@ -34,6 +34,15 @@ a {
 .vita-section {
   @apply divide-y divide-neutral-100;
 }
+.vita-section-group {
+  @apply mt-10;
+}
+.vita-section-group__title {
+  @apply text-xl font-semibold;
+}
+.vita-section-group > .vita-section {
+  @apply mt-3;
+}
 .vita-links {
   @apply flex flex-wrap gap-x-4 gap-y-1;
 }

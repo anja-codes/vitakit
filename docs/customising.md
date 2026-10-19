@@ -110,6 +110,27 @@ across two, without touching the data.
 *wrong* — sorting, date formatting, filtering, citation rendering — lives in the
 package, where it can be fixed for everyone.
 
+### Placing a section on a page
+
+One line per section, with a heading:
+
+```vue
+<VitaSection id="teaching" title="Teaching" />
+<VitaSection id="talks" title="Invited talks" :where="{ kind: 'invited' }" :limit="10" />
+```
+
+| Prop | |
+|---|---|
+| `id` | the section, `content/<id>.yml` |
+| `title` | a heading; heading and list then sit in a `<section id="<id>">`, and neither appears when there are no entries |
+| `where` | only entries whose fields have these values; a list means any of them. Exactly like `where` in a [PDF document](./cv-documents.md#selection-options) |
+| `limit` | the newest N, after `where` |
+| `entries` | entries you selected yourself, instead of `id` |
+| `titleFields` | fields to try, in order, for the main line |
+
+Without `title`, `VitaSection` is just the list, and the heading is yours to
+write. The heading has the class `vita-section-group__title`.
+
 ### Customising a section with slots
 
 Use `VitaSection` scoped slots to show an extra research detail or change a row's

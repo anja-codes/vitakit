@@ -41,14 +41,14 @@ document class.
 \begin{document}
 \vitaheader
 
-\vitasection{employment}
-\vitasection{education}
-\vitasection{teaching}
+\vitasection[Employment]{employment}
+\vitasection[Education]{education}
+\vitasection[Teaching]{teaching}
 
 \section{Publications}\vitainput{publications}
 
-\vitasection{supervision}
-\vitasection{talks}
+\vitasection[Supervised theses]{supervision}
+\vitasection[Selected talks]{talks}
 \end{document}
 ```
 
@@ -92,7 +92,8 @@ work as usual.
 visibility: public | cv | private     # default: cv
 sections:
   <id>:
-    where: { kind: [invited, seminar] }  # field equals this value, or one of them
+    where: { kind: [invited, seminar] }  # field equals this value, or one of them;
+                                         # the same as <VitaSection :where>
     since: 2020                          # start year at least this
     until: 2024                          # start year at most this
     limit: 10                            # keep the newest N

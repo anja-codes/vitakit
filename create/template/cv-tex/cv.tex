@@ -1,4 +1,5 @@
-% Your CV. This file decides the ORDER of things; cv.yml decides what goes in.
+% Your CV. This file decides the ORDER of things and their headings; cv.yml
+% decides what goes in. app/pages/cv.vue does the same for the website.
 %
 % Styling: redefine the macros in preamble.tex. For deeper changes run
 %   pnpm vitakit eject vitakit-cv.cls
@@ -25,14 +26,14 @@
 % sections vitakit generates from content/.
 % \input{prose/research-statement.tex}
 
-\vitasection{employment}
-\vitasection{education}
-\vitasection{teaching}
+\vitasection[Employment]{employment}
+\vitasection[Education]{education}
+\vitasection[Teaching]{teaching}
 
 \section{Publications}
 \vitainput{publications}
 
-\vitasection{supervision}
-\vitasection{talks}
+\vitasection[Supervised theses]{supervision}
+\vitasection[Selected talks]{talks}
 
 \end{document}

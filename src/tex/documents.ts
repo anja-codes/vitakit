@@ -15,6 +15,7 @@ import { z } from 'zod'
 import { fail, formatZodIssues, messageOf } from '../issues'
 import type { SectionSource } from '../sections'
 import { atMost } from '../shared/visibility'
+import { fieldValue, filterWhere } from '../shared/select'
 import type { Entry, Visibility } from '../shared/types'
 
 /**
@@ -27,6 +28,8 @@ import type { Entry, Visibility } from '../shared/types'
  * `.tex` or an ejected template, which is the project's normal answer to
  * "I want something specific".
  */
+const whereScalar = z.union([z.string(), z.number(), z.boolean()])
+
 const sectionOptions = z.strictObject({
   /**
    * Keep entries whose field equals the value, or one of several values:
@@ -36,7 +39,7 @@ const sectionOptions = z.strictObject({
    * where: { kind: [invited, seminar] }
    * ```
    */
-  where: z.record(z.string(), z.union([z.string(), z.array(z.string()).min(1)])).default({}),
+  where: z.record(z.string(), z.union([whereScalar, z.array(whereScalar).min(1)])).default({}),
   /** Keep only the newest N entries. */
   limit: z.number().int().positive().optional(),
   /** Drop entries starting before this year. */
@@ -129,17 +132,6 @@ export function validateDocumentSections(document: DocumentSource, sources: Sect
   }
 }
 
-/** The comparable value of a field: `year` from the date, text from rich fields. */
-function valueOf(entry: Entry, field: string): unknown {
-  if (field === 'year') return (entry.date as { from?: { year: number } } | undefined)?.from?.year
-  const value = entry[field]
-  if (typeof value === 'object' && value !== null && 'text' in value) return (value as { text: string }).text
-  // A `linked` value compares against its label.
-  if (typeof value === 'object' && value !== null && 'label' in value) return (value as { label: string }).label
-  return value
-}
-
-
 /** Select the entries of one section for one document. */
 export function selectEntries(
   entries: Entry[],
@@ -151,15 +143,12 @@ export function selectEntries(
   let result = entries.filter(entry => atMost(entry.visibility as Visibility | undefined, options.visibility))
 
   if (section.since !== undefined) {
-    result = result.filter(entry => Number(valueOf(entry, 'year') ?? 0) >= section.since!)
+    result = result.filter(entry => Number(fieldValue(entry, 'year') ?? 0) >= section.since!)
   }
   if (section.until !== undefined) {
-    result = result.filter(entry => Number(valueOf(entry, 'year') ?? Infinity) <= section.until!)
+    result = result.filter(entry => Number(fieldValue(entry, 'year') ?? Infinity) <= section.until!)
   }
-  for (const [field, expected] of Object.entries(section.where ?? {})) {
-    const wanted = new Set(Array.isArray(expected) ? expected : [expected])
-    result = result.filter(entry => wanted.has(String(valueOf(entry, field) ?? '')))
-  }
+  result = filterWhere(result, section.where)
 
   return section.limit ? result.slice(0, section.limit) : result
 }

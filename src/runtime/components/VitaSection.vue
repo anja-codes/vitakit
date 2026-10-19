@@ -4,16 +4,22 @@
  *
  * title/meta/note slots replace those regions; the default slot replaces the
  * whole entry body. The list, row and date column remain owned by vitakit.
+ *
+ * With `title`, the list comes with its heading, in a <section> carrying the
+ * section id as anchor, and neither appears when there are no entries -- the
+ * website's `\vitasection[Title]{id}`.
  */
 import { computed, type VNodeChild } from 'vue'
 import { useSection } from '#imports'
 import {
   entrySecondaryParts,
   entryTitleField,
+  filterWhere,
   richHtml,
   type DateRange,
   type Entry,
   type VitaSectionSlotProps,
+  type Where,
 } from '@anja.codes/vitakit/shared'
 
 const props = defineProps<{
@@ -22,7 +28,11 @@ const props = defineProps<{
   entries?: Entry[]
   /** Fields to try, in order, for the main line. */
   titleFields?: string[]
+  /** Only entries whose fields have these values, as `where` in a PDF document. */
+  where?: Where
   limit?: number
+  /** A heading; the list is then wrapped in a <section> with the id as anchor. */
+  title?: string
 }>()
 
 const slots = defineSlots<{
@@ -33,7 +43,7 @@ const slots = defineSlots<{
 }>()
 
 const rows = computed(() => {
-  const source = props.entries ?? (props.id ? useSection(props.id) : [])
+  const source = filterWhere(props.entries ?? (props.id ? useSection(props.id) : []), props.where)
   const items = props.limit ? source.slice(0, props.limit) : source
   return items.map((entry, index): VitaSectionSlotProps => {
     // Field selection remains shared with the emitter; only the web-specific
@@ -59,7 +69,18 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <ul v-if="rows.length" class="vita-section">
+  <!-- With a title: the same component without one, inside its section. -->
+  <section v-if="title !== undefined && rows.length" :id="id" class="vita-section-group">
+    <h2 class="vita-section-group__title">
+      {{ title }}
+    </h2>
+    <VitaSection :entries="rows.map(row => row.entry)" :title-fields="titleFields">
+      <template v-for="(_, name) in slots" #[name]="scope">
+        <slot :name="name" v-bind="scope" />
+      </template>
+    </VitaSection>
+  </section>
+  <ul v-else-if="title === undefined && rows.length" class="vita-section">
     <VitaEntry v-for="row in rows" :key="row.entry.id" :date="row.display.date">
       <template v-if="row.display.term" #date>{{ row.display.term }}</template>
       <!-- Check presence explicitly: an intentionally empty slot must not

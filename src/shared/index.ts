@@ -18,4 +18,5 @@ export {
   type VitaSectionSlotProps,
 } from './entry'
 export { richSource, richHtml } from './rich'
+export { fieldValue, filterWhere, matchesWhere, type Where, type WhereValue } from './select'
 export type * from './types'
