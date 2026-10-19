@@ -222,11 +222,17 @@ A title override also owns any title link or ongoing label you want to retain.
 Slots change this web rendering only: they do not change schemas, LaTeX output
 or your generated custom components.
 
+`vitakit customize <section> --web --field <name>` writes such a slot into a small
+component of your own and uses it wherever the section appears; with `--list`, the
+component has a list of its own, e.g. grouped by term (`--group-by term`). See
+[commands](./cli.md#vitakit-customize-section).
+
 ### A new page
 
 Add `content/pages/outreach.md` and it is live at `/outreach/`. If it needs more than
 prose, add `app/pages/outreach.vue`; a concrete route wins over the Markdown
-catch-all. `app/pages/publications.vue` is the worked example: prose from Markdown,
+catch-all. `pnpm vitakit add page outreach` writes both, ready for sections, and
+adds the page to the menu. `app/pages/publications.vue` is the worked example: prose from Markdown,
 then a component.
 
 To remove a page, delete its Markdown file and remove its navigation entry from
@@ -352,7 +358,7 @@ Two different axes, easily confused:
 | You want to change | Do this |
 |---|---|
 | what a section *contains* (fields) | `vitakit add field <section> <name>`, or edit `schemas/<name>.ts` |
-| what a section *looks like* (markup) | `VitaSection` slots first; `vitakit eject <Component>` for deeper changes |
+| what a section *looks like* (markup) | `vitakit customize <section> --web` for a component of your own, or `VitaSection` slots by hand; `vitakit eject <Component>` changes every section |
 
 Adding a field to supervision is a schema change; displaying it can be a slot
 change. Neither requires owning the whole component.

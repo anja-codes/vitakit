@@ -219,8 +219,10 @@ date, title and note.
 
 A **built-in** section (education, employment, teaching, talks, supervision)
 needs no schema; for it, `add section` only creates the file, empty, with an
-example entry as a comment. A section whose entries fit another section's
-schema can share it: `--like talks`.
+example entry as a comment. If its entries have fields the built-in schema does
+not, `add section` drafts those into `schemas/<section>.ts`, which keeps all
+the built-in fields — the same for a schema of your own. A section whose
+entries fit another section's schema can share it: `--like talks`.
 
 Where it appears is one line in each place, after the section you choose —
 `<VitaSection id="grants" title="Grants" />` in a page, `\vitasection[Grants]{grants}`
@@ -324,7 +326,8 @@ the line kept. Two kinds:
   secondary line — with the fields you choose;
 - **how the list is organised** (`--list`): the entries come from vitakit,
   selected and sorted, and the list markup is yours, with a line for every
-  field to start from — for grouping by term, numbering, badges.
+  field to start from — for numbering, badges, a layout of your own.
+  `--group-by term` writes it with a heading for each term.
 
 The component is named for what it shows, `TeachingSection` or what
 `--component` says, and works for any section with the same fields: `--use`

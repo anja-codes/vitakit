@@ -49,6 +49,25 @@ The development server keeps running, the affected page shows the error in place
 red banner lists every problem, and saving a fix recovers without a restart. The same
 problem fails `nuxt generate`, so a broken file cannot reach your website.
 
+For an overview at any time — every section, where it appears on the website and
+in the PDF, and what is wrong — ask the project:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit status
+```
+
+```bash [npm]
+npx vitakit status
+```
+
+:::
+
+A section of your own is a YAML file plus a schema; write the file, then
+`pnpm vitakit add section <name>` drafts the schema from it and places the section
+on a page and in the PDF. See [commands](./cli.md).
+
 ## 3. Build the PDF
 
 ::: code-group
@@ -285,7 +304,7 @@ NUXT_APP_BASE_URL=/~username/ npm run check
 
 ## Next
 
-- [Commands](./cli.md) — `add`, `eject`, `vitakit pdf`, `check`
+- [Commands](./cli.md) — `vitakit status`, `add`, `customize`, `pdf`, `check`
 - [Content reference](./content-reference.md) — every field of every file
 - [Customising](./customising.md) — design, page structure, your own sections
 - [CV documents](./cv-documents.md) — variants, ordering, cover letters

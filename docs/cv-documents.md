@@ -188,7 +188,7 @@ named templates (local or bundled) take precedence.
 
 ## Editing entries with Eta
 
-Eject a bundled template with `pnpm vitakit customize teaching --pdf`, then edit
+Copy a bundled template with `pnpm vitakit customize teaching --pdf`, then edit
 `cv-tex/templates/teaching.eta`. Templates receive the document's already-selected,
 sorted entries as `it.entries`. They describe the entries, not section headings or
 ordering.

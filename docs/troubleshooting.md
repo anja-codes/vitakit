@@ -10,8 +10,12 @@ Schemas are strict on purpose: the alternative is a silently missing line on you
 site. See the [content reference](./content-reference.md).
 
 **`no schema for this file; create schemas/outreach.ts`** — you added
-`content/outreach.yml` without telling vitakit its shape. The message prints a
-starter snippet; see [adding a section](./customising.md#layer-5--adding-a-section).
+`content/outreach.yml` without telling vitakit its shape. `pnpm vitakit add section
+outreach` drafts the schema from your entries; see
+[adding a section](./customising.md#layer-5--adding-a-section).
+
+**`Cannot find module …/schemas/talks`** — a schema imports another one without its
+file extension. Node needs it: `export { default } from './talks.ts'`.
 
 **`expected a date like 2024, 2024-03 or 2024-03-15, got "June 2025"`** — dates are
 written numerically. Free-form labels belong in `term` (teaching) or `note`.

@@ -102,8 +102,22 @@ content, with strict builds, forgiving development, output assertions and a
 scaffolder whose output is regenerated and tested in CI.
 
 Not yet implemented: cover-letter helpers (`\vitacount`, `\vitafirst`), a
-`schema` command to draft a schema from existing YAML, a second theme, and a
-Typst target.
+second theme, and a Typst target.
+
+## The `vitakit` command
+
+```bash
+pnpm vitakit status                   # sections, where they appear, what is wrong
+pnpm vitakit add section grants       # schema drafted from content/grants.yml, placed on a page and in the PDF
+pnpm vitakit add field teaching evaluation --type number
+pnpm vitakit customize teaching --web --pdf --field evaluation
+pnpm vitakit explain talks            # where a section comes from and goes
+pnpm vitakit validate                 # everything a build checks, without building
+```
+
+Every change is shown before it is made, and existing files are only edited where
+the command recognizes their structure; otherwise it prints what to paste. See
+[commands](./docs/cli.md).
 
 MIT
 

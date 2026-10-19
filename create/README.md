@@ -40,8 +40,9 @@ Choosing to decide later adds no workflows and leaves all hosting options open.
 
 See [publishing and setup](../docs/getting-started.md#5-publish) for details.
 
-This is the only scaffolding step vitakit has. Everything afterwards — a new
-page, a new CV variant, a new section — is adding or copying a file in a
-repository you own.
+Everything afterwards is ordinary files in a repository you own. The
+`vitakit` command in the project helps with the common changes — `pnpm vitakit
+status` shows what is there, `pnpm vitakit add section <name>` sets up a new
+section — and shows every change before it makes it.
 
 MIT
