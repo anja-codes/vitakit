@@ -1,3 +1,7 @@
 <% for (const item of it.entries) { %>
-\vitaentry{<%~ it.date(item.date) %>}{<%~ it.rich(item.title) %>}{<%~ [item.event && it.tex(item.event), item.location && it.tex(item.location)].filter(Boolean).join(', ') %>}
+<%~ it.vita.entry({
+  date: it.date(item.date),
+  title: item.title,
+  context: it.join([item.event, item.location])
+}) %>
 <% } %>

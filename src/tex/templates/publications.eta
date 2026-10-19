@@ -2,8 +2,8 @@
 \begin{refsection}
 \nocite{*}
 <% for (const group of it.groups) { %>
-<%~ it.bibgroup(group) %>
-\printbibliography[check=vita-<%~ group.id %>, title={<%~ it.tex(group.label) %>}, heading=subbibliography]
+<%~ it.bib.group(group) %>
+\printbibliography[check=vita-<%~ group.id %>, title={<%~ it.text(group.label) %>}, heading=subbibliography]
 <% } %>
 \end{refsection}
 <% } %>

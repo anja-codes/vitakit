@@ -264,7 +264,7 @@ describe('ejecting a package default', () => {
   it('an ejected TeX template takes precedence over the bundled one', async () => {
     const root = await starter()
     const { path } = await eject('talks.eta', root)
-    await writeFile(path, '<% for (const t of it.entries) { %>MINE <%~ it.rich(t.title) %>\n<% } %>')
+    await writeFile(path, '<% for (const t of it.entries) { %>MINE <%~ it.text(t.title) %>\n<% } %>')
 
     await buildCv({ rootDir: root, noPdf: true })
     const tex = await readFile(join(root, 'cv-tex/generated/cv/talks.tex'), 'utf8')
@@ -664,6 +664,66 @@ describe('full pipeline', () => {
     for (const omitted of ['Empty employment', 'Filtered talks', 'Hidden supervision', 'Old teaching label', 'Hidden thesis']) {
       expect(text).not.toContain(omitted)
     }
+  }, 120_000)
+
+  it.skipIf(!hasLatexmk() || !hasPdftotext())('typesets the reworked helpers and composed notes without double escaping', async () => {
+    const root = await starter({
+      'content/employment.yml': [
+        '- date: 2025',
+        '  position: Researcher & lecturer',
+        '  institution: { name: Institute & Friends, url: https://example.org/?a=1&b=2 }',
+        '  project: { title: "Trees project $k$", url: https://example.org/project, funder: "Funder & Co", grant: P_123 }',
+        '- date: 2024',
+        '  position: Another researcher',
+        '  institution: Plain institute',
+        '  project: { title: Independent project }',
+      ].join('\n'),
+      'content/education.yml': '- { date: 2023, degree: PhD, institution: Plain institute, thesis: { type: Dissertation, title: "Large trees $k$", supervisor: { label: "A & B", url: https://example.org/supervisor } } }\n',
+      'content/supervision.yml': [
+        '- { date: 2025, student: Student One, title: "First thesis $k$", ongoing: true, coSupervisor: "Co & Supervisor" }',
+        '- { date: 2024, student: Student Two, title: Second thesis }',
+      ].join('\n'),
+      'content/teaching.yml': [
+        '- date: 2025',
+        '  title: Course with zero',
+        '  term: Summer 2025',
+        '  role: Lead & examiner',
+        '  institution: { name: Institute & Friends, url: https://example.org }',
+        '  evaluationScore: 0',
+        '  note: "Budget: $500"',
+        '- { date: 2024, title: Course without score }',
+      ].join('\n'),
+      'schemas/teaching.ts': `import { extendSection, schemas, z } from '${join(PACKAGE, 'src/index.ts')}'\nexport default extendSection(schemas.teaching, { evaluationScore: z.number().optional() })\n`,
+      'cv-tex/templates/teaching.eta': [
+        '<% for (const item of it.entries) { %>',
+        '<%~ it.vita.entry({ date: it.text(item.term) || it.date(item.date), title: item.title, context: it.join([item.role, it.linked(item.institution)]) }) %>',
+        '<%~ it.vita.note(item.note) %>',
+        '<%~ it.vita.note`Evaluation: ${item.evaluationScore}/5` %>',
+        '<%~ it.optional`\\vitanote{At ${it.linked(item.institution)}}` %>',
+        '<% } %>',
+      ].join('\n'),
+      'cv-tex/cv.tex': STARTER['cv-tex/cv.tex']!.replace('\\vitasection{talks}', [
+        '\\vitasection{talks}',
+        '\\vitasection{education}',
+        '\\vitasection{supervision}',
+        '\\vitasection{teaching}',
+      ].join('\n')),
+    })
+    const [pdf] = await buildCv({ rootDir: root })
+    const text = execFileSync('pdftotext', [pdf!, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ')
+    for (const expected of [
+      'Researcher & lecturer', 'Funder & Co', 'Project Independent project',
+      'Dissertation: Large trees', 'supervised by A & B', 'with Co & Supervisor (in progress)',
+      'Second thesis', 'Summer 2025', 'Lead & examiner', 'Budget: $500', 'At Institute & Friends',
+    ]) expect(text).toContain(expected)
+    expect(text.match(/Evaluation:/g)).toHaveLength(1)
+    expect(text).toContain('Evaluation: 0/5')
+    expect(text.match(/\(in progress\)/g)).toHaveLength(1)
+    expect(text).not.toContain('undefined')
+    expect(text).not.toContain('[object Object]')
+    const employment = await readFile(join(root, 'cv-tex/generated/cv/employment.tex'), 'utf8')
+    expect(employment).toContain('Trees project $k$')
+    expect(employment).toContain('Funder \\& Co~P\\_123')
   }, 120_000)
 
   it.skipIf(!hasLatexmk() || !hasPdftotext())('uses inline section headings without changing defaults or revealing empty sections', async () => {

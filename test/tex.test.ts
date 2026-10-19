@@ -99,7 +99,7 @@ describe('emitDocument', () => {
     const { root, entries } = await talks('- { date: 2024, title: A talk }')
     const templateDir = join(root, 'cv-tex/templates')
     await mkdir(templateDir, { recursive: true })
-    await writeFile(join(templateDir, 'talks.eta'), '<% for (const t of it.entries) { %>MINE: <%~ it.rich(t.title) %><% } %>')
+    await writeFile(join(templateDir, 'talks.eta'), '<% for (const t of it.entries) { %>MINE: <%~ it.text(t.title) %><% } %>')
 
     const outDir = join(root, 'cv-tex/generated/cv')
     await emitDocument({ sections: { talks: entries }, publications: [], options: options(), templateDir, outDir })

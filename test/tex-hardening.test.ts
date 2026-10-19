@@ -132,7 +132,7 @@ describe('generated files and template precedence', () => {
     const root = await project({
       'content/outreach.yml': '- { date: 2025, title: An outreach event }\n',
       'schemas/outreach.ts': OUTREACH_SCHEMA,
-      'cv-tex/templates/_generic.eta': '<% for (const item of it.entries) { %>GENERIC: <%~ it.rich(item.title) %><% } %>',
+      'cv-tex/templates/_generic.eta': '<% for (const item of it.entries) { %>GENERIC: <%~ it.text(item.title) %><% } %>',
     })
     await generate(root)
     expect(await readGenerated(root, 'cv', 'outreach')).toContain('GENERIC: An outreach event')

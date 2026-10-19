@@ -1,6 +1,8 @@
 <% for (const item of it.entries) { %>
-\vitaentry{<%~ it.date(item.date) %>}{<%~ it.rich(it.titleOf(item)) %>}{<%~ it.secondaryOf(item) %>}
-<% if (item.note) { %>
-  \vitanote{<%~ it.rich(item.note) %>}
-<% } %>
+<%~ it.vita.entry({
+  date: it.date(item.date),
+  title: it.generic.title(item),
+  context: it.generic.context(item)
+}) %>
+<%~ it.vita.note(item.note) %>
 <% } %>

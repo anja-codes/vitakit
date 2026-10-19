@@ -146,7 +146,9 @@ sections:
 Copy `cv.tex` to make a variant; a document is just a file. Generated files use
 only the macros in `vitakit-cv.cls` (`\vitaentry`, `\vitanote`, `\vitasection`),
 so redefining those in `preamble.tex` restyles everything. Any template can be
-overridden by putting a file of the same name in `cv-tex/templates/`.
+overridden by putting a file of the same name in `cv-tex/templates/`. Templates
+use [formatting helpers and CV macros](./docs/cv-documents.md#editing-entries-with-eta)
+to escape data, compose optional notes, and arrange entry fields.
 
 ## Starting a project
 

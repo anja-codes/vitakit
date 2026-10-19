@@ -1,11 +1,8 @@
 /**
  * Renders validated content into `.tex` files, one per section per document.
  *
- * Templates are Eta with `<% %>` tags. Two rules make them safe to write:
- *
- *   - every helper (`tex`, `rich`, `date`, `inst`, `url`) escapes its input
- *   - `<%~ %>` is used because the helpers have already escaped; raw
- *     interpolation of unescaped data is not possible through the helper API
+ * Templates use `<% %>` for JavaScript and `<%~ %>` for helper output.
+ * Helpers escape data and preserve already-formatted fragments when composed.
  *
  * A user overrides any template by dropping a file of the same name into
  * `cv-tex/templates/`.
@@ -15,14 +12,14 @@ import { existsSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { Eta } from 'eta'
 import { resolveAsset } from '../assets'
-import { escapeRichTex, escapeTex, escapeUrl } from './escape'
-import { formatDateRange } from '../shared/format'
+import { createTemplateHelpers, fragment, SITE_PATH_HELP } from './helpers'
 import { entrySecondaryParts, entryTitleField } from '../shared/entry'
-import { richSource } from '../shared/rich'
 import { fail } from '../issues'
 import { isSitePath } from '../site-paths'
 import { selectEntries, type DocumentOptions } from './documents'
-import type { DateRange, Entry, Institution, Link, PublicationGroup } from '../shared/types'
+import type { Entry, PublicationGroup } from '../shared/types'
+
+export { SITE_PATH_HELP } from './helpers'
 
 /** `tex/` in the installed package: templates and the document class. */
 export const bundledTexDir: string = resolveAsset('tex')
@@ -40,89 +37,28 @@ function tidy(body: string): string {
   return body.replace(/[ \t]+$/gm, '').replace(/\n{2,}/g, '\n').trim()
 }
 
-/**
- * Why a path on the site cannot be linked from the PDF: `/slides/talk.pdf`
- * only means something next to the website.
- */
-export const SITE_PATH_HELP = 'is a path on the website, and the PDF can only link it with the address the '
-  + 'site is published at: add it to content/profile.yml, e.g. `url: https://jane.example.org/`'
-
-/**
- * Anything a template is allowed to interpolate, all escaping included.
- * `where` names the generated file, `source` the content file behind it.
- */
-function helpers(where: string, source: string) {
-  const tex = (value: unknown): string =>
-    value === undefined || value === null ? '' : escapeTex(String(value))
-
-  const rich = (value: unknown): string => {
-    if (value === undefined || value === null) return ''
-    // Rich fields reach LaTeX as their Markdown source, formulas included.
-    const source = richSource(value)
-    try {
-      return escapeRichTex(source)
-    } catch (error) {
-      return fail(where, error instanceof Error ? error.message : String(error))
-    }
+/** Generic field-selection policy, shared with the website, not formatters. */
+function genericHelpers(h: ReturnType<typeof createTemplateHelpers>) {
+  return {
+    title(entry: Entry) {
+      const field = entryTitleField(entry)
+      return h.text(field ? entry[field] : undefined)
+    },
+    context(entry: Entry) {
+      return h.join(entrySecondaryParts(entry, entryTitleField(entry))
+        .map(part => part.kind === 'institution' ? h.linked(part.institution) : part.text))
+    },
   }
+}
 
-  /** The target of `\href`. A path on the site is absolute here if `profile.url` is set. */
-  const href = (value: string): string => {
-    if (isSitePath(value)) fail(source, `${value} ${SITE_PATH_HELP}`)
-    return escapeUrl(value)
+/** Bibliography-only machinery: select exactly these citation keys. */
+function bibgroup(group: PublicationGroup, where: string) {
+  const unsafe = /[\s%#\\{},~]/
+  const bad = [group.id, ...group.entries.map(entry => entry.key)].find(value => !value || unsafe.test(value))
+  if (bad !== undefined) {
+    fail(where, `"${bad}" cannot be used as a citation key or group id in LaTeX; use letters, digits and - _ : . / +`)
   }
-
-  const url = (value: unknown): string => (value ? href(String(value)) : '')
-
-  const inst = (value: unknown): string => {
-    const institution = value as Institution | undefined
-    if (!institution?.name) return ''
-    return institution.url
-      ? `\\href{${href(institution.url)}}{${escapeTex(institution.name)}}`
-      : escapeTex(institution.name)
-  }
-
-  const linkOrText = (value: unknown): string => {
-    if (typeof value === 'string') return escapeTex(value)
-    const item = value as Link | undefined
-    if (!item?.label) return ''
-    return item.url ? `\\href{${href(item.url)}}{${escapeTex(item.label)}}` : escapeTex(item.label)
-  }
-
-  const date = (value: unknown): string => escapeTex(formatDateRange(value as DateRange | undefined))
-
-  /** Teaching entries prefer the term label over the date. */
-  const term = (entry: Entry): string =>
-    typeof entry.term === 'string' ? escapeTex(entry.term) : date(entry.date)
-
-  // Field selection is shared with the website (shared/entry.ts) so the PDF and
-  // the page cannot disagree about what an entry's headline is.
-  const titleOf = (entry: Entry): unknown => {
-    const field = entryTitleField(entry)
-    return field ? entry[field] : ''
-  }
-
-  const secondaryOf = (entry: Entry): string =>
-    entrySecondaryParts(entry, entryTitleField(entry))
-      .map(part => (part.kind === 'institution' ? inst(part.institution) : escapeTex(part.text)))
-      .filter(Boolean)
-      .join(', ')
-
-  /**
-   * `\vitabibgroup{id}{keys}`: the check that selects one publication group by
-   * citation key. Keys are compared as strings, never typeset, so only the
-   * characters that would break the argument itself are refused.
-   */
-  const bibgroup = (group: PublicationGroup): string => {
-    const unsafe = /[\s%#\\{},~]/
-    const bad = [group.id, ...group.entries.map(entry => entry.key)].find(value => !value || unsafe.test(value))
-    if (bad !== undefined) {
-      fail(where, `"${bad}" cannot be used as a citation key or group id in LaTeX; use letters, digits and - _ : . / +`)
-    }
-    return `\\vitabibgroup{${group.id}}{${group.entries.map(entry => entry.key).join(',')}}`
-  }
-
-  return { tex, rich, url, inst, linkOrText, date, term, titleOf, secondaryOf, bibgroup }
+  return fragment(`\\vitabibgroup{${group.id}}{${group.entries.map(entry => entry.key).join(',')}}`)
 }
 
 async function resolveTemplate(id: string, userDir: string): Promise<{ path: string, source: string }> {
@@ -184,13 +120,13 @@ export async function emitDocument(emit: EmitOptions): Promise<string[]> {
   const written: string[] = []
 
   for (const [id, entries] of Object.entries(emit.sections)) {
-    const where = `cv-tex/generated/${id}.tex`
     const selected = selectEntries(entries, emit.options, id)
-    const { source } = await resolveTemplate(id, emit.templateDir)
+    const { path: templatePath, source } = await resolveTemplate(id, emit.templateDir)
+    const h = createTemplateHelpers(templatePath, `content/${id}.yml`)
 
     let body: string
     try {
-      body = tidy(eta.renderString(source, { entries: selected, ...helpers(where, `content/${id}.yml`) }))
+      body = tidy(eta.renderString(source, { entries: selected, ...h, generic: genericHelpers(h) }))
     } catch (error) {
       throw new Error(`template ${id}.eta: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
     }
@@ -211,8 +147,12 @@ export async function emitDocument(emit: EmitOptions): Promise<string[]> {
     const local = groups.flatMap(group => group.entries).find(entry => entry.titleUrl && isSitePath(entry.titleUrl))
     if (local) fail('content/publications.bib', `${local.key}: url ${local.titleUrl} ${SITE_PATH_HELP}`)
   }
-  const { source } = await resolveTemplate('publications', emit.templateDir)
-  const body = tidy(eta.renderString(source, { groups, ...helpers('publications.tex', 'content/publications.bib') }))
+  const { path: templatePath, source } = await resolveTemplate('publications', emit.templateDir)
+  const body = tidy(eta.renderString(source, {
+    groups,
+    ...createTemplateHelpers(templatePath, 'content/publications.bib'),
+    bib: { group: (group: PublicationGroup) => bibgroup(group, templatePath) },
+  }))
   const file = join(emit.outDir, 'publications.tex')
   await writeFile(file, `% Generated by vitakit. Do not edit; edit content/publications.bib instead.\n${body.trim()}\n`)
   written.push(file)
