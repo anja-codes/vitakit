@@ -176,7 +176,8 @@ lines at any time.
 - **Styling only.** Colours, spacing, fonts: `app/assets/css/main.css` on the
   website ([styling](../../website/styling.md)), `cv-tex/preamble.tex` in the PDF
   ([PDF styling](../../pdf/styling.md)).
-- **The same look for two sections.** `vitakit customize talks-public --web --use
-  TalkList` reuses a component.
+- **The same look for two sections.** You can reuse a component you have
+  already created for another section with the same fields. See
+  [customising entries](../../website/entries.md#a-component-of-your-own).
 
 **Next:** [the PDF](./pdf.md).

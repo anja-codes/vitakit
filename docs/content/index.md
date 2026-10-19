@@ -11,9 +11,12 @@ content/
   publications.bib      your publications, grouped by a status field
   publications.csl      optional: the website's citation style
   pages/*.md            the website's prose pages, mathematics and images included
-schemas/<section>.ts    optional: what a section of your own may contain
+schemas/<section>.ts    what a section of your own may contain
 schemas/publications.ts optional: publication groups, badges, fields
 ```
+
+A section of your own needs a schema in `schemas/<section>.ts`. Built-in
+sections already have schemas; add a local one only to change their fields.
 
 | Page | |
 |---|---|

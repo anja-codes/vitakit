@@ -1,9 +1,9 @@
 # Built-in sections
 
-Five sections need no schema: create the file and it works. Their types are
-described in [field types](./field-types.md); **formatted text** accepts
-Markdown and `$math$`. Every entry also accepts `visibility` (see [the content
-folder](./index.md#visibility)).
+Five sections have schemas built in, so you do not need to write your own.
+Their types are described in [field types](./field-types.md); **formatted text**
+accepts Markdown and `$math$`. Every entry also accepts `visibility` (see
+[the content folder](./index.md#visibility)).
 
 To add a field to one of them, `vitakit add field` (see [schemas](./schemas.md)).
 
