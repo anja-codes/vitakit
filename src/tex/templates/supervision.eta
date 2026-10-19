@@ -1,4 +1,12 @@
 <% for (const item of it.entries) { %>
-\vitaentry{<%~ it.date(item.date) %><% if (item.ongoing) { %>--<% } %>}{<%~ it.tex(item.student) %>}{<%~ [item.degree && it.tex(item.degree), it.inst(item.institution)].filter(Boolean).join(', ') %>}
-  \vitanote{\emph{<%~ it.rich(item.title) %>}<% if (item.coSupervisor) { %>, with <%~ it.tex(item.coSupervisor) %><% } %><% if (item.ongoing) { %> (in progress)<% } %>}
+<%~ it.vita.entry({
+  date: it.join([it.date(item.date), item.ongoing ? '--' : ''], ''),
+  title: item.student,
+  context: it.join([item.degree, it.linked(item.institution)])
+}) %>
+<%~ it.vita.note(it.join([
+  it.optional`\emph{${item.title}}`,
+  it.optional`, with ${item.coSupervisor}`,
+  item.ongoing ? ' (in progress)' : ''
+], '')) %>
 <% } %>

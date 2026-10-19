@@ -105,12 +105,18 @@
 %% that it is safe after any preceding content, including none.
 \newcommand{\vitanote}[1]{\par{\small\color{vitamuted}#1}}
 
-%% \vitasection{id} -- heading plus the generated file for this document.
-\newcommand{\vitasection}[1]{%
-  \section{\vita@titlefor{#1}}%
-  \begin{vitaentries}%
-  \input{generated/\vita@document/#1.tex}%
-  \end{vitaentries}}
+%% Generated profile.tex marks sections whose selection is empty.
+\newcommand{\vitaemptysection}[1]{\expandafter\def\csname vita@empty@#1\endcsname{}}
+
+%% \vitasection[Heading]{id} -- an optional heading for this invocation only.
+%% Otherwise use the document/preamble label, falling back to the section id.
+\NewDocumentCommand{\vitasection}{o m}{%
+  \ifcsname vita@empty@#2\endcsname\else
+    \IfNoValueTF{#1}{\section{\vita@titlefor{#2}}}{\section{#1}}%
+    \begin{vitaentries}%
+    \input{generated/\vita@document/#2.tex}%
+    \end{vitaentries}%
+  \fi}
 
 %% \vitainput{id} -- the generated file without heading or list wrapper,
 %% for sections that bring their own structure (publications).

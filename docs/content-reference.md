@@ -69,7 +69,9 @@ title: The shape of large random $k$-ary trees
 
 On the website it reads: The shape of large random $k$-ary trees.
 
-They are typeset by KaTeX for the website and passed through to LaTeX for the PDF.
+Mathematics is typeset by KaTeX for the website and passed through to LaTeX for
+the PDF. Other Markdown formatting (emphasis, links, etc.) is currently rendered
+only on the website; its source syntax appears literally in the PDF.
 Invalid TeX fails the build with the file, the entry index and the field.
 
 ### Visibility

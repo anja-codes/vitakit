@@ -1,6 +1,8 @@
 <% for (const item of it.entries) { %>
-\vitaentry{<%~ it.term(item) %>}{<%~ it.rich(item.title) %>}{<%~ [item.role, it.inst(item.institution)].filter(Boolean).join(', ') %>}
-<% if (item.note) { %>
-  \vitanote{<%~ it.rich(item.note) %>}
-<% } %>
+<%~ it.vita.entry({
+  date: it.text(item.term) || it.date(item.date),
+  title: item.title,
+  context: it.join([item.role, it.linked(item.institution)])
+}) %>
+<%~ it.vita.note(item.note) %>
 <% } %>

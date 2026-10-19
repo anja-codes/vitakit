@@ -47,6 +47,11 @@ describe('document selection', () => {
     expect(select({})).toHaveLength(4)
   })
 
+  it('compares links by label, like institutions by name', () => {
+    const entries = [{ id: 'a', visibility: 'public' as const, referee: { label: 'Jane Doe', url: 'https://example.org' } }]
+    expect(selectEntries(entries, options({ sections: { referees: { where: { referee: 'Jane Doe' } } } }), 'referees')).toHaveLength(1)
+  })
+
   it('rejects selection keys that do not exist', async () => {
     const { entries } = await talks(SAMPLE)
     // The old query language is gone; a stale `filter:` must say so, not be ignored.
@@ -94,7 +99,7 @@ describe('emitDocument', () => {
     const { root, entries } = await talks('- { date: 2024, title: A talk }')
     const templateDir = join(root, 'cv-tex/templates')
     await mkdir(templateDir, { recursive: true })
-    await writeFile(join(templateDir, 'talks.eta'), '<% for (const t of it.entries) { %>MINE: <%~ it.rich(t.title) %><% } %>')
+    await writeFile(join(templateDir, 'talks.eta'), '<% for (const t of it.entries) { %>MINE: <%~ it.text(t.title) %><% } %>')
 
     const outDir = join(root, 'cv-tex/generated/cv')
     await emitDocument({ sections: { talks: entries }, publications: [], options: options(), templateDir, outDir })
