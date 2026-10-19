@@ -133,9 +133,10 @@ export async function loadSection(source: SectionSource, options: LoadSectionOpt
   }
 
   return (parsed.data as Entry[])
-    .map((item, index) => ({ ...item, id: `${source.id}-${index}` }))
-    .filter(item => atMost(item.visibility, options.maxVisibility))
-    .map((item, index) => renderRichFields(item, options.renderer, String(index), where))
+    // Errors name an entry by its position in the file, before filtering.
+    .map((item, index) => ({ item: { ...item, id: `${source.id}-${index}` }, index }))
+    .filter(({ item }) => atMost(item.visibility, options.maxVisibility))
+    .map(({ item, index }) => renderRichFields(item, options.renderer, String(index), where) as Entry)
     .map(item => resolveSitePaths(item, options.resolvePath ?? (path => path)) as Entry)
     .sort(byDateDesc)
 }

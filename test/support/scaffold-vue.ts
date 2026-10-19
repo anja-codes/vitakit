@@ -5,8 +5,9 @@ import { compileScript, parse } from 'vue/compiler-sfc'
 import { createSSRApp, defineComponent, h, type Component } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { ModuleKind, transpileModule } from 'typescript'
-import * as shared from '../src/shared'
-import type { VitakitContent } from '../src/shared'
+import * as shared from '../../src/shared'
+import type { VitakitContent } from '../../src/shared'
+import { ROOT } from './project'
 
 const require = createRequire(import.meta.url)
 const compiled = new Map<string, string>()
@@ -26,7 +27,7 @@ export async function renderScaffold(
   directory = 'create/template',
 ): Promise<{ html: string, heads: unknown[] }> {
   // Use the actual composables, including unknown-section fallback and route normalisation.
-  const composables = evaluate(await readFile(resolve('src/runtime/composables/useVitakit.ts'), 'utf8'), {
+  const composables = evaluate(await readFile(resolve(ROOT, 'src/runtime/composables/useVitakit.ts'), 'utf8'), {
     '#vitakit/content': { default: content },
   })
   const heads: unknown[] = []
@@ -38,7 +39,7 @@ export async function renderScaffold(
   const imports = { '#imports': composables, '@anja.codes/vitakit/shared': shared }
 
   async function component(file: string): Promise<Component> {
-    const filename = resolve(file)
+    const filename = resolve(ROOT, file)
     let source = compiled.get(filename)
     if (!source) {
       const { descriptor, errors } = parse(await readFile(filename, 'utf8'), { filename })
