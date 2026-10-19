@@ -5,7 +5,7 @@
  * deployment base URL, and a failure must be reported with the field that
  * caused it — so parsing only leaves a marker and this module replaces every
  * marker afterwards. The marker is internal: it never appears in
- * `VitakitContent`, and `vitakit-check` fails the build if one reaches the
+ * `VitakitContent`, and `vitakit verify` fails the build if one reaches the
  * output.
  */
 import { fail } from './issues'

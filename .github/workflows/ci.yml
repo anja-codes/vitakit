@@ -18,7 +18,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # typecheck, tests, build, and that examples/scaffolded still matches the
+      # typecheck, build, tests, and that examples/scaffolded still matches the
       # @anja.codes/create-vitakit template.
       - run: pnpm check
 
@@ -44,7 +44,7 @@ jobs:
       # The LaTeX half: the .tex must be generated and must compile.
       - name: Generate CV sources
         working-directory: examples/scaffolded
-        run: pnpm build:cv --no-pdf
+        run: pnpm pdf --tex-only
       - uses: xu-cheng/latex-action@v4
         with:
           working_directory: examples/scaffolded/cv-tex

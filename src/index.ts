@@ -6,7 +6,7 @@
  * components come from the Nuxt module; helpers shared with them (dates, rich
  * text, entry fields) from `@anja.codes/vitakit/shared`.
  */
-export { z, text, richText, url, dateRange, institution, link, visibility, entry, section } from './primitives'
+export { z, text, richText, url, dateRange, linked, requiredLink, visibility, entry, section } from './primitives'
 export {
   schemas,
   extendSection,
@@ -33,8 +33,8 @@ export type {
   DateRange,
   Entry,
   EntryBase,
-  Institution,
   Link,
+  Linked,
   Page,
   Profile,
   Publication,

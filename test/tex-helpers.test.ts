@@ -43,9 +43,8 @@ describe('text', () => {
 })
 
 describe('linked', () => {
-  it('links an institution, a link, or a label and a URL alike', () => {
+  it('links a linked value, or a label and a URL alike', () => {
     const expected = '\\href{https://example.org/?a=1\\&b=2}{A \\& B}'
-    expect(tex(h.linked({ name: 'A & B', url: 'https://example.org/?a=1&b=2' }))).toBe(expected)
     expect(tex(h.linked({ label: 'A & B', url: 'https://example.org/?a=1&b=2' }))).toBe(expected)
     expect(tex(h.linked('A & B', 'https://example.org/?a=1&b=2'))).toBe(expected)
   })
@@ -56,14 +55,15 @@ describe('linked', () => {
   })
 
   it('is plain text without a URL, and never takes a label for one', () => {
-    expect(tex(h.linked({ name: 'A & B' }))).toBe('A \\& B')
+    expect(tex(h.linked({ label: 'A & B' }))).toBe('A \\& B')
     expect(tex(h.linked('https://example.org'))).toBe('https://example.org')
     expect(h.linked(undefined)).toBe('')
-    expect(h.linked({ name: '' })).toBe('')
+    expect(h.linked({ label: '' })).toBe('')
   })
 
-  it('rejects other objects and URLs that are not strings', () => {
-    expect(() => h.linked({ title: 'A title' })).toThrow(/linked expects text, \{ label, url\? \}, or \{ name, url\? \}/)
+  it('rejects other objects, a name that did not go through linked, and URLs that are not strings', () => {
+    expect(() => h.linked({ title: 'A title' })).toThrow(/linked expects text or \{ label, url\? \}; use `linked` in the section schema/)
+    expect(() => h.linked({ name: 'A & B' })).toThrow(/use `linked` in the section schema/)
     expect(() => h.linked('Label', { url: 'https://example.org' })).toThrow(/url expects a URL string/)
   })
 })
@@ -76,7 +76,7 @@ describe('url', () => {
 
   it('refuses a path on the site, naming the content file and what to add to the profile', () => {
     expect(() => h.url('/slides/talk.pdf')).toThrow(/^content\/teaching\.yml: \/slides\/talk\.pdf is a path on the website.*content\/profile\.yml/)
-    expect(() => h.linked({ name: 'Slides', url: '/slides/talk.pdf' })).toThrow(/^content\/teaching\.yml: /)
+    expect(() => h.linked({ label: 'Slides', url: '/slides/talk.pdf' })).toThrow(/^content\/teaching\.yml: /)
   })
 })
 
@@ -142,7 +142,7 @@ describe('vita.entry', () => {
     expect(tex(h.vita.entry({
       date: h.date(dateRange.parse({ from: 2020, to: 2025 })),
       title: rich('Random $k$-ary trees'),
-      context: h.linked({ name: 'A & B', url: 'https://e.org' }),
+      context: h.linked({ label: 'A & B', url: 'https://e.org' }),
     }))).toBe('\\vitaentry{2020--2025}{Random $k$-ary trees}{\\href{https://e.org}{A \\& B}}')
   })
 

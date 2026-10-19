@@ -35,7 +35,7 @@ export interface DateRange {
  * Intermediate form of a `richText` field, before rendering.
  *
  * Internal: it exists only between validation and `renderRichFields`, never in
- * a `VitakitContent`. `vitakit-check` fails the build if one reaches the output.
+ * a `VitakitContent`. `vitakit verify` fails the build if one reaches the output.
  * Read rich fields with `richSource` / `richHtml` instead of inspecting shapes.
  */
 export interface RichTextMarker {
@@ -50,14 +50,15 @@ export interface RichText {
   html: string
 }
 
-export interface Link {
+/** A label that may link: an institution, a funder, a person. See `linked`. */
+export interface Linked {
   label: string
-  url: string
+  url?: string
 }
 
-export interface Institution {
-  name: string
-  url?: string
+/** A label that always links. */
+export interface Link extends Linked {
+  url: string
 }
 
 /** Fields every section entry has, whatever else its schema adds. */
@@ -131,7 +132,7 @@ export interface Page {
 export interface Profile {
   name: string
   title?: string
-  affiliation?: Institution
+  affiliation?: Linked
   email?: string
   links: Link[]
   /** Short plain-text description used for page metadata, not rendered. */

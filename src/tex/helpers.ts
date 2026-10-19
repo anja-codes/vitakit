@@ -71,8 +71,7 @@ export function createTemplateHelpers(where: string, source: string) {
     if (typeof value === 'object' && value !== null
       && !(value instanceof Fragment) && !isRichText(value)) {
       if ('label' in value && typeof value.label === 'string') label = value.label
-      else if ('name' in value && typeof value.name === 'string') label = value.name
-      else return fail(where, 'linked expects text, { label, url? }, or { name, url? }')
+      else return fail(where, 'linked expects text or { label, url? }; use `linked` in the section schema')
       if (target === undefined && 'url' in value) target = value.url
     }
     const body = text(label)

@@ -33,17 +33,17 @@ describe('entryTitleField', () => {
 })
 
 describe('entrySecondaryParts', () => {
-  it('lists text fields, then one institution, then the location', () => {
+  it('lists text fields, then one link, then the location', () => {
     expect(entrySecondaryParts(entry({
       title: 'A talk',
       event: 'AofA 2025',
       role: 'Speaker',
-      institution: { name: 'TU Graz', url: 'https://tugraz.at' },
+      institution: { label: 'TU Graz', url: 'https://tugraz.at' },
       location: 'Graz',
     }), 'title')).toEqual([
       { kind: 'text', text: 'Speaker' },
       { kind: 'text', text: 'AofA 2025' },
-      { kind: 'institution', institution: { name: 'TU Graz', url: 'https://tugraz.at' } },
+      { kind: 'linked', linked: { label: 'TU Graz', url: 'https://tugraz.at' } },
       { kind: 'text', text: 'Graz' },
     ])
   })
@@ -53,9 +53,9 @@ describe('entrySecondaryParts', () => {
       .toEqual([{ kind: 'text', text: 'A. Student' }])
   })
 
-  it('takes only the first institution-like field', () => {
-    expect(entrySecondaryParts(entry({ issuer: { name: 'B' }, institution: { name: 'A' } })))
-      .toEqual([{ kind: 'institution', institution: { name: 'A' } }])
+  it('takes only the first linked field', () => {
+    expect(entrySecondaryParts(entry({ issuer: { label: 'B' }, institution: { label: 'A' } })))
+      .toEqual([{ kind: 'linked', linked: { label: 'A' } }])
   })
 })
 

@@ -12,9 +12,9 @@
  * element type is done through `extendSection` below, which keeps the array
  * wrapper in place.
  */
-import { absoluteUrl, institution, link, text, z } from './primitives'
+import { absoluteUrl, linked, requiredLink, text, z } from './primitives'
 
-// One file per section, so that `vitakit eject <section>` can copy the
+// One file per section, so that `vitakit customize <section> --schema --copy` can copy the
 // definition itself rather than a paraphrase of it.
 import education from './schemas/education'
 import employment from './schemas/employment'
@@ -27,9 +27,9 @@ export { education, employment, teaching, talks, supervision }
 export const profile = z.strictObject({
   name: text,
   title: text.optional(),
-  affiliation: institution.optional(),
+  affiliation: linked.optional(),
   email: z.string().trim().email().optional(),
-  links: z.array(link).default([]),
+  links: z.array(requiredLink).default([]),
   /**
    * One or two sentences for metadata: the page description and social
    * previews. Prose belongs in `content/pages/index.md`, which is where a

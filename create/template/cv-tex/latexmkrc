@@ -1,5 +1,5 @@
 # Lets a plain `latexmk cv.tex` (in CI, or from an editor) find the document
-# class, which `pnpm build:cv` writes to generated/<document>/. A copy in this
+# class, which `pnpm pdf` writes to generated/<document>/. A copy in this
 # directory (`pnpm vitakit eject vitakit-cv.cls`) still wins: `.` comes first.
 # The trailing separator keeps TeX's default search path.
 $ENV{'TEXINPUTS'} = join($search_path_separator, '.', './generated//', $ENV{'TEXINPUTS'} // '');

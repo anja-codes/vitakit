@@ -10,8 +10,12 @@ Schemas are strict on purpose: the alternative is a silently missing line on you
 site. See the [content reference](./content-reference.md).
 
 **`no schema for this file; create schemas/outreach.ts`** — you added
-`content/outreach.yml` without telling vitakit its shape. The message prints a
-starter snippet; see [adding a section](./customising.md#layer-5--adding-a-section).
+`content/outreach.yml` without telling vitakit its shape. `pnpm vitakit add section
+outreach` drafts the schema from your entries; see
+[adding a section](./customising.md#layer-5--adding-a-section).
+
+**`Cannot find module …/schemas/talks`** — a schema imports another one without its
+file extension. Node needs it: `export { default } from './talks.ts'`.
 
 **`expected a date like 2024, 2024-03 or 2024-03-15, got "June 2025"`** — dates are
 written numerically. Free-form labels belong in `term` (teaching) or `note`.
@@ -72,19 +76,19 @@ all handled; a path hard-coded in a Vue file is not — use `<NuxtLink>`, or pre
 it with `useRuntimeConfig().app.baseURL`. `check` reports these when the site
 uses a base path.
 
-**`vitakit-check: no generated site`** — run `nuxt generate` first; `check` does
+**`vitakit verify`: no generated site** — run `nuxt generate` first; `check` does
 both.
 
 **`… entry 2 is marked "cv" but its text appears in …`** — a non-public entry's title
 reached the generated site; the message names the file, the entry number and the page.
 See [privacy](./privacy.md). This is a text comparison, so a title that genuinely
 appears on that page for another reason is a false positive: pass
-`vitakit-check --no-leak-check` in that case.
+`vitakit verify --no-leak-check` in that case.
 
 ## The PDF
 
 **`latexmk not found`** — install a TeX distribution (TeX Live, MacTeX), or use
-`build:cv --no-pdf` and let CI build the PDF.
+`pdf --tex-only` and let CI build the PDF.
 
 **The bibliography is empty** — biber has not run, or the `.bib` path in
 `\addbibresource` is wrong. `latexmk` runs biber automatically; delete
@@ -105,7 +109,7 @@ style, the PDF uses biblatex. To change the website's, see
 **A `<text variable="DOI"/>` in my CSL style prints nothing** — by design: an
 identifier vitakit already links (as the title link or a badge) is withheld from the
 style, so that it is not printed twice. Remove the badge in `schemas/publications.ts`
-(`vitakit eject publications`) if you would rather print it.
+(`vitakit customize publications`) if you would rather print it.
 
 **`… is a path on the website, and the PDF can only link it …`** — a link such as
 `/slides/talk.pdf` works on the website, but a PDF has no site to be relative to. Add

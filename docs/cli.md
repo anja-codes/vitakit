@@ -1,169 +1,417 @@
 # Commands
 
-Five commands, and a deliberate absence of more. Each has `--help`.
+Two kinds of commands. **Scripts** in your project's `package.json` run the
+website and the PDF build:
+
+| Script | Does |
+|---|---|
+| `dev` | the development server |
+| `pdf` | render `content/` into `cv-tex/` and run `latexmk` |
+| `check` | typecheck, generate the site, verify the output — what CI runs |
+
+**`vitakit`** answers questions about your project and helps change it:
 
 | Command | Does |
 |---|---|
-| `dev` | the development server |
-| `check` | typecheck, generate the site, verify the output |
-| `build:cv` | render `content/` into `cv-tex/` and run `latexmk` |
-| `vitakit add <name>` | set up a new section |
-| `vitakit eject <name>` | copy a package default into your project |
-| `vitakit list` | show what can be ejected |
+| `vitakit status` | what is in this project, what is broken, where sections appear |
+| `vitakit explain <name>` | where a section, PDF document or page comes from, and where it goes |
+| `vitakit validate` | check everything a build would check, without building |
+| `vitakit add section <name>` | a section: its file, a schema drafted from your entries, its place on a page and in a PDF |
+| `vitakit add field <section> <name>` | one more field a section accepts |
+| `vitakit add page <name>` | a website page that can show sections, in the menu |
+| `vitakit customize <section>` | make one section yours: how it looks on the website and in the PDF, what it may contain |
+| `vitakit pdf` | build the PDF documents (what the `pdf` script runs) |
+| `vitakit verify` | check the generated website (the last step of `check`) |
+| `vitakit eject <file>` | take over a shared vitakit file (advanced) |
 
 > [!TIP]
-> `dev`, `check` and `build:cv` are scripts in your project's `package.json`:
-> `pnpm build:cv` or `npm run build:cv`. With npm, arguments go after `--`, as in
-> `npm run build:cv -- --no-pdf`. `vitakit` is a command from the package:
-> `pnpm vitakit list` or `npx vitakit list`. The examples have a tab for each.
+> With pnpm: `pnpm dev`, `pnpm pdf`, `pnpm vitakit status`. With npm, scripts
+> run with `npm run`, and arguments go after `--`: `npm run pdf -- --tex-only`;
+> `vitakit` runs with `npx vitakit status`. The examples have a tab for each,
+> and every command's `--help` uses the form your project needs.
 
-Everything else is editing a file. A new page is a Markdown file; a new CV
-variant is a copy of `cv.tex`. Commands that generate such things go stale
-against what they generate, and hide the fact that these are ordinary files —
-so `add` and `eject` exist only because their manual alternative is genuinely
-impractical: writing valid TypeScript from nothing, and finding a file deep
-inside `node_modules/`.
+Every command has `--help`, works from any directory inside your project (or
+with `--root <dir>`), and never changes a file without showing you what it will
+write and asking first. Mistakes in how a command was called exit with 2,
+problems in the project with 1.
 
 ---
 
-## `vitakit add <name>`
-
-Sets up a section: a content file, a schema, and a component.
+## `vitakit status`
 
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit add outreach
+pnpm vitakit status
 ```
 
 ```bash [npm]
-npx vitakit add outreach
+npx vitakit status
 ```
 
 :::
 
 ```
-content/outreach.yml                 your data — edit this first
-schemas/outreach.ts                  the shape of an entry
-app/components/OutreachSection.vue   how the entries look
+Sections                                    website   pdf
+  education     3 entries                   /cv/      cv
+  employment    3 entries: 2 public, 1 cv   /cv/      cv
+? grants        no schema yet               –         –
+  talks         3 entries                   /cv/ /    cv
+✖ teaching      3 entries, has problems     /cv/      cv
+
+Publications   content/publications.bib · 31 entries in 3 groups
+Pages          /  /cv/  /publications/  /research/   (all in the menu)
+PDF            cv-tex/cv.tex → cv.pdf (older than its sources)
+
+Problems
+  ✖ content/grants.yml: no schema for this file; create schemas/grants.ts, for example
+  ✖ content/teaching.yml: entry 2, hours: Invalid input: expected number, received string
 ```
 
-**With an existing YAML file, the schema is drafted from it.** Write your data
-first and the guesswork is done for you:
+For each section: how many entries, on which website pages it appears, and in
+which PDF documents. **A section that appears nowhere is not a problem** — it
+may be meant for one application only, or not yet ready — and is shown as `–`.
+Problems are only what would make a build fail.
 
-```yaml
-# content/outreach.yml
-- { date: 2025-03-14, title: What is a random tree?, venue: BRG Viktring, audience: school }
-- { date: 2024-11-02, title: Maths night, audience: public }
+Where a section appears is read from your files: `<VitaSection id="talks">`
+and your own components with a literal `id`, `useSection('talks')`, and
+`\vitasection{talks}` lines. A page that chooses sections in code
+(`:id="section.id"`) cannot be read that way; such pages are listed, and their
+sections shown as `unknown` rather than absent.
+
+Entry contents are never printed, only counts. `--json` prints the same as one
+JSON object.
+
+## `vitakit explain <name>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit explain talks     # a section
+pnpm vitakit explain cv        # a PDF document
+pnpm vitakit explain /cv/      # a website page
 ```
 
-```ts
-// schemas/outreach.ts — drafted
-export default section({
-  date: dateRange,
-  title: richText,                          // titles may contain mathematics
-  venue: text.optional(),                   // missing from the second entry
-  audience: z.enum(['school', 'public']),   // a small set of short values
-})
+```bash [npm]
+npx vitakit explain talks     # a section
+npx vitakit explain cv        # a PDF document
+npx vitakit explain /cv/      # a website page
 ```
 
-Check what it guessed — especially the enum, which may need more values than
-your current entries show. The schema controls accepted fields; the generated
-component starts with date, title and note. Edit the component to show other fields.
+:::
+
+```
+talks
+
+  data      content/talks.yml · 12 entries
+  schema    built-in
+              date       date, required
+              title      formatted text, required
+              kind       one of invited, contributed, seminar, poster, outreach, optional
+              …
+
+  website   /cv/   app/pages/cv.vue:32      <VitaSection title="Talks">
+            /      app/pages/index.vue:10   useSection, in code
+
+  pdf       cv   cv-tex/cv.tex:37  \vitasection[Selected talks]{talks}
+                 template: vitakit's talks.eta
+                 4 of 12 entries (where kind: invited −8)
+```
+
+`--field <name>` adds the lines that show a field — for the component and
+template the section uses, or for a `VitaSection` slot and vitakit's template.
+
+For a section: its file, the fields its schema accepts, every place it appears,
+and for each PDF document the template used and which entries are selected —
+with the setting that removed the others. That is the answer to *"why is this
+talk not in my PDF?"*. For a document: what it includes, in order, with counts.
+For a page: the files behind the route and the sections on it.
+
+## `vitakit validate`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit validate          # everything
+pnpm vitakit validate talks    # what concerns one section
+```
+
+```bash [npm]
+npx vitakit validate          # everything
+npx vitakit validate talks    # what concerns one section
+```
+
+:::
+
+Checks everything a build would, without building and without LaTeX, and
+reports all problems at once:
+
+- every file in `content/` against its schema, the profile, page settings
+- sections that pages or PDF documents include but that do not exist
+- `where` on pages and in `cv-tex/<document>.yml` against the section's fields
+- PDF templates: every included section is rendered in memory, so a template
+  error shows up here rather than in the middle of a LaTeX run
+- templates in `cv-tex/templates/` that no section uses (`talk.eta` for `talks`)
+
+It exits with 1 if anything is wrong. It is not a replacement for `check`,
+which builds the website and checks what was built.
+
+## `vitakit add section <name>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add section grants
+```
+
+```bash [npm]
+npx vitakit add section grants
+```
+
+:::
+
+A section is a file `content/<name>.yml`. `add section` creates whatever is
+missing, and asks where the section should appear:
+
+```
+Show grants on which page of your website?
+  1  /  (app/pages/index.vue)
+  2  /cv/  (app/pages/cv.vue)   (Enter)
+  3  /publications/  (app/pages/publications.vue)
+  4  a new page, /grants/
+  5  not on the website, for now
+```
+
+then shows everything it is about to do, and asks before writing:
+
+```
+= content/grants.yml   2 entries
++ schemas/grants.ts   drafted from the 2 entries in content/grants.yml; check its comments
+    import { dateRange, linked, richText, section, text, z } from '@anja.codes/vitakit'
+
+    export default section({
+      date: dateRange,
+      // Markdown and $math$ allowed
+      title: richText,
+      // a name, or { name, url }
+      funder: linked,
+      amount: z.number(),
+      role: text,
+    })
+~ app/pages/cv.vue   shows grants after education
+        <VitaSection id="education" title="Education" />
+  +     <VitaSection id="grants" title="Grants" />
+~ cv-tex/cv.tex   includes grants after education
+    \vitasection[Education]{education}
+  + \vitasection[Grants]{grants}
+
+Write these changes? [Y/n]
+```
+
+**Write your entries first**, and the schema is drafted from them: every value
+of every entry is looked at, nothing is restricted on a guess, and what could
+reasonably be different is said in a comment above the field — a set of values
+that could be a fixed list, a date written in a form vitakit does not read, a
+field name that needs quotes. If an entry does not fit the draft (an empty
+value, a number in one entry and text in another), you are told which entry
+and what to change. Without a file, you get one example entry and a schema with
+date, title and note.
+
+A **built-in** section (education, employment, teaching, talks, supervision)
+needs no schema; for it, `add section` only creates the file, empty, with an
+example entry as a comment. If its entries have fields the built-in schema does
+not, `add section` drafts those into `schemas/<section>.ts`, which keeps all
+the built-in fields — the same for a schema of your own. A section whose
+entries fit another section's schema can share it: `--like talks`.
+
+Where it appears is one line in each place, after the section you choose —
+`<VitaSection id="grants" title="Grants" />` in a page, `\vitasection[Grants]{grants}`
+in a PDF document — exactly what you would have written. Running it again only
+adds what is missing.
 
 | Option | |
 |---|---|
-| `--no-component` | skip the component; the section then renders through `<VitaSection>` |
+| `--page <route>` | show it on this page, e.g. `/cv/`; a route like `/grants/` that does not exist yet becomes a new page |
+| `--document <name>` | include it in this PDF document, e.g. `cv` |
+| `--after <section>` | place it after this section, on the page and in the document |
+| `--title <text>` | its heading |
+| `--like <section>` | use that section's schema |
 
-Existing files are never overwritten. Names become file names, so lowercase
-and kebab-case (`research-stays`).
-
-For a **built-in** section — education, employment, teaching, talks,
-supervision — you need nothing: create `content/<name>.yml` and it works. To
-change what one may contain, eject its schema.
-
-Afterwards, show it with `<OutreachSection />` on a page, or add
-`\vitasection{outreach}` to `cv-tex/cv.tex` for the PDF.
-
-## `vitakit eject <name>` and `vitakit list`
-
-Copies a package default into your project, where it takes precedence.
+## `vitakit add field <section> <name>`
 
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit list                    # see the names
-pnpm vitakit eject VitaSection       # restyle how sections look
-pnpm vitakit eject teaching          # add or remove fields of a section
-pnpm vitakit eject publications      # change publication groups, badges, fields
-pnpm vitakit eject talks.eta         # change how talks appear in the PDF
-pnpm vitakit eject publications.csl  # change the citation style of the website
-pnpm vitakit eject vitakit-cv.cls    # take over the LaTeX document class
+pnpm vitakit add field teaching evaluation --type number
 ```
 
 ```bash [npm]
-npx vitakit list                    # see the names
-npx vitakit eject VitaSection       # restyle how sections look
-npx vitakit eject teaching          # add or remove fields of a section
-npx vitakit eject publications      # change publication groups, badges, fields
-npx vitakit eject talks.eta         # change how talks appear in the PDF
-npx vitakit eject publications.csl  # change the citation style of the website
-npx vitakit eject vitakit-cv.cls    # take over the LaTeX document class
+npx vitakit add field teaching evaluation --type number
 ```
 
 :::
 
-| Kind | What it decides |
+Lets a section accept one more field. Without `--type`, it asks:
+
+| Type | In YAML |
 |---|---|
-| `component` | how a section looks on the website |
-| `schema` | what a section may contain; for `publications`, its groups, badges and fields |
-| `template` | how a section is written into the PDF |
-| `style` | how `publications.bib` is formatted on the website (CSL) |
-| `class` | the LaTeX document class: fonts, spacing, entry macros |
+| `text` | `Analysis 1` |
+| `formatted-text` | Markdown and `$math$` |
+| `number` | `4.6` |
+| `yes-no` | `true` |
+| `date` | `2024`, `2024-03`, `{ from: 2019, to: present }` |
+| `web-address` | `https://…`, `/slides/talk.pdf` |
+| `link` | `University of Graz`, or `{ name: University of Graz, url: https://… }` |
+| `choice` | one of the values given with `--choice`, once per value |
 
-`--force` overwrites an existing file.
+`--several` allows a list of them, `--required` makes every entry need it.
 
-**An ejected file is yours forever**: later improvements to it in vitakit will
-not reach you. Everything that can carry a bug — validation, rendering,
-sorting, escaping — stays in the package, so this is usually the right trade.
-Eject deliberately rather than by default, and before ejecting a component
-check whether CSS is enough: the classes are styled in
-`app/assets/css/main.css` ([customising](./customising.md#layer-2--colours-fonts-spacing)).
+For a built-in section, the first field creates `schemas/<section>.ts`, which
+keeps all of vitakit's fields and adds yours; later fields are added to that
+file, without touching anything else in it. In a schema the command cannot
+change safely — one you have rewritten in your own way — it shows the line to
+paste instead.
 
-## `build:cv`
+**A field that is accepted is not shown yet.** Showing it on the website or in
+the PDF is the next step: `vitakit customize teaching --web --pdf --field evaluation`.
+
+## `vitakit add page <name>`
 
 ::: code-group
 
 ```bash [pnpm]
-pnpm build:cv                  # every document in cv-tex/
-pnpm build:cv cv               # one
-pnpm build:cv --no-pdf         # generate .tex only, no TeX installation needed
+pnpm vitakit add page talks --title Talks
 ```
 
 ```bash [npm]
-npm run build:cv                     # every document in cv-tex/
-npm run build:cv -- cv               # one
-npm run build:cv -- --no-pdf         # generate .tex only, no TeX installation needed
+npx vitakit add page talks --title Talks
+```
+
+:::
+
+A page at `/talks/` that can show sections: `content/pages/talks.md` for its
+title and text, `app/pages/talks.vue` for its sections, and an entry in the menu
+in `content/profile.yml` (`--no-menu` leaves the menu alone). A page that is
+only text needs no command: it is one Markdown file in `content/pages/`.
+
+## `vitakit customize <section>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching                                  # asks what to change
+pnpm vitakit customize teaching --web --pdf --field evaluation   # show a field in both
+pnpm vitakit customize talks --web --list --component TalkList   # a list of your own
+pnpm vitakit customize talks-public --web --use TalkList         # the same component again
+```
+
+```bash [npm]
+npx vitakit customize teaching                                  # asks what to change
+npx vitakit customize teaching --web --pdf --field evaluation   # show a field in both
+npx vitakit customize talks --web --list --component TalkList   # a list of your own
+npx vitakit customize talks-public --web --use TalkList         # the same component again
+```
+
+:::
+
+**On the website**, a section is shown by a component. `--web` writes one of
+your own to `app/components/` and uses it everywhere the section appears — the
+page line `<VitaSection id="teaching" title="Teaching" />` becomes
+`<TeachingSection id="teaching" title="Teaching" />`, with everything else on
+the line kept. Two kinds:
+
+- **how each entry reads** (the default): a small component around
+  `VitaSection`, which keeps vitakit's list, sorting, dates and styling and
+  replaces one line of every entry — its note, or with `--region meta` its
+  secondary line — with the fields you choose;
+- **how the list is organised** (`--list`): the entries come from vitakit,
+  selected and sorted, and the list markup is yours, with a line for every
+  field to start from — for numbering, badges, a layout of your own.
+  `--group-by term` writes it with a heading for each term.
+
+The component is named for what it shows, `TeachingSection` or what
+`--component` says, and works for any section with the same fields: `--use`
+shows another section with it.
+
+**In the PDF**, a section is written by a template. `--pdf` copies the template
+in use — vitakit's own for the section, or the generic one — to
+`cv-tex/templates/<section>.eta`, where yours wins; with `--field`, with a note
+line for each field. `--from <section>` starts from another section's template
+instead, for two sections that should look alike.
+
+```eta
+<%~ it.vita.note(item.note) %>
+<%~ it.vita.note`Evaluation: ${item.evaluation}` %>
+```
+
+A component or template you have already is never rewritten: asked to show
+another field, the command prints the lines to add to it, and `--force` starts
+over, keeping yours as a `.backup`. The same lines, without writing anything:
+`vitakit explain teaching --field evaluation`.
+
+**What its entries may contain** (`--schema`):
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching --schema          # add fields to a built-in section
+pnpm vitakit customize teaching --schema --copy   # take over its whole definition
+pnpm vitakit customize publications               # groups, badges and fields
+```
+
+```bash [npm]
+npx vitakit customize teaching --schema          # add fields to a built-in section
+npx vitakit customize teaching --schema --copy   # take over its whole definition
+npx vitakit customize publications               # groups, badges and fields
+```
+
+:::
+
+Without `--copy`, `schemas/<section>.ts` keeps vitakit's fields — which keep
+improving — and adds yours. With `--copy` it is vitakit's complete definition,
+to change or remove any rule; later improvements to it will not reach you. An
+existing schema is never replaced.
+
+Publications are shown by `VitaPublications` and `VitaPublication`; to change
+those, `vitakit eject VitaPublication`. Their PDF template (`--pdf`) groups the
+references; each one is formatted by biblatex.
+
+## `pdf`
+
+::: code-group
+
+```bash [pnpm]
+pnpm pdf                  # every document in cv-tex/
+pnpm pdf cv               # one
+pnpm pdf --tex-only       # generate .tex only, no TeX installation needed
+```
+
+```bash [npm]
+npm run pdf                     # every document in cv-tex/
+npm run pdf -- cv               # one
+npm run pdf -- --tex-only       # generate .tex only, no TeX installation needed
 ```
 
 :::
 
 Renders `content/` into `cv-tex/generated/<document>/` and runs `latexmk`. The
 PDF is written next to its source; auxiliary files stay in the generated
-directory, which vitakit owns — do not edit anything there.
+directory, which vitakit owns — do not edit anything there. LaTeX's output is
+only shown when something fails (then its end, and where the full log is), or
+with `--verbose`.
 
 Needs `latexmk` and `biber`. See [CV documents](./cv-documents.md).
 
-## `check`
+## `check` and `vitakit verify`
 
-`nuxt typecheck` → `nuxt generate` → `vitakit-check`, which asserts on the
-built HTML rather than on your content:
+`check` runs `nuxt typecheck` → `nuxt generate` → `vitakit verify`, which
+asserts on the built HTML rather than on your content:
 
 ```
   ok  4 page(s) generated
   ok  mathematics rendered on 4 page(s)
   ok  base path /
-  ok  1 non-public entr(ies) absent from the site
+  ok  1 of 1 non-public entr(ies) absent from the site
   ok  assets and links use /
   ok  links into the site lead somewhere
   ok  bibliography on 1 page(s)
@@ -181,5 +429,63 @@ The checks assume nothing about *what* your site contains: which pages exist
 comes from `content/pages/`, and a bibliography is only checked where it is
 shown — a `publications.bib` used only by the PDF is fine.
 
-`--out <dir>` points at a different build directory. The scaffolded workflows
-run `check` before deploying, so a problem fails CI rather than the site.
+`--out <dir>` points at a different build directory. `--no-leak-check` skips
+the privacy check, whose comparison of titles can mistake a title that is
+legitimately public elsewhere for a leak. The scaffolded workflows run `check`
+before deploying, so a problem fails CI rather than the site.
+
+## `vitakit eject <file>`
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit eject --list                # what can be taken over
+pnpm vitakit eject VitaPublication       # how one reference looks on the website
+pnpm vitakit eject publications.csl      # the website's citation style
+pnpm vitakit eject vitakit-cv.cls        # the LaTeX class of every PDF
+```
+
+```bash [npm]
+npx vitakit eject --list                # what can be taken over
+npx vitakit eject VitaPublication       # how one reference looks on the website
+npx vitakit eject publications.csl      # the website's citation style
+npx vitakit eject vitakit-cv.cls        # the LaTeX class of every PDF
+```
+
+:::
+
+Copies a file that vitakit shares between all sections or all documents into
+your project, where it wins from then on. **An ejected file is yours forever**:
+later improvements to it in vitakit will not reach you. Everything that can
+carry a bug — validation, rendering, sorting, escaping — stays in the package,
+so eject deliberately. Before ejecting a component, check whether CSS is
+enough: the classes are styled in `app/assets/css/main.css`
+([customising](./customising.md#layer-2--colours-fonts-spacing)).
+
+An existing copy is never replaced, unless you pass `--force`; yours is then
+kept next to it as a `.backup`.
+
+## Previewing and confirming changes
+
+Every command that writes files shows first what it will create or change, then
+asks. `--dry-run` only shows; `--yes` skips the question. Without a terminal —
+in a script or CI — nothing is asked and nothing is written unless `--yes` is
+given.
+
+## From vitakit 0.1
+
+| 0.1 | now |
+|---|---|
+| `build:cv` script, `vitakit-build-cv` | `pdf` script, `vitakit pdf` |
+| `--no-pdf` | `--tex-only` |
+| `check:static` script, `vitakit-check` | `vitakit verify` |
+| `vitakit list` | `vitakit eject --list` |
+| `vitakit add <name>` | `vitakit add section <name>` |
+| `vitakit eject <section>` (a schema) | `vitakit customize <section> --schema --copy` |
+| `vitakit eject publications` | `vitakit customize publications` |
+| `vitakit eject <section>.eta` | `vitakit customize <section> --pdf` |
+
+In an existing project, change the scripts in `package.json` to
+`"pdf": "vitakit pdf"` and
+`"check": "pnpm typecheck && pnpm generate && vitakit verify"` (with npm:
+`npm run typecheck && npm run generate && vitakit verify`).

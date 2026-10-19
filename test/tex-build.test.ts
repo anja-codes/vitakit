@@ -1,5 +1,5 @@
 /**
- * `vitakit-build-cv --no-pdf`: from `content/` and `cv-tex/` to the generated
+ * `vitakit pdf --tex-only`: from `content/` and `cv-tex/` to the generated
  * `.tex` files, without running LaTeX (see `latex.test.ts` for that).
  */
 import { existsSync } from 'node:fs'
@@ -106,6 +106,12 @@ describe('the generated files', () => {
     expect(await body('talks')).toBe('\\vitaentry{Jun 2025}{Random $k$-ary trees}{AofA, Graz}\n')
     expect(await body('teaching')).toBe('\\vitaentry{2025S}{Combinatorics}{Lecturer \\& examiner: 50\\% \\#1\\_a, TU Graz}\n'
       + '\\vitanote{30 students}\n')
+  })
+
+  it('a template in cv-tex/templates wins over the bundled one', async () => {
+    const root = await project({ ...BASE, 'cv-tex/templates/talks.eta': '<% for (const t of it.entries) { %>MINE <%~ it.text(t.title) %>\n<% } %>' })
+    await build(root)
+    expect(await generated(root, 'talks')).toContain('MINE An invited talk')
   })
 
   it('profile.tex holds the header, empty-section markers and title overrides', async () => {

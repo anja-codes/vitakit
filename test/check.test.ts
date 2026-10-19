@@ -1,4 +1,4 @@
-/** `vitakit-check`: assertions on the generated site. */
+/** `vitakit verify`: assertions on the generated site. */
 import { describe, expect, it } from 'vitest'
 import { checkStatic } from '../src/check'
 import { loadContent } from '../src/content'

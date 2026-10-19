@@ -9,7 +9,8 @@ import { defaultCslStyle, defaultPublications, loadPublications } from '../src/b
 import { resolvePublications, type PublicationsInput } from '../src/publications'
 import { loadContent } from '../src/content'
 import { createRenderer } from '../src/render'
-import { eject } from '../src/cli'
+import { builtinSchemaSource } from '../src/cli/schema-source'
+import { cli } from './support/cli'
 import { importPackage, PACKAGE_ENTRY, project, writeFiles } from './support/project'
 import { renderGroups } from './support/publications'
 
@@ -177,8 +178,9 @@ describe('the citation style of a project', () => {
     const root = await site()
     expect(await list(root)).not.toContain(MARKER)
 
-    const { path } = await eject('publications.csl', root)
-    expect(path).toBe(join(root, 'content/publications.csl'))
+    const result = await cli(['eject', 'publications.csl', '--root', root, '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    const path = join(root, 'content/publications.csl')
     await writeFile(path, marked(await readFile(path, 'utf8')))
     expect(await list(root)).toContain(MARKER)
   })
@@ -238,14 +240,14 @@ describe('schemas/publications.ts', () => {
     expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Articles', 'Slides'])
   })
 
-  it('can be ejected as a copy of the defaults', async () => {
+  it('can be copied as the defaults', async () => {
     const root = await project({ 'content/profile.yml': 'name: Jane Doe\n', 'content/publications.bib': BIB.replace('Talk-Slides', 'other') })
     const defaults = (await loadContent(root)).publications
 
-    const { path } = await eject('publications', root)
-    expect(path).toBe(join(root, 'schemas/publications.ts'))
-    const source = await readFile(path, 'utf8')
+    const path = join(root, 'schemas/publications.ts')
+    const source = await builtinSchemaSource('publications')
     expect(source).toContain(`import { badgePresets, publications } from '@anja.codes/vitakit'`)
+    await writeFiles(root, { 'schemas/publications.ts': '' })
 
     await writeFile(path, source.replace(`'@anja.codes/vitakit'`, `'${PACKAGE_ENTRY}'`))
     expect((await loadContent(root)).publications).toEqual(defaults)

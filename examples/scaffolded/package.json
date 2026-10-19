@@ -12,9 +12,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "check:static": "vitakit-check",
-    "check": "pnpm typecheck && pnpm generate && pnpm check:static",
-    "build:cv": "vitakit-build-cv"
+    "check": "pnpm typecheck && pnpm generate && vitakit verify",
+    "pdf": "vitakit pdf"
   },
   "dependencies": {
     "@anja.codes/vitakit": "workspace:*",

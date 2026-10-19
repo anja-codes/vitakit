@@ -203,7 +203,7 @@ describe('the project', () => {
   it('is valid content, whatever the answers', async () => {
     const answers = { name: 'Dr Zoë: Researcher #1', title: 'Research Fellow: Mathematics', affiliation: 'University #1: Mathematics' }
     const content = await loadContent(await created(answers))
-    expect(content.profile).toMatchObject({ name: answers.name, title: answers.title, affiliation: { name: answers.affiliation } })
+    expect(content.profile).toMatchObject({ name: answers.name, title: answers.title, affiliation: { label: answers.affiliation } })
     expect(content.pages.find(page => page.route === '/')!.title).toBe(answers.name)
   })
 })
@@ -214,7 +214,7 @@ describe('the project for npm', () => {
     for (const [path, contents] of written) expect(contents, path).not.toMatch(/pnpm/)
     const pkg = JSON.parse(written.get('package.json')!)
     expect(pkg.packageManager).toBeUndefined()
-    expect(pkg.scripts.check).toBe('npm run typecheck && npm run generate && npm run check:static')
+    expect(pkg.scripts.check).toBe('npm run typecheck && npm run generate && vitakit verify')
   })
 
   it('runs npm in the workflows, without the pnpm setup step', async () => {
@@ -224,7 +224,7 @@ describe('the project for npm', () => {
       'actions/checkout@v7', 'actions/setup-node@v7', 'npm ci', 'npm run check', 'actions/upload-pages-artifact@v5',
     ])
     expect(deploy.jobs.build.steps[1].with.cache).toBe('npm')
-    expect(await readFile(join(root, '.github/workflows/cv.yml'), 'utf8')).toContain('- run: npm run build:cv -- --no-pdf')
+    expect(await readFile(join(root, '.github/workflows/cv.yml'), 'utf8')).toContain('- run: npm run pdf -- --tex-only')
 
     const gitlab = parseYaml(await readFile(join(await created({ deployment: 'gitlab-pages', packageManager: 'npm' }), '.gitlab-ci.yml'), 'utf8'))
     expect(gitlab['deploy-pages'].before_script).toEqual(['npm ci'])
@@ -232,7 +232,8 @@ describe('the project for npm', () => {
 
   it('names npm commands in the project\'s own instructions', async () => {
     const root = await created({ packageManager: 'npm' })
-    expect(await readFile(join(root, 'content/pages/cv.md'), 'utf8')).toContain('`npm run build:cv`')
+    expect(await readFile(join(root, 'content/pages/cv.md'), 'utf8')).toContain('`npm run pdf`')
+    expect(await readFile(join(root, 'content/pages/index.md'), 'utf8')).toContain('`npx vitakit add section outreach`')
     expect(await readFile(join(root, 'cv-tex/cv.tex'), 'utf8')).toContain('npx vitakit eject vitakit-cv.cls')
   })
 

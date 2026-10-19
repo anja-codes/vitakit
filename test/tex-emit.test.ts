@@ -2,11 +2,11 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { emitDocument } from '../src/tex/emit'
+import { emitDocument, renderSection, resolveTemplate } from '../src/tex/emit'
 import { documentSchema, selectEntries } from '../src/tex/documents'
 import { dateRange } from '../src/primitives'
 import type { Entry, PublicationGroup, Visibility } from '../src/shared/types'
-import { project } from './support/project'
+import { project, writeFiles } from './support/project'
 
 const options = (value: unknown = {}) => documentSchema.parse(value)
 const rich = (text: string) => ({ text, html: text })
@@ -40,9 +40,9 @@ describe('selectEntries', () => {
     expect(select({ visibility: 'private', sections: { talks: section } })).toEqual(expected)
   })
 
-  it('compares an institution by name and a link by label', () => {
+  it('compares a link by its label', () => {
     const entries: Entry[] = [
-      { id: 'a', visibility: 'public', institution: { name: 'TU Graz', url: 'https://tugraz.at' } },
+      { id: 'a', visibility: 'public', institution: { label: 'TU Graz', url: 'https://tugraz.at' } },
       { id: 'b', visibility: 'public', referee: { label: 'Jane Doe', url: 'https://e.org' } },
     ]
     expect(selectEntries(entries, options({ sections: { x: { where: { institution: 'TU Graz' } } } }), 'x').map(entry => entry.id)).toEqual(['a'])
@@ -88,8 +88,8 @@ describe('emitDocument', () => {
 
   it('leaves no blank lines, which would end the paragraph a \\\\ continues', async () => {
     const entries: Entry[] = [
-      { id: 'a', visibility: 'public', date: dateRange.parse(2024), degree: 'PhD', institution: { name: 'TU' }, thesis: { title: rich('T') }, note: 'N' },
-      { id: 'b', visibility: 'public', date: dateRange.parse(2020), degree: 'MSc', institution: { name: 'TU' } },
+      { id: 'a', visibility: 'public', date: dateRange.parse(2024), degree: 'PhD', institution: { label: 'TU' }, thesis: { title: rich('T') }, note: 'N' },
+      { id: 'b', visibility: 'public', date: dateRange.parse(2020), degree: 'MSc', institution: { label: 'TU' } },
     ]
     expect((await emit({ education: entries }))['education.tex'].split('\n').slice(1)).toEqual([
       '\\vitaentry{2024}{PhD}{TU}',
@@ -135,5 +135,27 @@ describe('emitDocument', () => {
   it('refuses a citation key that would break the LaTeX', async () => {
     const publications = [{ id: 'published', label: 'P', count: 1, entries: [{ key: 'doe%2024', html: '', badges: [], fields: {} }] }]
     await expect(emit({}, { publications })).rejects.toThrow(/"doe%2024" cannot be used as a citation key/)
+  })
+})
+
+describe('templates', () => {
+  it('reports where the effective one comes from, and can skip one', async () => {
+    const templates = join(await project(), 'cv-tex/templates')
+    await expect(resolveTemplate('talks', templates)).resolves.toMatchObject({ origin: 'bundled', generic: false })
+    await expect(resolveTemplate('outreach', templates)).resolves.toMatchObject({ origin: 'bundled', generic: true })
+
+    await writeFiles(templates, { 'talks.eta': 'local' })
+    await expect(resolveTemplate('talks', templates)).resolves.toMatchObject({ origin: 'local', source: 'local' })
+    // Replacing a local template starts from what would be used without it.
+    await expect(resolveTemplate('talks', templates, { exclude: join(templates, 'talks.eta') }))
+      .resolves.toMatchObject({ origin: 'bundled', generic: false })
+  })
+
+  it('render a section without writing files', async () => {
+    const root = await project()
+    const body = await renderSection('talks', TALKS, options({ sections: { talks: { limit: 1 } } }), join(root, 'cv-tex/templates'))
+    expect(body).toContain('invited-2025')
+    expect(body).not.toContain('contributed-2024')
+    expect(await readdir(root)).toEqual([])
   })
 })

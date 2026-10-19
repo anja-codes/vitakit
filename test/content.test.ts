@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
-import { discoverSections, loadSection } from '../src/sections'
+import { discoverSections, findSectionFiles, loadSection, sectionNameProblem } from '../src/sections'
 import { importFailure, importProjectModule } from '../src/issues'
 import { createRenderer } from '../src/render'
 import { importPackage, project } from './support/project'
@@ -35,6 +35,25 @@ describe('section discovery', () => {
     [{}, /content\/: directory is missing/],
   ])('explains what to do: %j', async (files, message) => {
     await expect(discoverSections(await project(files))).rejects.toThrow(message)
+  })
+
+  it('names .yaml files as they are', async () => {
+    const [source] = await discoverSections(await project({ 'content/talks.yaml': '- { date: 2024, title: A talk }\n' }))
+    expect(source!.where).toBe('content/talks.yaml')
+  })
+
+  it('reports a section that exists as both .yml and .yaml, per file', async () => {
+    const root = await project({ 'content/talks.yml': '[]\n', 'content/talks.yaml': '[]\n' })
+    const { files, problems } = await findSectionFiles(root)
+    expect(files).toEqual([])
+    expect(problems[0]!.message).toMatch(/exists twice \(talks\.yaml, talks\.yml\)/)
+    await expect(discoverSections(root)).rejects.toThrow(/exists twice/)
+  })
+
+  it('shares its name rules', () => {
+    expect(sectionNameProblem('research-stays')).toBeUndefined()
+    expect(sectionNameProblem('profile')).toMatch(/reserved/)
+    expect(sectionNameProblem('Research_Stays')).toMatch(/kebab-case/)
   })
 })
 
@@ -198,6 +217,18 @@ describe('strict and lenient loading', () => {
     expect(content.issues.map(issue => issue.where).sort()).toEqual(['content/pages/research.md', 'content/talks.yml'])
     expect(content.sections).toMatchObject({ talks: [], teaching: [expect.anything()] })
     expect(content.profile.name).toBe('Jane Doe')
+  })
+
+  it('keeps the other sections when one has no schema or a broken one', async () => {
+    const content = await loadContent(await project({
+      ...PROFILE,
+      'content/talks.yml': '- { date: 2024, title: A talk }\n',
+      'content/hobbies.yml': '- { date: 2024 }\n',
+      'content/outreach.yml': '- { date: 2024 }\n',
+      'schemas/outreach.ts': 'export default {}\n',
+    }), { strict: false })
+    expect(content.sections.talks).toHaveLength(1)
+    expect(content.issues.map(issue => issue.where).sort()).toEqual(['content/hobbies.yml', 'schemas/outreach.ts'])
   })
 
   it('shows a broken page as an error page at its route', async () => {

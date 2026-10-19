@@ -66,26 +66,26 @@ describe('default layout', () => {
   it('uses rendered rich-text HTML for the title, and titleFields to choose it', async () => {
     expect(await renderEntries(entry({ title: { text: '*A*', html: '<em>A</em>' } }))).toContain('<span><em>A</em></span>')
 
-    const html = await render({ entries: [entry({ role: 'Lecturer', institution: { name: 'Uni' } })], titleFields: ['missing', 'role'] })
+    const html = await render({ entries: [entry({ role: 'Lecturer', institution: { label: 'Uni' } })], titleFields: ['missing', 'role'] })
     expect(html).toContain('<span>Lecturer</span>')
     expect(html).toContain('<p class="vita-entry__meta">Uni</p>')
   })
 
-  it('joins the meta line with ·, linking the first institution-like field only if it has a URL', async () => {
+  it('joins the meta line with ·, linking the first linked field only if it has a URL', async () => {
     expect(await renderEntries(entry({
-      role: 'Speaker', event: 'Conference', institution: { name: 'University', url: 'https://uni.example.org/' }, location: 'Graz',
+      role: 'Speaker', event: 'Conference', institution: { label: 'University', url: 'https://uni.example.org/' }, location: 'Graz',
     }))).toContain('<p class="vita-entry__meta">Speaker · Conference · <a href="https://uni.example.org/">University</a> · Graz</p>')
 
-    expect(await renderEntries(entry({ issuer: { name: 'Issuer', url: 'https://i.example/' } })))
+    expect(await renderEntries(entry({ issuer: { label: 'Issuer', url: 'https://i.example/' } })))
       .toContain('<p class="vita-entry__meta"><a href="https://i.example/">Issuer</a></p>')
-    expect(await renderEntries(entry({ institution: { name: 'First' }, organisation: { name: 'Second', url: 'https://s.example/' } })))
+    expect(await renderEntries(entry({ institution: { label: 'First' }, organisation: { label: 'Second', url: 'https://s.example/' } })))
       .toContain('<p class="vita-entry__meta">First</p>')
   })
 
   it('escapes every text field and attribute', async () => {
     const html = await renderEntries(entry({
       event: '<b>Conference</b> & friends',
-      institution: { name: '<em>Uni</em>', url: 'https://example.org/?a=1&b="x"' },
+      institution: { label: '<em>Uni</em>', url: 'https://example.org/?a=1&b="x"' },
       note: '<script>bad()</script>',
     }))
     expect(html).toContain('&lt;b&gt;Conference&lt;/b&gt; &amp; friends · <a href="https://example.org/?a=1&amp;b=&quot;x&quot;">&lt;em&gt;Uni&lt;/em&gt;</a>')
@@ -190,7 +190,7 @@ describe('slots', () => {
     const date = dateRange.parse({ from: 2023, to: 'present' })
     const item = entry({
       role: { text: '*Chosen*', html: '<em>Chosen</em>' }, date, term: 'Winter', event: 'AofA',
-      institution: { name: 'University', url: '/university/' }, location: 'Graz',
+      institution: { label: 'University', url: '/university/' }, location: 'Graz',
       url: '/talk/', note: '', slides: '/slides.pdf', ongoing: true, extra: { kept: true },
     })
     const named = capture()
@@ -210,7 +210,7 @@ describe('slots', () => {
         titleUrl: '/talk/',
         date,
         term: 'Winter',
-        meta: [{ kind: 'text', text: 'AofA' }, { kind: 'institution', institution: { name: 'University', url: '/university/' } }, { kind: 'text', text: 'Graz' }],
+        meta: [{ kind: 'text', text: 'AofA' }, { kind: 'linked', linked: { label: 'University', url: '/university/' } }, { kind: 'text', text: 'Graz' }],
         note: '',
         links: [{ label: 'Slides', url: '/slides.pdf' }],
         ongoing: true,

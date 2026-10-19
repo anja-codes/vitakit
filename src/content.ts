@@ -9,7 +9,7 @@ import { parse as parseYaml } from 'yaml'
 import { createRenderer, prefixRootRelative, type Renderer } from './render'
 import { absoluteSitePath, resolveSitePaths } from './site-paths'
 import { loadPublications, loadPublicationsSchema } from './bibliography'
-import { discoverSections, loadSection } from './sections'
+import { findSectionFiles, loadSection, resolveSectionSchema } from './sections'
 import { page as pageSchema, profile as profileSchema } from './schemas'
 import { fail, formatZodIssues, Issues, messageOf, whereOf } from './issues'
 import type { Entry, Page, Profile, PublicationGroup, VitakitContent, Visibility } from './shared/types'
@@ -146,12 +146,15 @@ async function loadSections(
   resolvePath: (path: string) => string,
   issues: Issues,
 ): Promise<Record<string, Entry[]>> {
-  const sources = await issues.attempt('content/', () => discoverSections(rootDir), [])
+  // Each section stands on its own: one missing or broken schema must not
+  // make the others disappear while developing.
+  const { files, problems } = await issues.attempt('content/', () => findSectionFiles(rootDir), { files: [], problems: [] })
+  for (const problem of problems) issues.record(problem.where, problem.message)
   const sections: Record<string, Entry[]> = {}
-  for (const source of sources) {
-    sections[source.id] = await issues.attempt(
-      `content/${source.id}.yml`,
-      () => loadSection(source, { maxVisibility, renderer, resolvePath }),
+  for (const file of files) {
+    sections[file.id] = await issues.attempt(
+      file.where,
+      async () => loadSection(await resolveSectionSchema(rootDir, file), { maxVisibility, renderer, resolvePath }),
       [],
     )
   }

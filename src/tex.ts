@@ -4,8 +4,16 @@
  * Kept as its own entry so that importing the web pipeline does not pull in the
  * template engine, and vice versa.
  */
-export { buildCv, readGenerated, type BuildOptions } from './tex/build'
-export { emitDocument, bundledTexDir, type EmitOptions } from './tex/emit'
+export { buildCv, readGenerated, MissingToolError, type BuildOptions, type BuildEvent } from './tex/build'
+export {
+  emitDocument,
+  renderSection,
+  renderPublications,
+  resolveTemplate,
+  bundledTexDir,
+  type EmitOptions,
+  type ResolvedTemplate,
+} from './tex/emit'
 export {
   discoverDocuments,
   selectEntries,

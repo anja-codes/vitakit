@@ -10,12 +10,14 @@ export { formatDateRange, dateSortKey, type DateFormatOptions } from './format'
 export {
   entryTitleField,
   entrySecondaryParts,
+  asLinkedList,
   TITLE_FIELDS,
   SECONDARY_FIELDS,
-  INSTITUTION_FIELDS,
+  LINKED_FIELDS,
   type SecondaryPart,
   type VitaSectionDisplay,
   type VitaSectionSlotProps,
 } from './entry'
 export { richSource, richHtml } from './rich'
+export { fieldValue, filterWhere, matchesWhere, type Where, type WhereValue } from './select'
 export type * from './types'

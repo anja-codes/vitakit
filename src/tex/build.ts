@@ -29,19 +29,57 @@ export interface BuildOptions {
   only?: string[]
   /** Emit .tex but skip latexmk. */
   noPdf?: boolean
+  /**
+   * What happens to latexmk's output: shown as it runs (`inherit`, the
+   * default), or kept back and only its end shown on failure (`capture`).
+   */
+  latexOutput?: 'inherit' | 'capture'
+  /** Told about each finished step, for concise progress output. */
+  onProgress?: (event: BuildEvent) => void
 }
 
-function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): Promise<void> {
+export type BuildEvent
+  = | { document: string, step: 'tex', dir: string, files: number }
+    | { document: string, step: 'pdf', file: string }
+
+/** A tool of the TeX distribution is not installed. */
+export class MissingToolError extends Error {
+  constructor(readonly tool: string) {
+    super(`${tool} not found; install a TeX distribution that includes latexmk and biber`)
+    this.name = 'MissingToolError'
+  }
+}
+
+function run(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = {},
+  output: 'inherit' | 'capture' = 'inherit',
+  log?: string,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit', env: { ...process.env, ...env } })
+    const child = spawn(command, args, { cwd, stdio: output === 'inherit' ? 'inherit' : ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } })
+    let captured = ''
+    child.stdout?.on('data', (chunk: Buffer) => { captured += chunk.toString() })
+    child.stderr?.on('data', (chunk: Buffer) => { captured += chunk.toString() })
     child.on('error', error => reject(
-      (error as NodeJS.ErrnoException).code === 'ENOENT'
-        ? new Error(`${command} not found. Install a TeX distribution, or use --no-pdf to only generate .tex files.`)
-        : error,
+      (error as NodeJS.ErrnoException).code === 'ENOENT' ? new MissingToolError(command) : error,
     ))
-    child.on('exit', code => code === 0
-      ? resolve()
-      : reject(new Error(`${command} exited with code ${code}`)))
+    child.on('exit', (code) => {
+      if (code === 0) return resolve()
+      if (output === 'inherit') return reject(new Error(`${command} exited with code ${code}`))
+      void readFile(log ?? '', 'utf8').catch(() => '').then((text) => {
+        // TeX's own error, `! Undefined control sequence.` and the line it
+        // happened in, says more than latexmk's summary of it.
+        const lines = text.split('\n')
+        const start = lines.findIndex(line => line.startsWith('! '))
+        const excerpt = start === -1
+          ? captured.trim().split('\n').slice(-25).join('\n')
+          : lines.slice(start, start + 8).join('\n').trim()
+        reject(new Error(`${command} exited with code ${code}${excerpt ? `\n\n${excerpt}` : ''}${log ? `\n\nFull log: ${log}` : ''}`))
+      })
+    })
   })
 }
 
@@ -56,7 +94,7 @@ function profilePreamble(content: VitakitContent, document: DocumentSource): str
     if (isSitePath(url)) fail('content/profile.yml', `links: ${url} ${SITE_PATH_HELP}`)
     return escapeUrl(url)
   }
-  const affiliation = profile.affiliation?.name ? escapeTex(profile.affiliation.name) : ''
+  const affiliation = profile.affiliation?.label ? escapeTex(profile.affiliation.label) : ''
   const tagline = [profile.title && escapeTex(profile.title), affiliation].filter(Boolean).join(', ')
   const contact = [
     profile.email && `\\href{mailto:${escapeUrl(profile.email)}}{${escapeTex(profile.email)}}`,
@@ -102,7 +140,7 @@ async function buildDocument(
   cvDir: string,
 ): Promise<void> {
   const outDir = join(cvDir, 'generated', document.name)
-  await emitDocument({
+  const written = await emitDocument({
     sections: content.sections,
     publications: content.publications,
     siteUrl: content.profile.url,
@@ -125,6 +163,7 @@ async function buildDocument(
   if (existsSync(join(cvDir, CLASS_FILE))) await rm(generatedClass, { force: true })
   else await copyFile(join(bundledTexDir, CLASS_FILE), generatedClass)
 
+  options.onProgress?.({ document: document.name, step: 'tex', dir: outDir, files: written.length + 1 })
   if (options.noPdf) return
 
   // Everything latexmk writes (.aux, .bcf, .fls, .log, the PDF) goes to the
@@ -141,8 +180,9 @@ async function buildDocument(
   ], cvDir, {
     // A trailing delimiter keeps the standard search paths.
     TEXINPUTS: `.${delimiter}${relativeOut}${delimiter}${process.env.TEXINPUTS ?? ''}`,
-  })
+  }, options.latexOutput, join(outDir, `${document.name}.log`))
   await rename(join(outDir, `${document.name}.pdf`), join(cvDir, `${document.name}.pdf`))
+  options.onProgress?.({ document: document.name, step: 'pdf', file: join(cvDir, `${document.name}.pdf`) })
 }
 
 export async function buildCv(options: BuildOptions): Promise<string[]> {

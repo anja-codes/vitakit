@@ -36,7 +36,7 @@ function sourcePath(asset: AssetPath): string {
 let root: string | undefined
 
 /** The installed (or checked-out) package root, found once and cached. */
-function packageRoot(): string {
+export function packageRoot(): string {
   if (root) return root
   let dir = dirname(fileURLToPath(import.meta.url))
   // Walk up to the package root: `dist/` is at most a few levels deep, and a

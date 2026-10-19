@@ -110,6 +110,27 @@ across two, without touching the data.
 *wrong* — sorting, date formatting, filtering, citation rendering — lives in the
 package, where it can be fixed for everyone.
 
+### Placing a section on a page
+
+One line per section, with a heading:
+
+```vue
+<VitaSection id="teaching" title="Teaching" />
+<VitaSection id="talks" title="Invited talks" :where="{ kind: 'invited' }" :limit="10" />
+```
+
+| Prop | |
+|---|---|
+| `id` | the section, `content/<id>.yml` |
+| `title` | a heading; heading and list then sit in a `<section id="<id>">`, and neither appears when there are no entries |
+| `where` | only entries whose fields have these values; a list means any of them. Exactly like `where` in a [PDF document](./cv-documents.md#selection-options) |
+| `limit` | the newest N, after `where` |
+| `entries` | entries you selected yourself, instead of `id` |
+| `titleFields` | fields to try, in order, for the main line |
+
+Without `title`, `VitaSection` is just the list, and the heading is yours to
+write. The heading has the class `vita-section-group__title`.
+
 ### Customising a section with slots
 
 Use `VitaSection` scoped slots to show an extra research detail or change a row's
@@ -136,7 +157,7 @@ as `typeof`. `index` is zero-based in the displayed list, after `limit`.
 |---|---|
 | `titleHtml`, `titleUrl?` | rendered title HTML and optional title link |
 | `date?`, `term?` | `DateRange` and optional teaching-term label |
-| `meta` | structured `SecondaryPart[]`: `{ kind: 'text', text }` or `{ kind: 'institution', institution }`, retaining institution URLs |
+| `meta` | structured `SecondaryPart[]`: `{ kind: 'text', text }` or `{ kind: 'linked', linked }`, retaining link URLs |
 | `note?` | plain string |
 | `links` | `Link[]`, currently the Slides link |
 | `ongoing` | boolean |
@@ -201,11 +222,17 @@ A title override also owns any title link or ongoing label you want to retain.
 Slots change this web rendering only: they do not change schemas, LaTeX output
 or your generated custom components.
 
+`vitakit customize <section> --web --field <name>` writes such a slot into a small
+component of your own and uses it wherever the section appears; with `--list`, the
+component has a list of its own, e.g. grouped by term (`--group-by term`). See
+[commands](./cli.md#vitakit-customize-section).
+
 ### A new page
 
 Add `content/pages/outreach.md` and it is live at `/outreach/`. If it needs more than
 prose, add `app/pages/outreach.vue`; a concrete route wins over the Markdown
-catch-all. `app/pages/publications.vue` is the worked example: prose from Markdown,
+catch-all. `pnpm vitakit add page outreach` writes both, ready for sections, and
+adds the page to the menu. `app/pages/publications.vue` is the worked example: prose from Markdown,
 then a component.
 
 To remove a page, delete its Markdown file and remove its navigation entry from
@@ -223,23 +250,24 @@ Three files, wired by file name, no configuration:
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit add outreach
+pnpm vitakit add section outreach
 ```
 
 ```bash [npm]
-npx vitakit add outreach
+npx vitakit add section outreach
 ```
 
 :::
 
-writes all three for you: a YAML stub, a schema, and a component. If
-`content/outreach.yml` already exists, the schema is **drafted from it** — types
-guessed from your data, ready to correct. Nothing is overwritten.
+writes what is missing: a YAML stub, a schema, and one line on a page and in a
+PDF document, where you choose. If `content/outreach.yml` already exists, the
+schema is **drafted from it** — types guessed from your data, ready to correct.
+Nothing is overwritten. See [commands](./cli.md#vitakit-add-section-name).
 
 The schema decides which fields are **accepted**, not which are **shown**. The
-generated component starts with date, title and note; edit it to display fields
-such as venue or audience. Adding a field to a built-in schema likewise does not
-change its renderer.
+standard layout shows date, title, the usual secondary fields and a note; to
+display fields such as venue or audience, use [slots](#customising-a-section-with-slots).
+Adding a field to a built-in schema likewise does not change its renderer.
 
 The rest of this section describes what those files are, whether you wrote them
 by hand or not.
@@ -256,56 +284,45 @@ by hand or not.
 **2.** `schemas/outreach.ts` — the shape
 
 ```ts twoslash
-import { section, dateRange, richText, institution, z } from '@anja.codes/vitakit'
+import { section, dateRange, richText, linked, z } from '@anja.codes/vitakit'
 
 export default section({
   date: dateRange,
   title: richText,                 // Markdown and $math$
-  venue: institution.optional(),
+  venue: linked.optional(),
   audience: z.enum(['school', 'public', 'press']),
 })
 ```
 
-Build the schema from the vitakit primitives (`dateRange`, `institution`, `link`,
+Build the schema from the vitakit primitives (`dateRange`, `linked`,
 `richText`, `text`, `url`) and your section sorts, filters and formats like a
 built-in one. `visibility` is added for you.
 
-**3.** A page, or nothing at all
+**3.** A line on a page, and one in a PDF document
 
-`useSection('outreach')` is available immediately, and `<VitaSection id="outreach" />`
-renders it without a component of your own. The PDF gets it too:
-`\vitasection{outreach}` in `cv-tex/cv.tex`.
+`useSection('outreach')` is available immediately, and
+`<VitaSection id="outreach" title="Outreach" />` renders it without a component
+of your own. The PDF gets it with `\vitasection[Outreach]{outreach}` in
+`cv-tex/cv.tex`.
 
 ### Changing a built-in section
 
-Copy its schema into your project and edit it:
+To accept one more field, let the command write it:
 
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit eject teaching      # -> schemas/teaching.ts
+pnpm vitakit add field teaching evaluationScore --type number
 ```
 
 ```bash [npm]
-npx vitakit eject teaching      # -> schemas/teaching.ts
+npx vitakit add field teaching evaluationScore --type number
 ```
 
 :::
 
-The file is the definition vitakit itself uses, not a paraphrase, so adding a
-field is editing a list:
-
-```ts
-export default section({
-  date: dateRange,
-  title: richText,
-  evaluationScore: z.number().optional(),   // added
-  …
-})
-```
-
-A schema in your repository always wins for `content/teaching.yml`. If you would
-rather extend the built-in than own the whole shape:
+The first field creates `schemas/teaching.ts`, which keeps vitakit's fields and
+adds yours; you can also write it yourself:
 
 ```ts twoslash
 import { schemas, extendSection, z } from '@anja.codes/vitakit'
@@ -315,14 +332,33 @@ export default extendSection(schemas.teaching, {
 })
 ```
 
+A field listed there that vitakit already has replaces vitakit's rule for it.
+To change or remove built-in rules wholesale, take over the whole definition —
+the file vitakit itself uses, not a paraphrase:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit customize teaching --schema --copy  # -> schemas/teaching.ts
+```
+
+```bash [npm]
+npx vitakit customize teaching --schema --copy  # -> schemas/teaching.ts
+```
+
+:::
+
+A schema in your repository always wins for `content/teaching.yml`; a copied one
+no longer gets vitakit's improvements to it.
+
 ### Eject or schema?
 
 Two different axes, easily confused:
 
 | You want to change | Do this |
 |---|---|
-| what a section *contains* (fields) | `vitakit eject <section>`, then edit `schemas/<name>.ts` |
-| what a section *looks like* (markup) | `VitaSection` slots first; `vitakit eject <Component>` for deeper changes |
+| what a section *contains* (fields) | `vitakit add field <section> <name>`, or edit `schemas/<name>.ts` |
+| what a section *looks like* (markup) | `vitakit customize <section> --web` for a component of your own, or `VitaSection` slots by hand; `vitakit eject <Component>` changes every section |
 
 Adding a field to supervision is a schema change; displaying it can be a slot
 change. Neither requires owning the whole component.
@@ -335,19 +371,19 @@ your project, where it then wins:
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit list                    # what can be copied
+pnpm vitakit eject --list            # what can be copied
 pnpm vitakit eject VitaSection       # -> app/components/VitaSection.vue
-pnpm vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
-pnpm vitakit eject publications      # -> schemas/publications.ts
+pnpm vitakit customize talks --pdf   # -> cv-tex/templates/talks.eta
+pnpm vitakit customize publications  # -> schemas/publications.ts
 pnpm vitakit eject publications.csl  # -> content/publications.csl
 pnpm vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
 ```
 
 ```bash [npm]
-npx vitakit list                    # what can be copied
+npx vitakit eject --list            # what can be copied
 npx vitakit eject VitaSection       # -> app/components/VitaSection.vue
-npx vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
-npx vitakit eject publications      # -> schemas/publications.ts
+npx vitakit customize talks --pdf   # -> cv-tex/templates/talks.eta
+npx vitakit customize publications  # -> schemas/publications.ts
 npx vitakit eject publications.csl  # -> content/publications.csl
 npx vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
 ```

@@ -7,20 +7,20 @@ no `-shell-escape` and no Python: LaTeX only typesets what is already on disk.
 ::: code-group
 
 ```bash [pnpm]
-pnpm build:cv                 # every document
-pnpm build:cv cv              # one document
-pnpm build:cv --no-pdf        # only generate .tex (no TeX installation needed)
+pnpm pdf                 # every document
+pnpm pdf cv              # one document
+pnpm pdf --tex-only        # only generate .tex (no TeX installation needed)
 ```
 
 ```bash [npm]
-npm run build:cv                    # every document
-npm run build:cv -- cv              # one document
-npm run build:cv -- --no-pdf        # only generate .tex (no TeX installation needed)
+npm run pdf                    # every document
+npm run pdf -- cv              # one document
+npm run pdf -- --tex-only        # only generate .tex (no TeX installation needed)
 ```
 
 :::
 
-After `build:cv --no-pdf`, a plain `latexmk cv.tex` in `cv-tex/` works as well,
+After `pdf --tex-only`, a plain `latexmk cv.tex` in `cv-tex/` works as well,
 e.g. from an editor or a CI action: `cv-tex/latexmkrc` lets LaTeX find the generated
 document class.
 
@@ -41,14 +41,14 @@ document class.
 \begin{document}
 \vitaheader
 
-\vitasection{employment}
-\vitasection{education}
-\vitasection{teaching}
+\vitasection[Employment]{employment}
+\vitasection[Education]{education}
+\vitasection[Teaching]{teaching}
 
 \section{Publications}\vitainput{publications}
 
-\vitasection{supervision}
-\vitasection{talks}
+\vitasection[Supervised theses]{supervision}
+\vitasection[Selected talks]{talks}
 \end{document}
 ```
 
@@ -92,7 +92,8 @@ work as usual.
 visibility: public | cv | private     # default: cv
 sections:
   <id>:
-    where: { kind: [invited, seminar] }  # field equals this value, or one of them
+    where: { kind: [invited, seminar] }  # field equals this value, or one of them;
+                                         # the same as <VitaSection :where>
     since: 2020                          # start year at least this
     until: 2024                          # start year at most this
     limit: 10                            # keep the newest N
@@ -102,8 +103,8 @@ publications:
 ```
 
 That is the whole list, and it is meant to stay that way. `where` compares against
-the field as written (for rich-text fields, their source text; for an institution,
-its name). There is no query language, no `or`, no negation: selection subtler than
+the field as written (for rich-text fields, their source text; for a link,
+its label). There is no query language, no `or`, no negation: selection subtler than
 this belongs in a hand-written `.tex` or an
 [ejected template](./customising.md), which is already how everything else specific
 is done here.
@@ -130,7 +131,7 @@ cp cv-tex/cv.yml cv-tex/teaching-uni-x.yml      # optional
 ```
 
 Change `\vitadocument{cv}` to `\vitadocument{teaching-uni-x}` in the copy, reorder the
-`\vitasection` lines, adjust the YAML, then `build:cv teaching-uni-x`.
+`\vitasection` lines, adjust the YAML, then `vitakit pdf teaching-uni-x`.
 
 **The data is untouched**, so your website and every other variant are unaffected.
 If an older document uses `\input{generated/cv/profile.tex}`, replace that line
@@ -174,7 +175,7 @@ those changes the design without touching anything vitakit produces:
 
 For deeper changes, `vitakit eject vitakit-cv.cls` copies the class into
 `cv-tex/`, where it is yours and takes precedence, and
-`vitakit eject talks.eta` copies the template that generates a section.
+`vitakit customize talks --pdf` copies the template that generates a section.
 
 **Do not edit `cv-tex/generated/`.** Everything there — the section files, the
 profile header and the copy of the class — is rewritten on every build. An ejected file always wins: `cv-tex/` comes before the generated
@@ -187,7 +188,7 @@ named templates (local or bundled) take precedence.
 
 ## Editing entries with Eta
 
-Eject a bundled template with `pnpm vitakit eject teaching.eta`, then edit
+Copy a bundled template with `pnpm vitakit customize teaching --pdf`, then edit
 `cv-tex/templates/teaching.eta`. Templates receive the document's already-selected,
 sorted entries as `it.entries`. They describe the entries, not section headings or
 ordering.
@@ -217,7 +218,7 @@ passed directly to other helpers without being escaped twice.
 |---|---|
 | `it.text(value)` | text, numbers, or booleans; absent values become empty output |
 | `it.date(value)` | a normalized date or range from a `dateRange` schema field |
-| `it.linked(value)` | text, or a `{ name, url? }` / `{ label, url? }` object; links only when a URL exists |
+| `it.linked(value)` | text, or a `{ label, url? }` value (a **link** field); links only when a URL exists |
 | `it.linked(label, url)` | the same operation with a separate label and URL |
 | `it.url(value)` | a URL target for hand-written LaTeX, not a complete visible link |
 | `it.join(values, separator)` | combine nonempty values; separator defaults to `, ` |

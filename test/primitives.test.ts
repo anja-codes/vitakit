@@ -1,6 +1,6 @@
 /** The Zod building blocks of built-in and user-written schemas. */
 import { describe, expect, it } from 'vitest'
-import { dateRange, institution, link, section, text, url } from '../src/primitives'
+import { dateRange, linked, requiredLink, section, text, url } from '../src/primitives'
 import { extendSection, schemas } from '../src/schemas'
 import { sitePathMarker } from '../src/site-paths'
 import { z } from 'zod'
@@ -49,6 +49,8 @@ describe('url', () => {
 
   it('marks a path on the site, to be resolved once the base URL is known', () => {
     expect(url.parse('/slides/talk.pdf')).toEqual(sitePathMarker('/slides/talk.pdf'))
+    expect(linked.parse({ label: 'CV', url: '/cv.pdf' })).toEqual({ label: 'CV', url: sitePathMarker('/cv.pdf') })
+    expect(linked.parse('/cv.pdf')).toEqual({ label: '/cv.pdf', url: sitePathMarker('/cv.pdf') })
   })
 
   it.each(['slides/talk.pdf', '//cdn.example.org/x', '/with space.pdf', 'javascript:alert(1)', 'file:///etc/passwd'])('rejects %s, saying what is expected', (value) => {
@@ -56,20 +58,29 @@ describe('url', () => {
   })
 })
 
-describe('institution and link', () => {
-  it('expand the shorthands', () => {
-    expect(institution.parse('TU Graz')).toEqual({ name: 'TU Graz' })
-    expect(link.parse('https://example.org/a/')).toEqual({ label: 'example.org/a', url: 'https://example.org/a/' })
-    expect(link.parse('/cv.pdf')).toEqual({ label: '/cv.pdf', url: sitePathMarker('/cv.pdf') })
+describe('linked', () => {
+  it('accepts a label, a URL, or an object with label or name', () => {
+    expect(linked.parse('TU Graz')).toEqual({ label: 'TU Graz' })
+    expect(linked.parse('https://example.org/a/')).toEqual({ label: 'example.org/a', url: 'https://example.org/a/' })
+    expect(linked.parse('mailto:jane@example.org')).toEqual({ label: 'jane@example.org', url: 'mailto:jane@example.org' })
+    expect(linked.parse({ label: 'TU Graz', url: 'https://tugraz.at' })).toEqual({ label: 'TU Graz', url: 'https://tugraz.at' })
+    expect(linked.parse({ name: 'TU Graz', url: 'https://tugraz.at' })).toEqual({ label: 'TU Graz', url: 'https://tugraz.at' })
+    expect(linked.parse({ name: 'TU Graz' })).toEqual({ label: 'TU Graz' })
   })
 
-  it('accept the full object', () => {
-    expect(institution.parse({ name: 'TU Graz', url: 'https://tugraz.at' })).toEqual({ name: 'TU Graz', url: 'https://tugraz.at' })
-    expect(link.parse({ label: 'CV', url: '/cv.pdf' })).toEqual({ label: 'CV', url: sitePathMarker('/cv.pdf') })
+  it('treats text that is not a URL as a label, even when it has a colon', () => {
+    expect(linked.parse('Talk: an introduction')).toEqual({ label: 'Talk: an introduction' })
   })
 
-  it('reject unknown keys', () => {
-    expect(institution.safeParse({ name: 'X', link: 'https://x.org' }).success).toBe(false)
+  it('rejects unknown keys, both label and name, and invalid URLs in objects', () => {
+    for (const value of [{ name: 'X', link: 'https://x.org' }, { name: 'X', label: 'Y' }, { label: 'X', url: 'javascript:alert(1)' }, '']) {
+      expect(linked.safeParse(value).success, JSON.stringify(value)).toBe(false)
+    }
+  })
+
+  it('can require a URL', () => {
+    expect(requiredLink.safeParse('https://example.org').success).toBe(true)
+    expect(issues(requiredLink, { label: 'ORCID' })).toEqual(['expected a URL, or { label, url }'])
   })
 })
 

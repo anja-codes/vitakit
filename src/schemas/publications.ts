@@ -1,8 +1,8 @@
 /**
  * How `content/publications.bib` is grouped and linked -- on the website, in
- * `vitakit-check` and in the PDF alike.
+ * `vitakit verify` and in the PDF alike.
  *
- * Also the file `vitakit eject publications` copies into a project, with the
+ * Also the file `vitakit customize publications` writes into a project, with the
  * import rewritten to `@anja.codes/vitakit`; it is therefore the single definition
  * of the defaults, not a copy of them. Every setting is optional: leave out
  * what you do not change.

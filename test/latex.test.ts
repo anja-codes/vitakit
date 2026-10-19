@@ -60,9 +60,18 @@ describe.skipIf(!hasCommand('latexmk') || !hasCommand('pdftotext'))('latexmk', {
     expect(text.replace(/ /g, '')).toContain('https://jane.example.org/site/papers/local.pdf')
   })
 
+  // Names, places and titles are not all in pdfLaTeX's default font encoding.
+  it('typesets characters beyond the default font encoding', async () => {
+    const title = '„Warum Ordnung schwer ist“ – Łódź, Győr, Ærø'
+    const root = await scaffolded({ 'content/teaching.yml': `- { date: 2025, title: "${title}" }\n` })
+    const [pdf] = await buildCv({ rootDir: root })
+    expect(pdfText(pdf!)).toContain(title)
+  })
+
   it('titles sections inline, then from cv.yml, then from the preamble, and hides empty ones', async () => {
     const root = await scaffolded({
       'content/supervision.yml': '[]\n',
+      'cv-tex/preamble.tex': '\\vitasectiontitle{employment}{Employment}\n\\vitasectiontitle{talks}{Selected talks}\n',
       'cv-tex/cv.yml': 'visibility: public\nsections:\n  talks: { title: YAML talks }\n  teaching: { since: 2030 }\n',
       'cv-tex/cv.tex': [
         '\\documentclass{vitakit-cv}', '\\vitadocument{cv}', '\\input{preamble.tex}', '\\vitainput{profile}', '\\begin{document}',

@@ -24,7 +24,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Generate the .tex files here: the LaTeX action runs in its own container,
       # without Node. cv-tex/latexmkrc lets it find the generated document class.
-      - run: pnpm build:cv --no-pdf
+      - run: pnpm pdf --tex-only
       - uses: xu-cheng/latex-action@v4
         with:
           working_directory: cv-tex

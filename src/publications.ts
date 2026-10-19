@@ -3,8 +3,8 @@
  * linked.
  *
  * Like a section schema, it is a file in the project that the website,
- * `vitakit-check` and the PDF all read, so the three cannot disagree about
- * which groups exist. `vitakit eject publications` writes the defaults
+ * `vitakit verify` and the PDF all read, so the three cannot disagree about
+ * which groups exist. `vitakit customize publications` writes the defaults
  * (`src/schemas/publications.ts`) as a starting point.
  */
 import { z } from 'zod'
