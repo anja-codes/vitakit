@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { discoverSections, loadSection } from '../src/sections'
+import { discoverSections, findSectionFiles, loadSection, sectionNameProblem } from '../src/sections'
 import { importFailure, importProjectModule } from '../src/issues'
 import { createRenderer } from '../src/render'
 import { loadContent } from '../src/content'
@@ -44,6 +44,43 @@ describe('section discovery', () => {
   it('fails with a starter snippet when no schema exists', async () => {
     const root = await fixture({ 'content/hobbies.yml': '- { date: 2024 }\n' })
     await expect(discoverSections(root)).rejects.toThrow(/create schemas\/hobbies\.ts/)
+  })
+
+  it('finds .yaml files and names them as they are', async () => {
+    const root = await fixture({ 'content/talks.yaml': '- { date: 2024, title: A talk }\n' })
+    const [source] = await discoverSections(root)
+    expect(source!.where).toBe('content/talks.yaml')
+    await expect(loadSection(source!, { maxVisibility: 'public', renderer })).resolves.toHaveLength(1)
+  })
+
+  it('reports a section that exists as both .yml and .yaml', async () => {
+    const root = await fixture({ 'content/talks.yml': '[]\n', 'content/talks.yaml': '[]\n' })
+    const { files, problems } = await findSectionFiles(root)
+    expect(files).toEqual([])
+    expect(problems[0]!.message).toMatch(/exists twice \(talks\.yaml, talks\.yml\)/)
+    await expect(discoverSections(root)).rejects.toThrow(/exists twice/)
+  })
+
+  it('shares its name rules', () => {
+    expect(sectionNameProblem('research-stays')).toBeUndefined()
+    expect(sectionNameProblem('profile')).toMatch(/reserved/)
+    expect(sectionNameProblem('Research_Stays')).toMatch(/kebab-case/)
+  })
+})
+
+describe('one broken section during development', () => {
+  it('does not hide the other sections', async () => {
+    const root = await fixture({
+      'content/profile.yml': PROFILE,
+      'content/talks.yml': '- { date: 2024, title: A talk }\n',
+      'content/hobbies.yml': '- { date: 2024 }\n',
+      'content/outreach.yml': '- { date: 2024 }\n',
+      'schemas/outreach.ts': 'export default {}\n',
+    })
+    const content = await loadContent(root, { strict: false })
+    expect(content.sections.talks).toHaveLength(1)
+    expect(content.issues.map(issue => issue.where).sort()).toEqual(['content/hobbies.yml', 'schemas/outreach.ts'])
+    await expect(loadContent(root, { strict: true })).rejects.toThrow()
   })
 })
 
