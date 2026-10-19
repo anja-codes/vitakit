@@ -44,9 +44,20 @@ jobs:
       # template -- what prepublishOnly would run, run once, here.
       - run: pnpm check
 
-      # The package first: the creator's template depends on it.
+      # The package first: the creator's template depends on it. A version
+      # already on npm is skipped, so a run that failed halfway can be re-run.
       - name: Publish @anja.codes/vitakit
-        run: npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
+        run: |
+          if [ -n "$(npm view "@anja.codes/vitakit@${GITHUB_REF_NAME#v}" version 2>/dev/null)" ]; then
+            echo "@anja.codes/vitakit@${GITHUB_REF_NAME#v} is published already"
+          else
+            npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
+          fi
       - name: Publish @anja.codes/create-vitakit
         working-directory: create
-        run: npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
+        run: |
+          if [ -n "$(npm view "@anja.codes/create-vitakit@${GITHUB_REF_NAME#v}" version 2>/dev/null)" ]; then
+            echo "@anja.codes/create-vitakit@${GITHUB_REF_NAME#v} is published already"
+          else
+            npm publish --ignore-scripts --tag ${{ steps.version.outputs.dist-tag }}
+          fi
