@@ -5,7 +5,15 @@
  * template engine, and vice versa.
  */
 export { buildCv, readGenerated, type BuildOptions } from './tex/build'
-export { emitDocument, bundledTexDir, type EmitOptions } from './tex/emit'
+export {
+  emitDocument,
+  renderSection,
+  renderPublications,
+  resolveTemplate,
+  bundledTexDir,
+  type EmitOptions,
+  type ResolvedTemplate,
+} from './tex/emit'
 export {
   discoverDocuments,
   selectEntries,

@@ -61,17 +61,32 @@ function bibgroup(group: PublicationGroup, where: string) {
   return fragment(`\\vitabibgroup{${group.id}}{${group.entries.map(entry => entry.key).join(',')}}`)
 }
 
-async function resolveTemplate(id: string, userDir: string): Promise<{ path: string, source: string }> {
-  // A file in the repo always wins over the package default; falling back to
-  // `_generic.eta` is intended for sections that have no dedicated template.
-  const candidates = [
-    join(userDir, `${id}.eta`),
-    join(bundledTexDir, 'templates', `${id}.eta`),
-    join(userDir, '_generic.eta'),
-    join(bundledTexDir, 'templates', '_generic.eta'),
+/** Where a template came from, in the order they are tried. */
+export interface ResolvedTemplate {
+  path: string
+  source: string
+  /** `local` is in `cv-tex/templates/`, `bundled` is the package's own. */
+  origin: 'local' | 'bundled'
+  /** Whether this is `_generic.eta` rather than a template named for the section. */
+  generic: boolean
+}
+
+/**
+ * The template that renders section `id`. A file in the repo always wins over
+ * the package default; `_generic.eta` is the fallback for sections without a
+ * dedicated template. `exclude` skips one path, so that replacing a local
+ * template can start from whatever would be used without it.
+ */
+export async function resolveTemplate(id: string, userDir: string, { exclude }: { exclude?: string } = {}): Promise<ResolvedTemplate> {
+  const candidates: Omit<ResolvedTemplate, 'source'>[] = [
+    { path: join(userDir, `${id}.eta`), origin: 'local', generic: false },
+    { path: join(bundledTexDir, 'templates', `${id}.eta`), origin: 'bundled', generic: false },
+    { path: join(userDir, '_generic.eta'), origin: 'local', generic: true },
+    { path: join(bundledTexDir, 'templates', '_generic.eta'), origin: 'bundled', generic: true },
   ]
-  for (const path of candidates) {
-    if (existsSync(path)) return { path, source: await readFile(path, 'utf8') }
+  for (const candidate of candidates) {
+    if (candidate.path === exclude) continue
+    if (existsSync(candidate.path)) return { ...candidate, source: await readFile(candidate.path, 'utf8') }
   }
   throw new Error(`vitakit: no template for section ${id}`)
 }
@@ -82,7 +97,7 @@ async function resolveTemplate(id: string, userDir: string): Promise<{ path: str
  * Without this, `cv-tex/templates/talk.eta` (for the `talks` section) is simply
  * never read: the build succeeds and the PDF silently uses the generic layout.
  */
-async function assertTemplatesAreUsed(templateDir: string, ids: string[]): Promise<void> {
+export async function assertTemplatesAreUsed(templateDir: string, ids: string[]): Promise<void> {
   const files = await readdir(templateDir).catch(() => [] as string[])
   const known = new Set([...ids, 'publications', '_generic'])
 
@@ -113,6 +128,52 @@ export interface EmitOptions {
   bibPath?: string
 }
 
+/**
+ * Render one section with its effective template, without writing anything.
+ * `entries` are all loaded entries; the document's selection is applied here.
+ */
+export async function renderSection(
+  id: string,
+  entries: Entry[],
+  options: DocumentOptions,
+  templateDir: string,
+): Promise<string> {
+  const selected = selectEntries(entries, options, id)
+  const { path: templatePath, source } = await resolveTemplate(id, templateDir)
+  const h = createTemplateHelpers(templatePath, `content/${id}.yml`)
+  try {
+    return tidy(eta.renderString(source, { entries: selected, ...h, generic: genericHelpers(h) }))
+  } catch (error) {
+    throw new Error(`template ${id}.eta: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+  }
+}
+
+/** Render the publications of one document, without writing anything. */
+export async function renderPublications(
+  publications: PublicationGroup[],
+  options: DocumentOptions,
+  templateDir: string,
+  siteUrl?: string,
+): Promise<string> {
+  const groups = options.publications.groups
+    ? options.publications.groups
+        .map(id => publications.find(group => group.id === id))
+        .filter((group): group is PublicationGroup => group !== undefined)
+    : publications
+  // biblatex prints the `url` field itself. A path on the site is made
+  // absolute by the sourcemap in profile.tex, which needs `profile.url`.
+  if (!siteUrl) {
+    const local = groups.flatMap(group => group.entries).find(entry => entry.titleUrl && isSitePath(entry.titleUrl))
+    if (local) fail('content/publications.bib', `${local.key}: url ${local.titleUrl} ${SITE_PATH_HELP}`)
+  }
+  const { path: templatePath, source } = await resolveTemplate('publications', templateDir)
+  return tidy(eta.renderString(source, {
+    groups,
+    ...createTemplateHelpers(templatePath, 'content/publications.bib'),
+    bib: { group: (group: PublicationGroup) => bibgroup(group, templatePath) },
+  }))
+}
+
 /** Write one `.tex` file per section, plus `publications.tex`. */
 export async function emitDocument(emit: EmitOptions): Promise<string[]> {
   await mkdir(emit.outDir, { recursive: true })
@@ -120,39 +181,13 @@ export async function emitDocument(emit: EmitOptions): Promise<string[]> {
   const written: string[] = []
 
   for (const [id, entries] of Object.entries(emit.sections)) {
-    const selected = selectEntries(entries, emit.options, id)
-    const { path: templatePath, source } = await resolveTemplate(id, emit.templateDir)
-    const h = createTemplateHelpers(templatePath, `content/${id}.yml`)
-
-    let body: string
-    try {
-      body = tidy(eta.renderString(source, { entries: selected, ...h, generic: genericHelpers(h) }))
-    } catch (error) {
-      throw new Error(`template ${id}.eta: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
-    }
-
+    const body = await renderSection(id, entries, emit.options, emit.templateDir)
     const file = join(emit.outDir, `${id}.tex`)
     await writeFile(file, `% Generated by vitakit. Do not edit; edit content/${id}.yml instead.\n${body.trim()}\n`)
     written.push(file)
   }
 
-  const groups = emit.options.publications.groups
-    ? emit.options.publications.groups
-        .map(id => emit.publications.find(group => group.id === id))
-        .filter((group): group is PublicationGroup => group !== undefined)
-    : emit.publications
-  // biblatex prints the `url` field itself. A path on the site is made
-  // absolute by the sourcemap in profile.tex, which needs `profile.url`.
-  if (!emit.siteUrl) {
-    const local = groups.flatMap(group => group.entries).find(entry => entry.titleUrl && isSitePath(entry.titleUrl))
-    if (local) fail('content/publications.bib', `${local.key}: url ${local.titleUrl} ${SITE_PATH_HELP}`)
-  }
-  const { path: templatePath, source } = await resolveTemplate('publications', emit.templateDir)
-  const body = tidy(eta.renderString(source, {
-    groups,
-    ...createTemplateHelpers(templatePath, 'content/publications.bib'),
-    bib: { group: (group: PublicationGroup) => bibgroup(group, templatePath) },
-  }))
+  const body = await renderPublications(emit.publications, emit.options, emit.templateDir, emit.siteUrl)
   const file = join(emit.outDir, 'publications.tex')
   await writeFile(file, `% Generated by vitakit. Do not edit; edit content/publications.bib instead.\n${body.trim()}\n`)
   written.push(file)

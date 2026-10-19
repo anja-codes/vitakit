@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { emitDocument } from '../src/tex/emit'
+import { emitDocument, renderSection, resolveTemplate } from '../src/tex/emit'
 import { documentSchema, selectEntries } from '../src/tex/documents'
 import { createRenderer } from '../src/render'
 import { discoverSections, loadSection } from '../src/sections'
@@ -117,5 +117,29 @@ describe('emitDocument', () => {
       outDir,
     })
     expect(await readFile(join(outDir, 'outreach.tex'), 'utf8')).toContain('\\vitaentry{}{A visit}{Graz}')
+  })
+})
+
+describe('template resolution and in-memory rendering', () => {
+  it('reports where the effective template comes from', async () => {
+    const { root } = await talks(SAMPLE)
+    const templates = join(root, 'cv-tex/templates')
+    await expect(resolveTemplate('talks', templates)).resolves.toMatchObject({ origin: 'bundled', generic: false })
+    await expect(resolveTemplate('outreach', templates)).resolves.toMatchObject({ origin: 'bundled', generic: true })
+
+    await mkdir(templates, { recursive: true })
+    await writeFile(join(templates, 'talks.eta'), 'local')
+    await expect(resolveTemplate('talks', templates)).resolves.toMatchObject({ origin: 'local', source: 'local' })
+    // Replacing a local template starts from what would be used without it.
+    await expect(resolveTemplate('talks', templates, { exclude: join(templates, 'talks.eta') }))
+      .resolves.toMatchObject({ origin: 'bundled', generic: false })
+  })
+
+  it('renders a section without writing files', async () => {
+    const { root, entries } = await talks(SAMPLE)
+    const body = await renderSection('talks', entries, options({ sections: { talks: { limit: 1 } } }), join(root, 'cv-tex/templates'))
+    expect(body).toContain('Invited one')
+    expect(body).not.toContain('Contributed one')
+    await expect(readFile(join(root, 'cv-tex/generated/cv/talks.tex'), 'utf8')).rejects.toThrow()
   })
 })
