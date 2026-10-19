@@ -16,7 +16,7 @@
     "pdf": "vitakit pdf"
   },
   "dependencies": {
-    "@anja.codes/vitakit": "^0.1.0",
+    "@anja.codes/vitakit": "^0.2.0",
     "@nuxt/fonts": "^0.14.0",
     "@tailwindcss/vite": "^4.3.3",
     "nuxt": "^4.5.2",

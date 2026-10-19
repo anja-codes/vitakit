@@ -1,6 +1,6 @@
 {
   "name": "@anja.codes/create-vitakit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scaffold a vitakit project: an academic website and a LaTeX CV from one set of files.",
   "license": "MIT",
   "keywords": [
