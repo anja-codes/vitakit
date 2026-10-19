@@ -1,19 +1,15 @@
 # vitakit documentation
 
+Published at [vitakit.anja.codes](https://vitakit.anja.codes). Source of each
+part:
+
 | | |
 |---|---|
-| [Getting started](./getting-started.md) | scaffold a project, edit it, build both outputs, deploy |
-| [Content reference](./content-reference.md) | every file and every field |
-| [Commands](./cli.md) | the scripts and the `vitakit` command: status, adding and customizing sections, PDFs, checks |
-| [Customising](./customising.md) | design, page structure, your own sections, ejecting |
-| [CV documents](./cv-documents.md) | the PDF: variants, ordering, cover letters, styling |
-| [Privacy](./privacy.md) | what reaches the web, and what cannot |
-| [Troubleshooting](./troubleshooting.md) | error messages and what they mean |
+| [Guide](./guide/concepts.md) | [tutorial](./guide/tutorial/index.md), [concepts](./guide/concepts.md), [how do I …?](./guide/how-do-i.md), [publishing](./guide/publishing.md), [privacy](./guide/privacy.md), [troubleshooting](./guide/troubleshooting.md) |
+| [CLI](./cli/index.md) | the `vitakit` command |
+| [Content](./content/index.md) | field types, built-in sections, profile and pages, publications, schemas |
+| [Website](./website/index.md) | pages, sections, entries, styling, publications, components |
+| [PDF](./pdf/index.md) | documents, variants, templates, styling, bibliography, building |
 
-## In one paragraph
-
-`content/` holds your CV as YAML, Markdown and BibTeX. It is validated, rendered at
-build time (Markdown, KaTeX, citation-js) and compiled into a typed module, from which
-a Nuxt site and a LaTeX CV are composed independently. The website ships as static
-HTML with no content runtime; the PDF is produced by `latexmk` from generated `.tex`
-files. Broken content fails a build and is reported without killing the dev server.
+`pnpm docs:dev` serves the site locally; `pnpm docs:build` builds it, and
+typechecks the TypeScript examples against the package.

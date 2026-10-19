@@ -169,9 +169,7 @@ async function addSection(context: CommandContext, id: string, values: Values): 
     let path = vuePages.find(candidate => candidate.route === page.route)?.vue
     if (!path) {
       const name = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/$/.exec(page.route)?.[1]
-      if (!name || inv.pages.some(candidate => candidate.route === page.route)) {
-        throw new CommandError(`--page ${page.route}: no Vue page has this route${name ? '' : '; a new page needs a route like /talks/'}`)
-      }
+      if (!name) throw new CommandError(`--page ${page.route}: no Vue page has this route; a new page needs a route like /talks/`)
       path = await authoring.planCreatePage(ws, inv, name, { title: page.route === `/${id}/` ? title : prompt.headingFor(name), menu: true })
     }
     await authoring.planPlaceOnPage(ws, inv, path, { id, title, ...(page.after ? { after: page.after } : {}) })

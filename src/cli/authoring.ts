@@ -304,18 +304,29 @@ in app/pages/${name}.vue.
 `
 }
 
-/** A page that can hold sections: Markdown for its text, a Vue page for its sections. */
+/**
+ * A page that can hold sections: Markdown for its text, a Vue page for its
+ * sections. A Markdown page that exists already keeps its text and gets the
+ * Vue page it lacks.
+ */
 export async function planCreatePage(ws: Workspace, inv: Inventory, name: string, { title, menu }: { title: string, menu: boolean }): Promise<string> {
   const { sectionNameProblem } = await import('../sections')
   const problem = sectionNameProblem(name)
   if (problem && !problem.includes('reserved')) throw new CommandError(problem.replace('research-stays', 'research-interests'))
   const route = `/${name}/`
   const existing = inv.pages.find(page => page.route === route)
-  if (existing) throw new CommandError(`${route} exists already (${[existing.markdown, existing.vue].filter(Boolean).join(', ')})`)
+  if (existing?.vue) throw new CommandError(`${route} exists already (${[existing.markdown, existing.vue].filter(Boolean).join(', ')})`)
   const vue = `app/pages/${name}.vue`
-  ws.create(`content/pages/${name}.md`, pageText(name, title), 'the page\'s title and text')
-  ws.create(vue, pageModule(route, name, title), 'the page, with its sections')
-  if (menu) {
+  if (existing?.markdown) {
+    if (existing.markdown !== `content/pages/${name}.md`) {
+      throw new CommandError(`${route} is ${existing.markdown}; its Vue page would have to read it by route, which this command does not write`)
+    }
+    ws.keep(existing.markdown, 'the page\'s title and text, as they are')
+  } else {
+    ws.create(`content/pages/${name}.md`, pageText(name, title), 'the page\'s title and text')
+  }
+  ws.create(vue, pageModule(route, name, existing?.title ?? title), 'the page, with its sections')
+  if (menu && !existing?.inMenu) {
     const profile = await ws.read('content/profile.yml')
     const result = profile === undefined ? { ok: false as const, reason: 'it does not exist' } : addNavItem(profile, { label: title, to: route })
     if (result.ok) await ws.edit('content/profile.yml', result.value, `adds ${title} to the menu`)

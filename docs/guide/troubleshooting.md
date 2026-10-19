@@ -7,12 +7,12 @@ the message needs context.
 
 **`Unrecognized key: "titel"`** — a typo, or a field that section does not have.
 Schemas are strict on purpose: the alternative is a silently missing line on your
-site. See the [content reference](./content-reference.md).
+site. See [built-in sections](../content/sections.md), or `vitakit explain <section>`
+for the fields a section accepts.
 
 **`no schema for this file; create schemas/outreach.ts`** — you added
 `content/outreach.yml` without telling vitakit its shape. `pnpm vitakit add section
-outreach` drafts the schema from your entries; see
-[adding a section](./customising.md#layer-5--adding-a-section).
+outreach` drafts the schema from your entries; see [schemas](../content/schemas.md).
 
 **`Cannot find module …/schemas/talks`** — a schema imports another one without its
 file extension. Node needs it: `export { default } from './talks.ts'`.
@@ -24,7 +24,11 @@ written numerically. Free-form labels belong in `term` (teaching) or `note`.
 
 **A section is missing from the site** — check that the file is not empty, that its
 entries are not all marked `visibility: cv`, and that the page actually renders it
-(`<VitaSection id="…" />`).
+(`<VitaSection id="…" />`). `vitakit status` shows on which pages each section
+appears.
+
+**An entry is missing from the PDF** — `vitakit explain <section>` shows, for each
+document, how many entries it selects and which option removed the others.
 
 ## Mathematics
 
@@ -94,7 +98,7 @@ appears on that page for another reason is a false positive: pass
 `\addbibresource` is wrong. `latexmk` runs biber automatically; delete
 `cv-tex/*.bcf` and rebuild if it got stuck.
 
-**`There's no line here to end`** — usually an ejected template emitting a blank line
+**`There's no line here to end`** — usually a template of yours emitting a blank line
 inside an entry: a blank line starts a new paragraph, after which a continuation
 fails. Keep template output free of blank lines.
 
@@ -104,7 +108,7 @@ each document filters independently.
 
 **Citations look different in the two outputs** — expected. The website uses a CSL
 style, the PDF uses biblatex. To change the website's, see
-[citation style](./content-reference.md#citation-style).
+[citation style](../content/publications.md#citation-style).
 
 **A `<text variable="DOI"/>` in my CSL style prints nothing** — by design: an
 identifier vitakit already links (as the title link or a badge) is withheld from the

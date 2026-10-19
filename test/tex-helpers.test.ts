@@ -17,7 +17,7 @@ describe('text', () => {
     expect(tex(h.text(rich('Random $k$-ary trees & more')))).toBe('Random $k$-ary trees \\& more')
   })
 
-  // Documented limitation (docs/content-reference.md): only mathematics is
+  // Documented limitation (docs/content/field-types.md): only mathematics is
   // carried over; other Markdown reaches the PDF as written.
   it('prints other Markdown in a rich-text field as written', () => {
     expect(tex(h.text(rich('**bold**')))).toBe('**bold**')

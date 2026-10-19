@@ -223,7 +223,20 @@ describe('add page', () => {
 
     const again = await cli(['add', 'page', 'outreach', '--yes'], { cwd: root })
     expect(again.err).toMatch(/\/outreach\/ exists already/)
-    expect((await cli(['add', 'page', 'research', '--yes'], { cwd: root })).err).toMatch(/\/research\/ exists already \(content\/pages\/research\.md\)/)
+    const research = await cli(['add', 'page', 'research', '--yes'], { cwd: root })
+    expect(research.out).toContain('= content/pages/research.md')
+    expect(research.out).not.toContain('content/profile.yml')
+    expect(await read(root, 'app/pages/research.vue')).toContain(`usePage('/research/')`)
+  })
+
+  it('gives a Markdown page the Vue page it needs for sections, keeping its text', async () => {
+    const root = await project({ 'content/pages/teaching.md': '---\ntitle: Teaching\n---\n\nMy courses.\n' })
+    const result = await cli(['add', 'section', 'talks', '--page', '/teaching/', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(result.out).toContain('= content/pages/teaching.md   the page\'s title and text, as they are')
+    expect(await read(root, 'content/pages/teaching.md')).toBe('---\ntitle: Teaching\n---\n\nMy courses.\n')
+    expect(await read(root, 'app/pages/teaching.vue')).toContain('<VitaSection id="talks" title="Talks" />')
+    expect(await read(root, 'content/profile.yml')).toContain('  - { label: Teaching, to: /teaching/ }')
   })
 
   it('leaves the menu alone with --no-menu', async () => {

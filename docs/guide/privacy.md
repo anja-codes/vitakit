@@ -96,5 +96,5 @@ to upload built files, but **Codeberg-hosted Actions runners require public,
 freely licensed source**. If your CV source contains private data, use your own
 compatible runner rather than making the repository public to get hosted CI.
 
-See [publishing and setup](./getting-started.md#5-publish) for account requirements,
-URLs and the other deployment choices.
+See [publishing](./publishing.md) for account requirements, URLs and the
+other deployment choices.

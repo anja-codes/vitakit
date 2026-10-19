@@ -2,7 +2,7 @@
  * `@anja.codes/vitakit/cli` — the `vitakit` command.
  *
  * `main(argv)` runs a command and resolves to its exit code. The commands are
- * described in docs/cli.md; their implementation lives in `cli/`.
+ * described in docs/cli/; their implementation lives in `cli/`.
  */
 export { main } from './cli/main'
 export type { Io } from './cli/io'
