@@ -108,9 +108,8 @@ describe('the leak check', () => {
     expect(result.checked.join('\n')).not.toMatch(/non-public/)
   })
 
-  // BUG: the number is the position in the sorted list (newest first), not in
-  // the file: the hidden talk is the second entry of talks.yml.
-  it.fails('names the entry by its position in the file', async () => {
+  // The list is sorted newest first; the hidden talk is the second entry of the file.
+  it('names the entry by its position in the file', async () => {
     const files = { 'content/talks.yml': `- { date: 2020, title: An older public talk }\n- { date: 2024, title: '${HIDDEN.replace(/'/g, '\'\'')}', visibility: cv }\n` }
     expect(await failures(await generate(files, { extra: escape(HIDDEN) }))).toEqual([expect.stringMatching(/^content\/talks\.yml entry 2 /)])
   })

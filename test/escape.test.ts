@@ -39,12 +39,19 @@ describe('escapeRichTex', () => {
     expect(() => escapeRichTex('unbalanced $k')).toThrow('unbalanced math delimiters in: unbalanced $k')
   })
 
-  // BUG: `\$` is how a rich field writes a literal dollar (a bare `$` opens a
-  // formula). The website shows "costs $5"; the PDF prints "costs \$5", with
-  // the backslash, because the backslash is escaped as text.
-  it.fails('prints an escaped dollar as a dollar, as the website does', () => {
-    expect(createRenderer().inline('costs \\$5')).toBe('costs $5')
-    expect(escapeRichTex('costs \\$5')).toBe('costs \\$5')
+  it('reads Markdown escapes as the character, as the website does', () => {
+    const renderer = createRenderer()
+    expect(renderer.inline('costs \\$5, a \\* b')).toBe('costs $5, a * b')
+    expect(escapeRichTex('costs \\$5, a \\* b')).toBe('costs \\$5, a * b')
+  })
+
+  it('does not start a formula at an escaped dollar', () => {
+    expect(escapeRichTex('\\$5 and $x$')).toBe('\\$5 and $x$')
+    expect(() => escapeRichTex('\\$5 and $x')).toThrow(/unbalanced math/)
+  })
+
+  it('keeps a backslash that escapes nothing', () => {
+    expect(escapeRichTex('C:\\path')).toBe('C:\\textbackslash{}path')
   })
 })
 

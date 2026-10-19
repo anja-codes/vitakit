@@ -88,9 +88,7 @@ describe('sections', () => {
     await expect(loadContent(root)).rejects.toThrow(/content\/outreach\.yml: invalid \(schema: schemas\/outreach\.ts\)\n {2}- 0\.audience/)
   })
 
-  // BUG: the index comes from the list after visibility filtering, so on the
-  // website, where the private entry before it is dropped, this is "0.title".
-  it.fails('names the entry by its position in the file, whatever is filtered out', async () => {
+  it('names the entry by its position in the file, whatever is filtered out', async () => {
     await expect(load('- { date: 2020, title: Hidden, visibility: private }\n- { date: 2024, title: Bad $\\kk$ }\n'))
       .rejects.toThrow(/content\/talks\.yml: 1\.title/)
   })

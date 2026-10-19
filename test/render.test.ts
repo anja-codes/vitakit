@@ -48,9 +48,7 @@ describe('inline', () => {
     expect(renderer.inline('*k*-ary $x$')).toMatch(/^<em>k<\/em>-ary <span class="katex">/)
   })
 
-  // BUG: the unwrapping regex is greedy, so `<p>one</p>\n<p>two</p>` passes as
-  // one paragraph and `one</p>\n<p>two` -- unbalanced markup -- is returned.
-  it.fails('rejects more than one paragraph', () => {
+  it('rejects more than one paragraph', () => {
     expect(() => renderer.inline('one\n\ntwo')).toThrow(/expected a single paragraph/)
   })
 })
