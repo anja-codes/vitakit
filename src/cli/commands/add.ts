@@ -30,7 +30,7 @@ async function planSchema(
   entries: unknown[],
   values: Values,
 ): Promise<{ fields?: FieldDescription[], changes: string[], notes: string[] }> {
-  const { matchingSchemas, sharedSchemaModule } = await import('../authoring')
+  const { matchingSchemas, schemaOwner, sharedSchemaModule } = await import('../authoring')
   const { draftSchema } = await import('../../draft')
   const { describeSection } = await import('../../fields')
   const { confirm } = await import('../prompt')
@@ -38,8 +38,7 @@ async function planSchema(
 
   let like = values.like as string | undefined
   if (like) {
-    const other = inv.sections.find(candidate => candidate.id === like)
-    if (!other || other.schema.origin === 'none') throw new CommandError(`--like ${like}: no section "${like}" with a schema`)
+    if (!await schemaOwner(inv, like)) throw new CommandError(`--like ${like}: no section "${like}" with a schema`)
   } else if (section && entries.length) {
     const matches = await matchingSchemas(context.root, inv, id, entries)
     if (matches.length && asking(context, values)) {
@@ -51,7 +50,7 @@ async function planSchema(
 
   const path = `schemas/${id}.ts`
   if (like) {
-    const other = inv.sections.find(candidate => candidate.id === like)!
+    const other = (await schemaOwner(inv, like))!
     ws.create(path, sharedSchemaModule(id, other), `the same fields as ${like}`, { show: true })
     return { ...(other.fields ? { fields: other.fields } : {}), changes: [], notes }
   }
@@ -101,7 +100,7 @@ async function addSection(context: CommandContext, id: string, values: Values): 
   } else {
     if (!section) {
       const like = values.like as string | undefined
-      const other = like ? inv.sections.find(candidate => candidate.id === like) : undefined
+      const other = like ? await authoring.schemaOwner(inv, like) : undefined
       if (other?.fields) ws.create(`content/${id}.yml`, authoring.dataExample(id, other.fields), 'empty for now, with an example entry as a comment')
       else {
         ws.create(`content/${id}.yml`, authoring.dataStarter(id), 'one example entry, to replace')
@@ -112,6 +111,16 @@ async function addSection(context: CommandContext, id: string, values: Values): 
   }
   if (!section && builtIn) {
     ws.create(`content/${id}.yml`, authoring.dataExample(id, schemaResult.fields ?? []), `empty for now; vitakit already knows the ${id} fields`)
+  }
+  // Entries with more fields than an existing schema accepts: accept them too.
+  if (section && entries.length && (section.schema.origin === 'built-in' || section.schema.origin === 'local')) {
+    const missing = await authoring.planMissingFields(root, ws, section, entries)
+    if (missing.note) schemaResult.notes.push(missing.note)
+    if (missing.fields.length) {
+      // Only their names matter from here on: which of them are not shown.
+      const added = missing.fields.map(name => ({ path: name, type: 'custom' as const, optional: true, several: false }))
+      schemaResult = { ...schemaResult, fields: [...(schemaResult.fields ?? []), ...added], changes: missing.changes }
+    }
   }
 
   // Where it appears

@@ -110,6 +110,11 @@ function inferValues(name: string, values: unknown[], depth: number): Inferred {
 
   if (present.every(isLinked)) return { code: 'linked', schema: linked, imports: ['linked'], notes: [] }
 
+  // Where vitakit's layouts show a place that may link, text is a link's label.
+  if (depth === 0 && ['institution', 'issuer', 'organisation'].includes(name) && present.every(value => typeof value === 'string' || isLinked(value))) {
+    return { code: 'linked', schema: linked, imports: ['linked'], notes: present.some(isLinked) ? ['a name, or { name, url }'] : ['a name; { name, url } links it'] }
+  }
+
   if (present.every(value => typeof value === 'string' || isLinked(value)) && present.some(isLinked)) {
     return { code: 'linked', schema: linked, imports: ['linked'], notes: ['a name, or { name, url }'] }
   }
@@ -155,6 +160,18 @@ function inferValues(name: string, values: unknown[], depth: number): Inferred {
       return { code: 'richText', schema: richText, imports: ['richText'], notes: ['Markdown and $math$ allowed', ...notes] }
     }
     return { code: 'text', schema: text, imports: ['text'], notes }
+  }
+
+  // Mostly numbers, with some text: a number field, and the text is pointed out.
+  const numbers = present.filter(value => typeof value === 'number').length
+  if (numbers * 2 >= present.length && present.every(value => typeof value === 'number' || typeof value === 'string')) {
+    const odd = [...new Set(present.filter(value => typeof value === 'string') as string[])]
+    return {
+      code: 'z.number()',
+      schema: z.number(),
+      imports: ['z'],
+      notes: [`mostly numbers; ${odd.slice(0, 3).map(value => JSON.stringify(value)).join(', ')}${odd.length > 3 ? ', …' : ''} ${odd.length === 1 ? 'is' : 'are'} not: write a number, or use text`],
+    }
   }
 
   // Mixed and unrecognizable values: the first kind wins, and the rest is said.
@@ -223,6 +240,7 @@ function changesFrom(error: z.ZodError, entries: unknown[]): string[] {
       let value: unknown = entries[index]
       for (const key of path) value = (value as Record<PropertyKey, unknown> | undefined)?.[key as PropertyKey]
       if (value === '' || value === null) message = 'empty; leave the field out'
+      else if (value === undefined && path.length) message = 'missing; every entry needs it'
     }
     const key = `${path.join('.') || '(entry)'}\u0000${message}`
     grouped.set(key, [...(grouped.get(key) ?? []), typeof index === 'number' ? index + 1 : 0])
@@ -246,6 +264,7 @@ export function draftSchema(id: string, entries: unknown[], { file = `content/${
     ' * Drafted from its entries by `vitakit add section`: check the comments,',
     ' * change what is not right, then delete them. Every entry also has',
     ' * `visibility: public | cv | private`.',
+    ...(object.fields.some(field => field.name === 'date') ? [] : [' *', ' * Without a field called `date`, entries keep the order of the file.']),
     ' */',
     `import { ${imports.join(', ')} } from '@anja.codes/vitakit'`,
     '',
@@ -258,4 +277,30 @@ export function draftSchema(id: string, entries: unknown[], { file = `content/${
   const schema = section((object.schema as z.ZodObject<z.ZodRawShape>).shape)
   const parsed = schema.safeParse(entries)
   return { source, fields: object.fields, schema, changes: parsed.success ? [] : changesFrom(parsed.error, entries) }
+}
+
+export interface DraftExtension {
+  /** Fields the entries have and the schema does not, drafted like a schema's. */
+  fields: DraftField[]
+  imports: string[]
+  /** What the entries must change before schema and fields accept them. */
+  changes: string[]
+}
+
+/**
+ * The fields to add to an existing section schema -- built-in or the user's --
+ * for entries that have more fields than it accepts.
+ */
+export function draftExtension(base: z.ZodType, entries: unknown[]): DraftExtension | undefined {
+  if (!(base instanceof z.ZodArray) || !(base.element instanceof z.ZodObject)) return undefined
+  const element = base.element as z.ZodObject<z.ZodRawShape>
+  const known = Object.keys(element.shape)
+  const object = inferObject(entries.filter(isRecord), 0, known)
+  const schema = z.array(element.extend((object.schema as z.ZodObject<z.ZodRawShape>).shape))
+  const parsed = schema.safeParse(entries)
+  return {
+    fields: object.fields,
+    imports: [...new Set(object.imports)].sort(),
+    changes: parsed.success ? [] : changesFrom(parsed.error, entries),
+  }
 }

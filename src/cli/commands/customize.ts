@@ -98,8 +98,15 @@ async function planWeb(context: CommandContext, ws: Workspace, inv: Inventory, s
     const path = `app/components/${component}.vue`
     const region = (values.region as string | undefined) ?? 'note'
     if (region !== 'note' && region !== 'meta') throw new UsageError('--region note or --region meta', 'customize')
-    const source = list ? listComponent(id, component, section.fields ?? []) : entryComponent(id, component, fields, region)
-    const reason = list ? `${id} as your own list, with a line for each field` : `${id} through VitaSection, with your own ${region} line${fields.length ? ` showing ${fields.map(field => field.path).join(', ')}` : ''}`
+    let groupBy = values['group-by'] as string | undefined
+    if (list && groupBy === undefined && interactive) {
+      groupBy = (await prompt.input(io, 'Group the entries by a field, e.g. term? (Enter for no groups)')) || undefined
+    }
+    if (groupBy && !section.fields?.some(field => field.path === groupBy)) {
+      throw new CommandError(`--group-by ${groupBy}: ${id} has no such field; its fields are ${section.fields?.map(field => field.path).join(', ')}`)
+    }
+    const source = list ? listComponent(id, component, section.fields ?? [], groupBy) : entryComponent(id, component, fields, region)
+    const reason = list ? `${id} as your own list${groupBy ? `, grouped by ${groupBy}` : ''}, with a line for each field` : `${id} through VitaSection, with your own ${region} line${fields.length ? ` showing ${fields.map(field => field.path).join(', ')}` : ''}`
     if (ws.exists(path)) {
       if (!values.force) throw new CommandError(`${path} exists. \`--use ${component}\` shows ${id} with it; --force replaces it, keeping yours as a backup.`)
       ws.replace(path, source, `${reason}; yours is kept next to it as a .backup`, { show: true })
@@ -248,6 +255,7 @@ export const customize: CommandSpec = {
     'schema': { type: 'boolean', description: 'what its entries may contain: schemas/<section>.ts' },
     'field': { type: 'string', multiple: true, value: '<name>', description: 'show this field (repeatable)' },
     'list': { type: 'boolean', description: 'web: your own list markup, for grouping or numbering' },
+    'group-by': { type: 'string', value: '<field>', description: 'web, with --list: one group per value of this field, e.g. term' },
     'region': { type: 'string', value: 'note|meta', description: 'web: the line of each entry the fields go on (note)' },
     'component': { type: 'string', value: '<Name>', description: 'web: the component\'s name; <Section>Section by default' },
     'use': { type: 'string', value: '<Name>', description: 'web: show it with a component you have already' },
@@ -287,8 +295,9 @@ prints lines to add.`,
     let web = values.web === true
     let pdf = values.pdf === true
     let schema = values.schema === true
-    const webOnly = ['list', 'region', 'component', 'use', 'page'].filter(name => values[name] !== undefined)
+    const webOnly = ['list', 'group-by', 'region', 'component', 'use', 'page'].filter(name => values[name] !== undefined)
     if (webOnly.length && !web) throw new UsageError(`--${webOnly[0]} goes with --web`, 'customize')
+    if (values['group-by'] !== undefined && !values.list) throw new UsageError('--group-by goes with --list', 'customize')
     if (values.from !== undefined && !pdf) throw new UsageError('--from goes with --pdf', 'customize')
     if (values.copy && !schema) throw new UsageError('--copy goes with --schema', 'customize')
 

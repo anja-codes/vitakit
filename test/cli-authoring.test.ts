@@ -267,3 +267,33 @@ describe('customize --schema', () => {
     expect(result.err).toMatch(message)
   })
 })
+
+describe('add section for entries with more fields than their schema', () => {
+  it('drafts the missing fields into an extension of a built-in schema', async () => {
+    const root = await project({
+      'content/teaching.yml': '- { date: 2024, title: Analysis, hours: 2, type: [Lecture] }\n- { date: 2023, title: Algebra, hours: 3, credits: "2 each" }\n',
+    })
+    const result = await cli(['add', 'section', 'teaching', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(result.out).toContain('+ schemas/teaching.ts   keeps vitakit\'s teaching fields, adds hours, type, credits from your entries')
+    expect(await read(root, 'schemas/teaching.ts')).toContain('export default extendSection(schemas.teaching, {\n  hours: z.number(),\n  type: z.array(text).optional(),\n  credits: text.optional(),\n})')
+    expect((await cli(['validate', 'teaching'], { cwd: root })).code).toBe(0)
+  })
+
+  it('adds them to a schema of the user\'s', async () => {
+    const root = await project({
+      'content/grants.yml': '- { date: 2024, title: A, amount: 3 }\n',
+      'schemas/grants.ts': `import { section, dateRange, richText } from '@anja.codes/vitakit'\n\nexport default section({\n  date: dateRange,\n  title: richText,\n})\n`,
+    })
+    expect((await cli(['add', 'section', 'grants', '--yes'], { cwd: root })).code).toBe(0)
+    expect(await read(root, 'schemas/grants.ts')).toBe(`import { section, dateRange, richText, z } from '@anja.codes/vitakit'\n\nexport default section({\n  date: dateRange,\n  title: richText,\n  amount: z.number(),\n})\n`)
+  })
+
+  it('shares a built-in schema without a content file of its own', async () => {
+    const root = await project({ 'content/talks.yml': null, 'content/talks-public.yml': '- { date: 2024, title: Maths night, kind: outreach }\n' })
+    const hint = await cli(['add', 'section', 'talks-public', '--dry-run'], { cwd: root })
+    expect(hint.out).toContain('--like talks would share it')
+    expect((await cli(['add', 'section', 'talks-public', '--like', 'talks', '--yes'], { cwd: root })).code).toBe(0)
+    expect(await read(root, 'schemas/talks-public.ts')).toContain('export default schemas.talks')
+  })
+})

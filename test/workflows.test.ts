@@ -620,6 +620,15 @@ describe('full pipeline', () => {
     expect(generated).toContain('cv.log')
   }, 120_000)
 
+  // Names, places and titles are not all in pdfLaTeX's default font encoding.
+  it.skipIf(!hasLatexmk() || !hasPdftotext())('typesets characters beyond the default font encoding', async () => {
+    const title = '„Warum Ordnung schwer ist“ – Łódź, Győr, Ærø'
+    const root = await starter({ 'content/teaching.yml': `- { date: 2025, title: "${title}" }\n` })
+    await writeFile(join(root, 'cv-tex/cv.tex'), STARTER['cv-tex/cv.tex']!.replace('\\vitasection{talks}', '\\vitasection{talks}\n\\vitasection{teaching}'))
+    const [pdf] = await buildCv({ rootDir: root })
+    expect(execFileSync('pdftotext', [pdf!, '-'], { encoding: 'utf8' })).toContain(title)
+  }, 120_000)
+
   it.skipIf(!hasLatexmk() || !hasPdftotext())('typesets empty selections, YAML headings and escaped teaching roles', async () => {
     const root = await starter({
       'content/employment.yml': '[]\n',

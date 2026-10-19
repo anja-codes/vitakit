@@ -66,6 +66,20 @@ describe('customize --web', () => {
     expect(html).not.toContain('Kind: contributed')
   })
 
+  it('groups the entries of a list by a field', async () => {
+    const root = await project()
+    expect((await cli(['customize', 'teaching', '--web', '--list', '--group-by', 'term', '--yes'], { cwd: root })).code).toBe(0)
+    const html = await renderComponent(root, 'app/components/TeachingList.vue', { id: 'teaching', title: 'Teaching' })
+    expect(html.match(/<h3 class="vita-section-group__subtitle">[^<]*<\/h3>/g)).toEqual([
+      '<h3 class="vita-section-group__subtitle">2025S</h3>',
+      '<h3 class="vita-section-group__subtitle">2024W</h3>',
+      '<h3 class="vita-section-group__subtitle">2023W</h3>',
+    ])
+    expect(html).not.toContain('Term:')
+    expect((await cli(['customize', 'teaching', '--web', '--list', '--group-by', 'nope', '--component', 'X', '--yes'], { cwd: root })).err).toMatch(/no such field/)
+    expect((await cli(['customize', 'teaching', '--web', '--group-by', 'term', '--yes'], { cwd: root })).err).toMatch(/--group-by goes with --list/)
+  })
+
   it('reuses a component for another section, and replaces one only with --force', async () => {
     const root = await project({ 'content/talks-public.yml': '- { date: 2024, title: Maths night, kind: outreach }\n' })
     expect((await cli(['add', 'section', 'talks-public', '--like', 'talks', '--page', '/cv/', '--yes'], { cwd: root })).code).toBe(0)

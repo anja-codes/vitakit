@@ -13,6 +13,15 @@
 \ProcessOptions\relax
 \LoadClass[11pt,a4paper]{article}
 
+%% pdfLaTeX's default font encoding (OT1) has no „, ‚, ł, ő and many other
+%% characters of names, places and titles; T1 has them. LuaLaTeX and XeLaTeX
+%% use Unicode fonts instead.
+\RequirePackage{iftex}
+\ifPDFTeX
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage{lmodern}
+\fi
+
 \RequirePackage[margin=2.5cm]{geometry}
 \RequirePackage{enumitem}
 \RequirePackage{xcolor}

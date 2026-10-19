@@ -20,9 +20,15 @@ Reports all problems at once and exits with 1 if there is any.
 Not a replacement for \`${run.script('check')}\`, which builds the website and checks
 what was built, or for building the PDF, which runs LaTeX.`,
 
-  async run({ io, style, root, json }, { positionals }) {
+  async run({ io, style, run, root, json }, { positionals }) {
     const { validateProject } = await import('../../validate')
     const { problems, inventory: inv } = await validateProject(root, { sections: positionals })
+    // The loader's starter snippet is for the browser; here, the command that writes one.
+    for (const problem of problems) {
+      if (problem.message.startsWith('no schema for this file') && problem.section) {
+        problem.message = `no schema yet; \`${run.bin('vitakit', `add section ${problem.section}`)}\` drafts one from its entries`
+      }
+    }
     const unknown = positionals.filter(id => !inv.sections.some(section => section.id === id))
     if (unknown.length) {
       throw new CommandError(`no section called ${unknown.join(', ')}; the sections are ${inv.sections.map(section => section.id).join(', ') || '(none)'}`)

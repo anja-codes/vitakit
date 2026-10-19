@@ -75,20 +75,35 @@ export function rawEntries(source: string): unknown[] {
   return data
 }
 
+/**
+ * A section whose schema another can share: one of the project's, or a
+ * built-in one even without a content file.
+ */
+export async function schemaOwner(inv: Inventory, id: string): Promise<SectionInventory | undefined> {
+  const section = inv.sections.find(candidate => candidate.id === id)
+  if (section) return section.schema.origin === 'none' ? undefined : section
+  const { schemas } = await import('../schemas')
+  const { describeSection } = await import('../fields')
+  if (!Object.hasOwn(schemas, id)) return undefined
+  return { id, where: `content/${id}.yml`, schema: { origin: 'built-in' }, fields: describeSection(schemas[id as keyof typeof schemas]) ?? [], problems: [] }
+}
+
 /** Sections whose schema accepts these entries as they are. */
 export async function matchingSchemas(rootDir: string, inv: Inventory, id: string, entries: unknown[]): Promise<string[]> {
   if (!entries.length) return []
   const { findSectionFiles, resolveSectionSchema } = await import('../sections')
   const { files } = await findSectionFiles(rootDir).catch(() => ({ files: [] }))
+  const { schemas } = await import('../schemas')
   const keys = new Set(entries.flatMap(entry => typeof entry === 'object' && entry ? Object.keys(entry) : []))
   const matches: string[] = []
-  for (const section of inv.sections) {
+  const builtIns = Object.keys(schemas).filter(name => !inv.sections.some(section => section.id === name))
+  const candidates = [...inv.sections, ...(await Promise.all(builtIns.map(name => schemaOwner(inv, name)))).filter(section => section !== undefined)]
+  for (const section of candidates) {
     if (section.id === id || section.schema.origin === 'none' || section.schema.sharedWith) continue
     const file = files.find(candidate => candidate.id === section.id)
-    if (!file) continue
     let schema: z.ZodType
     try {
-      schema = (await resolveSectionSchema(rootDir, file)).schema
+      schema = file ? (await resolveSectionSchema(rootDir, file)).schema : schemas[section.id as keyof typeof schemas]
     } catch {
       continue
     }
@@ -103,7 +118,8 @@ export async function matchingSchemas(rootDir: string, inv: Inventory, id: strin
 export function sharedSchemaModule(id: string, other: SectionInventory): string {
   const body = other.schema.origin === 'built-in'
     ? [`import { schemas } from '@anja.codes/vitakit'`, '', `export default schemas.${other.id.replace(/-(\w)/g, (_match, char: string) => char.toUpperCase())}`]
-    : [`export { default } from './${other.id}'`]
+    // Node runs schemas without a bundler: a relative import needs its extension.
+    : [`export { default } from './${other.id}.ts'`]
   return [
     '/**',
     ` * content/${id}.yml has the same fields as content/${other.id}.yml. A field`,
@@ -161,7 +177,7 @@ export function fieldCode(spec: FieldSpec): { code: string, imports: string[] } 
 }
 
 /** `schemas/<id>.ts` that keeps a built-in section's fields and adds some. */
-export function extensionModule(id: string, fields: { name: string, code: string }[], imports: string[]): string {
+export function extensionModule(id: string, fields: { name: string, code: string, notes?: string[] }[], imports: string[]): string {
   const names = [...new Set(['extendSection', 'schemas', ...imports])].sort()
   const builtin = id.replace(/-(\w)/g, (_match, char: string) => char.toUpperCase())
   return [
@@ -175,7 +191,7 @@ export function extensionModule(id: string, fields: { name: string, code: string
     '',
     `export default extendSection(schemas.${builtin}, {`,
     ...(fields.length
-      ? fields.map(field => `  ${propertyKey(field.name)}: ${field.code},`)
+      ? fields.flatMap(field => [...(field.notes ?? []).map(note => `  // ${note}`), `  ${propertyKey(field.name)}: ${field.code},`])
       : ['  // Your fields, e.g.', '  //   evaluation: z.number().optional(),']),
     '})',
     '',
@@ -313,4 +329,52 @@ export async function planCreatePage(ws: Workspace, inv: Inventory, name: string
 export function fieldsNotShown(fields: FieldDescription[] | undefined): string[] {
   const shown = new Set(['date', 'title', 'position', 'degree', 'role', 'student', 'event', 'term', 'institution', 'issuer', 'organisation', 'location', 'note', 'url', 'slides', 'ongoing'])
   return (fields ?? []).map(field => field.path).filter(path => !shown.has(path))
+}
+
+/**
+ * Accept the fields that a section's entries have and its schema does not:
+ * a new extension module for a built-in section, added fields for a schema
+ * of the user's that can be changed safely. Returns what was done, for notes.
+ */
+export async function planMissingFields(rootDir: string, ws: Workspace, section: SectionInventory, entries: unknown[]): Promise<{ fields: string[], changes: string[], note?: string }> {
+  const { draftExtension } = await import('../draft')
+  const { findSectionFiles, resolveSectionSchema } = await import('../sections')
+  const { schemas } = await import('../schemas')
+  const builtIn = section.schema.origin === 'built-in'
+  let base: z.ZodType | undefined = builtIn ? schemas[section.id as keyof typeof schemas] : undefined
+  if (!base) {
+    const { files } = await findSectionFiles(rootDir).catch(() => ({ files: [] }))
+    const file = files.find(candidate => candidate.id === section.id)
+    if (!file) return { fields: [], changes: [] }
+    try {
+      base = (await resolveSectionSchema(rootDir, file)).schema
+    } catch {
+      return { fields: [], changes: [] }
+    }
+  }
+  const extension = draftExtension(base, entries)
+  if (!extension?.fields.length) return { fields: [], changes: [] }
+  const names = extension.fields.map(field => field.name)
+  const path = `schemas/${section.id}.ts`
+
+  if (builtIn) {
+    ws.create(path, extensionModule(section.id, extension.fields, extension.imports), `keeps vitakit's ${section.id} fields, adds ${names.join(', ')} from your entries`, { show: true })
+    return { fields: names, changes: extension.changes }
+  }
+  if (section.schema.sharedWith) {
+    return { fields: [], changes: [], note: `Entries of ${section.id} have fields its shared schema (${section.schema.sharedWith}) does not: ${names.join(', ')}.` }
+  }
+  let source = (await ws.read(path)) ?? ''
+  for (const field of extension.fields) {
+    const added = addSchemaField(source, field.name, field.code)
+    if (!added.ok) {
+      ws.paste(path, extension.fields.map(item => `${propertyKey(item.name)}: ${item.code},`).join('\n'), `cannot be changed safely (${added.reason}); add these fields`)
+      return { fields: [], changes: extension.changes }
+    }
+    source = added.value
+  }
+  const imported = ensurePackageImports(source, extension.imports)
+  if (!imported.ok) return { fields: [], changes: [] }
+  await ws.edit(path, imported.value, `adds ${names.join(', ')} from your entries`)
+  return { fields: names, changes: extension.changes }
 }

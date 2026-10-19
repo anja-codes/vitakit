@@ -163,9 +163,9 @@ export function entryComponent(id: string, name: string, fields: FieldDescriptio
  * A component with its own list markup, for grouping, numbering or a
  * different layout; vitakit still selects and sorts the entries.
  */
-export function listComponent(id: string, name: string, fields: FieldDescription[]): string {
+export function listComponent(id: string, name: string, fields: FieldDescription[], groupBy?: string): string {
   const titleField = fields.find(field => ['title', 'position', 'degree', 'role', 'student', 'name'].includes(field.path))
-  const rest = fields.filter(field => field !== titleField && field.path !== 'date')
+  const rest = fields.filter(field => field !== titleField && field.path !== 'date' && field.path !== groupBy)
   const snippets = rest.map(field => webFieldSnippet(field))
   const titleLine = titleField
     ? titleField.type === 'formatted-text'
@@ -179,6 +179,40 @@ export function listComponent(id: string, name: string, fields: FieldDescription
     ...snippets.flatMap(snippet => snippet.imports),
   ])
   const hasDate = fields.some(field => field.path === 'date')
+  const row = [
+    `<VitaEntry v-for="entry in ${groupBy ? 'group.entries' : 'entries'}" :key="entry.id"${hasDate ? ' :date="entry.date as DateRange"' : ''}>`,
+    ...indent([titleLine, ...snippets.map(snippet => snippet.markup)], '  '),
+    '</VitaEntry>',
+  ]
+  const grouping = groupBy
+    ? [
+        '',
+        `// Entries in a row with the same ${groupBy} form a group, in the order`,
+        '// vitakit sorted them (newest first).',
+        'const groups = computed(() => {',
+        '  const result: { label: string, entries: Entry[] }[] = []',
+        '  for (const entry of entries.value) {',
+        `    const label = String(${access('entry', groupBy)} ?? '')`,
+        '    const last = result[result.length - 1]',
+        '    if (last?.label === label) last.entries.push(entry)',
+        '    else result.push({ label, entries: [entry] })',
+        '  }',
+        '  return result',
+        '})',
+      ]
+    : []
+  const list = groupBy
+    ? [
+        '<template v-for="group in groups" :key="group.label">',
+        '  <h3 class="vita-section-group__subtitle">',
+        '    {{ group.label }}',
+        '  </h3>',
+        '  <ul class="vita-section">',
+        ...indent(row, '    '),
+        '  </ul>',
+        '</template>',
+      ]
+    : ['<ul class="vita-section">', ...indent(row, '  '), '</ul>']
   return [
     '<script setup lang="ts">',
     '/**',
@@ -199,6 +233,7 @@ export function listComponent(id: string, name: string, fields: FieldDescription
     '  const selected = filterWhere(useSection(props.id), props.where)',
     '  return props.limit ? selected.slice(0, props.limit) : selected',
     '})',
+    ...grouping,
     '</script>',
     '',
     '<template>',
@@ -206,11 +241,7 @@ export function listComponent(id: string, name: string, fields: FieldDescription
     '    <h2 v-if="title" class="vita-section-group__title">',
     '      {{ title }}',
     '    </h2>',
-    '    <ul class="vita-section">',
-    `      <VitaEntry v-for="entry in entries" :key="entry.id"${hasDate ? ' :date="entry.date as DateRange"' : ''}>`,
-    ...indent([titleLine, ...snippets.map(snippet => snippet.markup)], '        '),
-    '      </VitaEntry>',
-    '    </ul>',
+    ...indent(list, '    '),
     '  </section>',
     '</template>',
     '',
