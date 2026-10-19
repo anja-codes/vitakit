@@ -1,8 +1,9 @@
 /**
  * A publication group laid out as `VitaPublications` does, so that tests can
  * assert on the markup a reader gets without rendering Vue.
+ * `template-pages.test.ts` checks that it matches the component.
  */
-import type { PublicationGroup } from '../src/shared/types'
+import type { PublicationGroup } from '../../src/shared/types'
 
 const escapeHtml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
