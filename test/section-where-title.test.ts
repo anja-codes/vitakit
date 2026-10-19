@@ -3,7 +3,7 @@ import * as shared from '../src/shared/index'
 import type { Entry } from '../src/shared/index'
 import { dateRange } from '../src/primitives'
 import { documentSchema, selectEntries } from '../src/tex/documents'
-import { compileVue, renderVue } from './vue'
+import { compileVue, renderVue } from './support/vue'
 
 const component = (name: string) => new URL(`../src/runtime/components/${name}.vue`, import.meta.url)
 const talks: Entry[] = [

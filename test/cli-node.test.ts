@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { exampleProject } from './project'
+import { exampleProject } from './support/example'
 
 const bin = join(process.cwd(), 'src/bin/vitakit.mjs')
 

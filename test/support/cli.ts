@@ -1,6 +1,6 @@
 /** Run the vitakit command in-process, as from a terminal or a script. */
-import { main } from '../src/cli/main'
-import type { Io } from '../src/cli/io'
+import { main } from '../../src/cli/main'
+import type { Io } from '../../src/cli/io'
 
 export interface CliResult {
   code: number

@@ -65,24 +65,35 @@ export function escapeTex(value: string, { typography = true, source }: EscapeOp
 }
 
 /**
+ * Rich-text prose between formulas. A Markdown escape (`\$`, `\*`) stands for
+ * the character itself, as on the website; any other `$` opens a formula
+ * that was never closed.
+ */
+function escapeProse(prose: string, source: string): string {
+  if (/(?<!\\)\$/.test(prose)) throw new Error(`unbalanced math delimiters in: ${source}`)
+  return escapeTex(prose.replace(/\\([!-/:-@[-`{-~])/g, '$1'))
+}
+
+/**
  * Escape prose while preserving `$...$` and `$$...$$` spans verbatim.
  *
  * Used for `richText` fields, where a mathematician writes `Random $k$-ary
- * trees` and expects the formula to reach LaTeX untouched.
+ * trees` and expects the formula to reach LaTeX untouched. The prose is
+ * Markdown, so `\$` is a dollar sign and does not start a formula.
  */
 export function escapeRichTex(value: string): string {
   const parts: string[] = []
-  const pattern = /\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\\])*\$/g
+  const pattern = /(?<!\\)\$\$[\s\S]*?\$\$|(?<!\\)\$(?:\\.|[^$\\])*\$/g
   let index = 0
 
   for (const match of value.matchAll(pattern)) {
     const start = match.index!
-    parts.push(escapeTex(value.slice(index, start), { source: value }))
+    parts.push(escapeProse(value.slice(index, start), value))
     // Mathematics is already LaTeX; pass it through unchanged.
     parts.push(match[0])
     index = start + match[0].length
   }
-  parts.push(escapeTex(value.slice(index), { source: value }))
+  parts.push(escapeProse(value.slice(index), value))
 
   return parts.join('')
 }

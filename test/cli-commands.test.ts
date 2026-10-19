@@ -3,8 +3,8 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { cli } from './cli'
-import { emptyDirectory, exampleProject as project } from './project'
+import { cli } from './support/cli'
+import { emptyDirectory, exampleProject as project } from './support/example'
 
 describe('finding the project', () => {
   it('walks up from a nested directory, and accepts --root', async () => {

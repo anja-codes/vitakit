@@ -228,7 +228,9 @@ export async function checkStatic(options: CheckOptions): Promise<CheckResult> {
     let hidden = 0
     let leaked = 0
     for (const [id, entries] of Object.entries(content.sections)) {
-      for (const [index, entry] of entries.entries()) {
+      for (const entry of entries) {
+        // Its position in the file, from its id; `entries` is sorted by date.
+        const index = Number(entry.id.slice(id.length + 1))
         if (atMost(entry.visibility, 'public')) continue
         hidden += 1
         const fragments = identifyingText(entry)

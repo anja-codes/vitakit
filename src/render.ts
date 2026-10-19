@@ -153,7 +153,8 @@ export function createRenderer({ baseURL = '/' }: { baseURL?: string } = {}): Re
 
   function inline(source: string): string {
     const html = markdown(source)
-    const unwrapped = /^<p>([\s\S]*)<\/p>$/.exec(html)
+    // Exactly one paragraph: `<p>a</p>\n<p>b</p>` must not unwrap to `a</p>\n<p>b`.
+    const unwrapped = /^<p>((?:(?!<\/p>)[\s\S])*)<\/p>$/.exec(html)
     if (!unwrapped) throw new Error(`expected a single paragraph, got: ${html}`)
     return unwrapped[1]!
   }

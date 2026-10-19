@@ -10,8 +10,9 @@
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PACKAGE_ENTRY, ROOT } from './project'
 
-const EXAMPLE = join(process.cwd(), 'examples/scaffolded')
+const EXAMPLE = join(ROOT, 'examples/scaffolded')
 const BUILT = /[/\\](node_modules|\.nuxt|\.output|generated)([/\\]|$)/
 
 /** A new file's contents, a change to an existing one, or `null` to delete it. */
@@ -26,7 +27,7 @@ export async function exampleProject(changes: Record<string, FileChange> = {}): 
   const shim = join(root, 'node_modules/@anja.codes/vitakit')
   await mkdir(shim, { recursive: true })
   await writeFile(join(shim, 'package.json'), JSON.stringify({ name: '@anja.codes/vitakit', type: 'module', exports: './index.ts' }))
-  await writeFile(join(shim, 'index.ts'), `export * from '${join(process.cwd(), 'src/index.ts')}'\n`)
+  await writeFile(join(shim, 'index.ts'), `export * from '${PACKAGE_ENTRY}'\n`)
 
   for (const [path, change] of Object.entries(changes)) {
     const file = join(root, path)

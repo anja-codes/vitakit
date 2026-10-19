@@ -3,8 +3,8 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
-import { cli } from './cli'
-import { exampleProject as project, readProjectFile } from './project'
+import { cli } from './support/cli'
+import { exampleProject as project, readProjectFile } from './support/example'
 
 const read = readProjectFile
 

@@ -6,9 +6,9 @@ import * as shared from '../src/shared/index'
 import { loadContent } from '../src/content'
 import { documentSchema } from '../src/tex/documents'
 import { renderSection } from '../src/tex/emit'
-import { cli } from './cli'
-import { exampleProject as project, readProjectFile } from './project'
-import { compileVue, renderVue, withAutoImports } from './vue'
+import { cli } from './support/cli'
+import { exampleProject as project, readProjectFile } from './support/example'
+import { compileVue, renderVue, withAutoImports } from './support/vue'
 
 const read = readProjectFile
 
