@@ -17,6 +17,9 @@ importers:
       '@types/hast':
         specifier: ^3.0.5
         version: 3.0.5
+      '@vue/compiler-sfc':
+        specifier: ^3.5.43
+        version: 3.5.43
       citation-js:
         specifier: ^0.7.22
         version: 0.7.22

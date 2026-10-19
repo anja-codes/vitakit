@@ -14,7 +14,7 @@
  */
 import { absoluteUrl, linked, requiredLink, text, z } from './primitives'
 
-// One file per section, so that `vitakit eject <section>` can copy the
+// One file per section, so that `vitakit customize <section> --schema --copy` can copy the
 // definition itself rather than a paraphrase of it.
 import education from './schemas/education'
 import employment from './schemas/employment'

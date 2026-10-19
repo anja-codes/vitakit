@@ -33,7 +33,7 @@ function forNpm(text, scripts) {
     .replace(/^[ \t]*- corepack (?:enable|install)\n/gm, '')
     .replace(/pnpm install --frozen-lockfile/g, 'npm ci')
     .replace(/pnpm vitakit\b/g, 'npx vitakit')
-    // `pnpm build:cv --no-pdf` -> `npm run build:cv -- --no-pdf`
+    // `pnpm pdf --tex-only` -> `npm run pdf -- --tex-only`
     .replace(/pnpm ([\w:-]+)((?: --?[\w-]+)*)/g, (command, script, args) =>
       scripts.includes(script) ? `npm run ${script}${args ? ` --${args}` : ''}` : command)
 }

@@ -244,11 +244,11 @@ Three files, wired by file name, no configuration:
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit add outreach
+pnpm vitakit add section outreach
 ```
 
 ```bash [npm]
-npx vitakit add outreach
+npx vitakit add section outreach
 ```
 
 :::
@@ -304,11 +304,11 @@ Copy its schema into your project and edit it:
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit eject teaching      # -> schemas/teaching.ts
+pnpm vitakit customize teaching --schema  # -> schemas/teaching.ts
 ```
 
 ```bash [npm]
-npx vitakit eject teaching      # -> schemas/teaching.ts
+npx vitakit customize teaching --schema  # -> schemas/teaching.ts
 ```
 
 :::
@@ -342,7 +342,7 @@ Two different axes, easily confused:
 
 | You want to change | Do this |
 |---|---|
-| what a section *contains* (fields) | `vitakit eject <section>`, then edit `schemas/<name>.ts` |
+| what a section *contains* (fields) | `vitakit customize <section> --schema`, then edit `schemas/<name>.ts` |
 | what a section *looks like* (markup) | `VitaSection` slots first; `vitakit eject <Component>` for deeper changes |
 
 Adding a field to supervision is a schema change; displaying it can be a slot
@@ -356,19 +356,19 @@ your project, where it then wins:
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit list                    # what can be copied
+pnpm vitakit eject --list            # what can be copied
 pnpm vitakit eject VitaSection       # -> app/components/VitaSection.vue
-pnpm vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
-pnpm vitakit eject publications      # -> schemas/publications.ts
+pnpm vitakit customize talks --pdf   # -> cv-tex/templates/talks.eta
+pnpm vitakit customize publications  # -> schemas/publications.ts
 pnpm vitakit eject publications.csl  # -> content/publications.csl
 pnpm vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
 ```
 
 ```bash [npm]
-npx vitakit list                    # what can be copied
+npx vitakit eject --list            # what can be copied
 npx vitakit eject VitaSection       # -> app/components/VitaSection.vue
-npx vitakit eject talks.eta         # -> cv-tex/templates/talks.eta
-npx vitakit eject publications      # -> schemas/publications.ts
+npx vitakit customize talks --pdf   # -> cv-tex/templates/talks.eta
+npx vitakit customize publications  # -> schemas/publications.ts
 npx vitakit eject publications.csl  # -> content/publications.csl
 npx vitakit eject vitakit-cv.cls    # -> cv-tex/vitakit-cv.cls
 ```

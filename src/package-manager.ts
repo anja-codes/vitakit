@@ -2,7 +2,7 @@
  * Commands as the user types them, for the package manager of their project.
  *
  * Help texts and error messages tell people what to run next; for an npm
- * project, `pnpm vitakit eject teaching` is a command that does not work.
+ * project, `pnpm vitakit status` is a command that does not work.
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -23,9 +23,9 @@ export function detectPackageManager(rootDir: string = process.cwd(), env: NodeJ
 }
 
 export interface Commands {
-  /** A script from package.json: `pnpm build:cv cv`, `npm run build:cv -- cv`. */
+  /** A script from package.json: `pnpm pdf cv`, `npm run pdf -- cv`. */
   script: (name: string, args?: string) => string
-  /** A binary of an installed package: `pnpm vitakit list`, `npx vitakit list`. */
+  /** A binary of an installed package: `pnpm vitakit status`, `npx vitakit status`. */
   bin: (name: string, args?: string) => string
 }
 
@@ -33,7 +33,7 @@ export function commands(packageManager: PackageManager = detectPackageManager()
   const npm = packageManager === 'npm'
   const words = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' ')
   return {
-    // npm would take options meant for the script (--no-pdf) as its own.
+    // npm would take options meant for the script (--tex-only) as its own.
     script: (name, args) => npm ? words('npm run', name, args && `-- ${args}`) : words('pnpm', name, args),
     bin: (name, args) => words(npm ? 'npx' : 'pnpm', name, args),
   }

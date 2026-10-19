@@ -8,7 +8,7 @@ pnpm create @anja.codes/vitakit my-site
 cd my-site
 pnpm install
 pnpm dev            # http://localhost:3000
-pnpm build:cv       # cv-tex/cv.pdf (needs a TeX distribution)
+pnpm pdf            # cv-tex/cv.pdf (needs a TeX distribution)
 pnpm check          # what CI runs
 ```
 

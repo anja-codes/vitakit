@@ -54,11 +54,11 @@ problem fails `nuxt generate`, so a broken file cannot reach your website.
 ::: code-group
 
 ```bash [pnpm]
-pnpm build:cv
+pnpm pdf
 ```
 
 ```bash [npm]
-npm run build:cv
+npm run pdf
 ```
 
 :::
@@ -285,7 +285,7 @@ NUXT_APP_BASE_URL=/~username/ npm run check
 
 ## Next
 
-- [Commands](./cli.md) — `add`, `eject`, `build:cv`, `check`
+- [Commands](./cli.md) — `add`, `eject`, `vitakit pdf`, `check`
 - [Content reference](./content-reference.md) — every field of every file
 - [Customising](./customising.md) — design, page structure, your own sections
 - [CV documents](./cv-documents.md) — variants, ordering, cover letters

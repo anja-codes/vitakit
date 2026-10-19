@@ -4,7 +4,7 @@
  * Kept as its own entry so that importing the web pipeline does not pull in the
  * template engine, and vice versa.
  */
-export { buildCv, readGenerated, type BuildOptions } from './tex/build'
+export { buildCv, readGenerated, MissingToolError, type BuildOptions, type BuildEvent } from './tex/build'
 export {
   emitDocument,
   renderSection,

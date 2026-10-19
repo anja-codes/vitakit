@@ -14,7 +14,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
 import { buildCv } from '../src/tex/build'
 import { checkStatic } from '../src/check'
-import { eject, listEjectable } from '../src/cli'
 import { atMost } from '../src/shared/visibility'
 import { renderGroups } from './publications'
 
@@ -242,37 +241,15 @@ describe('add a new data collection', () => {
   })
 })
 
-describe('ejecting a package default', () => {
-  it('lists components, templates and the class', async () => {
-    const items = await listEjectable()
-    expect(items.map(item => item.name)).toContain('VitaSection')
-    expect(items.map(item => item.name)).toContain('talks.eta')
-    expect(items.find(item => item.name === 'VitaSection')!.target)
-      .toBe(join('app', 'components', 'VitaSection.vue'))
-  })
-
-  it('copies a component into the project and refuses to clobber it', async () => {
+describe('a local PDF template', () => {
+  it('takes precedence over the bundled one', async () => {
     const root = await starter()
-    const { path } = await eject('VitaSection', root)
-    expect(existsSync(path)).toBe(true)
-    expect(await readFile(path, 'utf8')).toContain('vita-section')
-
-    await expect(eject('VitaSection', root)).rejects.toThrow(/already exists/)
-    await expect(eject('VitaSection', root, { force: true })).resolves.toBeTruthy()
-  })
-
-  it('an ejected TeX template takes precedence over the bundled one', async () => {
-    const root = await starter()
-    const { path } = await eject('talks.eta', root)
-    await writeFile(path, '<% for (const t of it.entries) { %>MINE <%~ it.text(t.title) %>\n<% } %>')
+    await mkdir(join(root, 'cv-tex/templates'), { recursive: true })
+    await writeFile(join(root, 'cv-tex/templates/talks.eta'), '<% for (const t of it.entries) { %>MINE <%~ it.text(t.title) %>\n<% } %>')
 
     await buildCv({ rootDir: root, noPdf: true })
     const tex = await readFile(join(root, 'cv-tex/generated/cv/talks.tex'), 'utf8')
     expect(tex).toContain('MINE Large random $k$-ary trees')
-  })
-
-  it('suggests the available names for a typo', async () => {
-    await expect(eject('VitaSektion', await starter())).rejects.toThrow(/Available: /)
   })
 })
 

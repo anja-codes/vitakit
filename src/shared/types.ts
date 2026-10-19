@@ -35,7 +35,7 @@ export interface DateRange {
  * Intermediate form of a `richText` field, before rendering.
  *
  * Internal: it exists only between validation and `renderRichFields`, never in
- * a `VitakitContent`. `vitakit-check` fails the build if one reaches the output.
+ * a `VitakitContent`. `vitakit verify` fails the build if one reaches the output.
  * Read rich fields with `richSource` / `richHtml` instead of inspecting shapes.
  */
 export interface RichTextMarker {

@@ -448,7 +448,7 @@ describe('package manager', () => {
     }
     const pkg = JSON.parse(written.get('package.json')!)
     expect(pkg.packageManager).toBeUndefined()
-    expect(pkg.scripts.check).toBe('npm run typecheck && npm run generate && npm run check:static')
+    expect(pkg.scripts.check).toBe('npm run typecheck && npm run generate && vitakit verify')
   })
 
   it('translates the workflows to npm', async () => {
@@ -462,7 +462,7 @@ describe('package manager', () => {
     expect(deploy).toContain('- run: npm run check')
     // the step after the removed pnpm setup follows checkout directly
     expect(deploy).toMatch(/- uses: actions\/checkout@v\d+\n\s+- uses: actions\/setup-node@v\d+/)
-    expect(cv).toContain('- run: npm run build:cv -- --no-pdf')
+    expect(cv).toContain('- run: npm run pdf -- --tex-only')
     expect(parseYaml(deploy).jobs.build.steps).toHaveLength(5)
   })
 
@@ -477,8 +477,8 @@ describe('package manager', () => {
   it('translates the instructions in the project itself', async () => {
     const root = await project()
     scaffold(root, { ...defaults, packageManager: 'npm' })
-    expect(await readFile(join(root, 'content/pages/cv.md'), 'utf8')).toContain('`npm run build:cv`')
-    expect(await readFile(join(root, 'content/pages/index.md'), 'utf8')).toContain('`npx vitakit add outreach`')
+    expect(await readFile(join(root, 'content/pages/cv.md'), 'utf8')).toContain('`npm run pdf`')
+    expect(await readFile(join(root, 'content/pages/index.md'), 'utf8')).toContain('`npx vitakit add section outreach`')
     expect(await readFile(join(root, 'cv-tex/cv.tex'), 'utf8')).toContain('npx vitakit eject vitakit-cv.cls')
   })
 

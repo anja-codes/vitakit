@@ -1,7 +1,7 @@
 /**
  * Shape of `content/teaching.yml`.
  *
- * Also the file `vitakit eject teaching` copies into a project, with the import
+ * Also the file `vitakit customize teaching --schema --copy` writes into a project, with the import
  * rewritten to `@anja.codes/vitakit`; it is therefore the single definition of
  * this section, not a copy of one.
  */

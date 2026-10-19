@@ -10,7 +10,8 @@ import { defaultCslStyle, defaultPublications, loadPublications } from '../src/b
 import { resolvePublications, type PublicationsInput } from '../src/publications'
 import { loadContent } from '../src/content'
 import { createRenderer } from '../src/render'
-import { eject } from '../src/cli'
+import { builtinSchemaSource } from '../src/cli/schema-source'
+import { cli } from './cli'
 import { renderGroups } from './publications'
 
 const BIB = [
@@ -262,9 +263,9 @@ describe('replacing the citation style', () => {
 
   it('can be ejected to exactly that place, and then wins', async () => {
     const root = await project()
-    const { item, path } = await eject('publications.csl', root)
-    expect(item.kind).toBe('style')
-    expect(path).toBe(join(root, 'content/publications.csl'))
+    const result = await cli(['eject', 'publications.csl', '--root', root, '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    const path = join(root, 'content/publications.csl')
     // The copy is the bundled style: same output until it is edited.
     const before = await html(root)
     await writeFile(path, (await readFile(path, 'utf8')).replace('<layout>', `<layout prefix="${STYLE_MARKER} ">`))
@@ -338,12 +339,11 @@ describe('schemas/publications.ts', () => {
     expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Articles', 'Slides'])
   })
 
-  it('can be ejected, and the copy is the defaults', async () => {
+  it('can be copied, and the copy is the defaults', async () => {
     const root = await project(BIB.replace('Talk-Slides', 'other'))
-    const { item, path } = await eject('publications', root)
-    expect(item.kind).toBe('schema')
-    expect(path).toBe(join(root, 'schemas/publications.ts'))
-    const source = await readFile(path, 'utf8')
+    const path = join(root, 'schemas/publications.ts')
+    await mkdir(join(root, 'schemas'), { recursive: true })
+    const source = await builtinSchemaSource('publications')
     expect(source).toContain(`from '@anja.codes/vitakit'`)
     expect(source).not.toMatch(/from '\.\.?\//)
 

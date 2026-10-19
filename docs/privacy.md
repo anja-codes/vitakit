@@ -43,12 +43,12 @@ default `cv`.
    `nuxt.config.ts`, so there is no flag to set wrongly.
 2. **`cv-tex/prose/` is never read by the website build.** Cover letters and
    statements are plain LaTeX in a directory the web pipeline does not look at.
-3. **`vitakit-check` verifies the output.** It reloads your content *with* private
+3. **`vitakit verify` verifies the output.** It reloads your content *with* private
    entries visible and fails if a non-public entry's *title* appears in the visible
    text of any generated page — the backstop for a page that prints something it
    should not. Only title-like fields are compared, because an institution or
    co-author name is usually public for some other entry; if a match is still a
-   coincidence, run `vitakit-check --no-leak-check`.
+   coincidence, run `vitakit verify --no-leak-check`.
 
 ::: code-group
 
@@ -70,7 +70,7 @@ Run it in CI (the scaffolded workflows do) so a leak fails the deployment.
 
 ## PDFs are not published
 
-`build:cv` writes to `cv-tex/`. Nothing copies a PDF into `public/`, and the
+`vitakit pdf` writes to `cv-tex/`. Nothing copies a PDF into `public/`, and the
 `CV` workflow attaches it to the run as an artifact rather than deploying it. The
 website already renders your CV information directly, so there is usually nothing to
 gain from publishing the PDF as well.

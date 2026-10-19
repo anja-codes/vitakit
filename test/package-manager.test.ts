@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { aligned, commands, detectPackageManager } from '../src/package-manager'
+import { cli } from './cli'
 
 const temporary: string[] = []
 
@@ -61,25 +62,31 @@ describe('commands', () => {
 })
 
 describe('help texts', () => {
-  const bin = (name: string) => fileURLToPath(new URL(`../src/bin/${name}.mjs`, import.meta.url))
-  const help = (name: string, args: string[], userAgent: string) => execFileSync(process.execPath, [bin(name), ...args], {
-    encoding: 'utf8',
-    env: { ...process.env, npm_config_user_agent: userAgent },
-  })
+  const help = async (args: string[], userAgent: string) =>
+    (await cli(args, { cwd: tmpdir(), env: { npm_config_user_agent: userAgent } })).out
 
   it.each([
-    ['vitakit', ['--help']],
-    ['vitakit', ['add', '--help']],
-    ['vitakit', ['eject', '--help']],
-    ['vitakit-build-cv', ['--help']],
-    ['vitakit-check', ['--help']],
-  ])('%s %s speaks npm when run by npm, pnpm when run by pnpm', (name, args) => {
-    const npm = help(name, args, 'npm/11.19.0 node/v24.21.0')
+    [['--help']],
+    [['status', '--help']],
+    [['explain', '--help']],
+    [['validate', '--help']],
+    [['pdf', '--help']],
+    [['verify', '--help']],
+    [['eject', '--help']],
+  ])('vitakit %s speaks npm when run by npm, pnpm when run by pnpm', async (args) => {
+    const npm = await help(args, 'npm/11.19.0 node/v24.21.0')
     expect(npm).not.toMatch(/pnpm/)
     expect(npm).toMatch(/npm run |npx /)
 
-    const pnpm = help(name, args, 'pnpm/10.29.1 npm/? node/?')
+    const pnpm = await help(args, 'pnpm/10.29.1 npm/? node/?')
     expect(pnpm).toMatch(/pnpm /)
     expect(pnpm).not.toMatch(/npm run |npx /)
+  })
+
+  // The installed binary runs the built package; `pnpm check` builds first.
+  it('the binary runs the built command', () => {
+    const bin = fileURLToPath(new URL('../src/bin/vitakit.mjs', import.meta.url))
+    const output = execFileSync(process.execPath, [bin, '--version'], { encoding: 'utf8' })
+    expect(output.trim()).toMatch(/^\d+\.\d+\.\d+/)
   })
 })

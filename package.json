@@ -69,7 +69,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm typecheck && pnpm test && pnpm build && node scripts/check-dist.mjs && pnpm example:check",
+    "check": "pnpm typecheck && pnpm build && node scripts/check-dist.mjs && pnpm test && pnpm example:check",
     "check:dist": "node scripts/check-dist.mjs",
     "prepublishOnly": "pnpm check",
     "example": "node scripts/generate-example.mjs",
@@ -82,6 +82,7 @@
     "@babel/parser": "^7.29.9",
     "@behackl/citation-js-extras": "^0.4.0",
     "@types/hast": "^3.0.5",
+    "@vue/compiler-sfc": "^3.5.43",
     "citation-js": "^0.7.22",
     "eta": "^4.6.0",
     "gray-matter": "^4.0.3",
@@ -118,8 +119,6 @@
     "access": "public"
   },
   "bin": {
-    "vitakit": "src/bin/vitakit.mjs",
-    "vitakit-check": "src/bin/vitakit-check.mjs",
-    "vitakit-build-cv": "src/bin/vitakit-build-cv.mjs"
+    "vitakit": "src/bin/vitakit.mjs"
   }
 }

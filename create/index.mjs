@@ -86,7 +86,7 @@ async function main() {
   step('cd ' + directory)
   step(`${pm} install`)
   step(`${run} dev`, 'http://localhost:3000')
-  step(`${run} build:cv`, 'cv-tex/cv.pdf (needs LaTeX)')
+  step(`${run} pdf`, 'cv-tex/cv.pdf (needs LaTeX)')
   step(`${run} check`, 'what CI runs')
   console.log()
   console.log('Edit content/ to make it yours. Keep sensitive CV source private.\n')

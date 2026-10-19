@@ -8,4 +8,4 @@ Replace this page with a few sentences about yourself: it lives in
 
 Everything on this site comes from the files in `content/`, and the same data
 produces `cv-tex/cv.pdf`. Add a page by adding a Markdown file; add a CV
-section by adding a YAML file — `pnpm vitakit add outreach` sets one up.
+section by adding a YAML file — `pnpm vitakit add section outreach` sets one up.

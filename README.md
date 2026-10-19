@@ -6,7 +6,8 @@ Structured CV data in, academic website and LaTeX CV out.
 pnpm create @anja.codes/vitakit my-site
 cd my-site && pnpm install
 pnpm dev            # the website
-pnpm build:cv       # cv-tex/cv.pdf, from the same data
+pnpm pdf            # cv-tex/cv.pdf, from the same data
+pnpm vitakit status # what is in the project, and where it appears
 ```
 
 To add it to an existing Nuxt project instead:
@@ -82,9 +83,9 @@ export default section({
 Every entry gets `visibility: public | cv | private`. The website loader is
 hard-wired to `public`, so a phone number, an address or a referee marked `cv`
 cannot reach the site; the other levels exist for the LaTeX side. Assume the
-repository itself is private, and let `vitakit-check` verify the build output.
+repository itself is private, and let `vitakit verify` check the build output.
 
-PDFs are never part of the website build: `build:cv` writes to `cv-tex/`, and
+PDFs are never part of the website build: `vitakit pdf` writes to `cv-tex/`, and
 the website renders CV information directly from the same data.
 
 ## Strict builds, forgiving development
@@ -109,9 +110,9 @@ MIT
 ## LaTeX CV
 
 ```bash
-pnpm build:cv          # every document in cv-tex/
-pnpm build:cv cv       # one document
-pnpm build:cv --no-pdf # only generate .tex
+pnpm pdf             # every document in cv-tex/
+pnpm pdf cv          # one document
+pnpm pdf --tex-only  # only generate .tex
 ```
 
 A **document** is a `.tex` file you own. vitakit renders `content/` into

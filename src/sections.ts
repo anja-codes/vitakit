@@ -79,11 +79,12 @@ async function loadRepoSchema(path: string, id: string): Promise<z.ZodType> {
 
 const STARTER = (id: string) => `create schemas/${id}.ts, for example:
 
-  import { z, section, dateRange } from '@anja.codes/vitakit'
+  import { section, dateRange, richText, text } from '@anja.codes/vitakit'
 
   export default section({
     date: dateRange,
-    title: z.string(),
+    title: richText,
+    note: text.optional(),
   })`
 
 /**
