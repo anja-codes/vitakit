@@ -108,6 +108,15 @@ describe('deployment texts', () => {
     ].join('\n'))
   })
 
+  it('describe SSH/rsync setup with GitHub Actions', () => {
+    expect(DEPLOYMENTS.rsync!.details.CI).toBe('GitHub Actions.')
+    const instructions = deploymentInstructions('rsync')
+    expect(instructions).toContain('.github/workflows/rsync.yml')
+    expect(instructions).toContain('GitHub Actions repository secret')
+    expect(instructions).not.toContain('Forgejo')
+    expect(instructions).not.toContain('.forgejo/')
+  })
+
   it('speak npm for an npm project', () => {
     for (const key of KEYS) expect(deploymentInstructions(key, 'npm')).not.toContain('pnpm')
     expect(deploymentInstructions('github-pages', 'npm')).toContain('Commit package-lock.json')
@@ -267,6 +276,36 @@ describe('deployment workflows', () => {
       workers_dev: true,
       assets: { directory: './.output/public', html_handling: 'auto-trailing-slash', not_found_handling: '404-page' },
     })
+  })
+
+  it.each(['pnpm', 'npm'] as const)('SSH/rsync: deploys checked output with GitHub Actions (%s)', async (packageManager) => {
+    const root = await created({ deployment: 'rsync', packageManager })
+    const written = await files(root)
+    expect([...written.keys()].filter(path => /^\.(github|forgejo)\/workflows\//.test(path)))
+      .toEqual(['.github/workflows/rsync.yml'])
+    const { on, permissions, jobs } = parseYaml(written.get('.github/workflows/rsync.yml')!)
+    expect(on.push.branches).toEqual(['main'])
+    expect(on).toHaveProperty('workflow_dispatch')
+    expect(permissions).toEqual({ contents: 'read' })
+    expect(jobs.deploy['runs-on']).toBe('ubuntu-latest')
+    const steps = jobs.deploy.steps
+    const install = stepIndex(steps, packageManager === 'npm' ? 'npm ci' : 'pnpm install --frozen-lockfile')
+    const check = stepIndex(steps, packageManager === 'npm' ? 'npm run check' : 'pnpm check')
+    expect(install).toBeGreaterThan(-1)
+    expect(check).toBeGreaterThan(install)
+    expect(stepIndex(steps, 'sudo apt-get update && sudo apt-get install -y rsync')).toBeGreaterThan(-1)
+    expect(steps.filter((step: { uses?: string }) => step.uses).map((step: { uses: string }) => step.uses))
+      .toEqual([
+        'actions/checkout@v7',
+        ...(packageManager === 'pnpm' ? ['pnpm/action-setup@v6'] : []),
+        'actions/setup-node@v7',
+        'webfactory/ssh-agent@v0.9.0',
+      ])
+    const ssh = stepIndex(steps, 'webfactory/ssh-agent@v0.9.0')
+    expect(ssh).toBeGreaterThan(check)
+    expect(steps[ssh].with['ssh-private-key']).toBe('${{ secrets.SSH_DEPLOY_KEY }}')
+    expect(steps.at(-1).run).toContain('rsync ')
+    expect(steps.at(-1).run).toContain('.output/public/ user@example.org:/var/www/your-site/')
   })
 
   it('Codeberg: uploads checked static output with the automatic token', async () => {

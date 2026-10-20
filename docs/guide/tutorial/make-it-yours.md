@@ -32,8 +32,8 @@ footer: Built with [vitakit](https://github.com/anja-codes/vitakit).
 
 A few things worth knowing:
 
-- **The portrait** is a file in `public/`: put `lena.jpg` there and write
-  `/img/lena.jpg` if it is in `public/img/`. Delete the `avatar` line for none.
+- **The portrait** goes in `public/img/lena.jpg`; `avatar: /img/lena.jpg`
+  points to it. Delete the `avatar` line if you do not want a portrait.
 - **`summary`** is for search engines and link previews, not shown on the page.
 - **`nav`** is the menu, in its order, with your wording. Adding a page does not
   change it — that is up to you.

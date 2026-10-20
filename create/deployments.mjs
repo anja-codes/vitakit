@@ -87,17 +87,17 @@ export const DEPLOYMENTS = {
     details: {
       URL: 'Your server’s URL, e.g. https://www.example.edu/~username/.',
       Needs: 'SSH/rsync access and a writable web directory; not SFTP-only hosting.',
-      CI: 'Forgejo Actions, not GitHub Actions.',
+      CI: 'GitHub Actions.',
     },
     setup: [
-      'Open .forgejo/workflows/deploy.yml.',
+      'Open .github/workflows/rsync.yml.',
       'Set the SSH user, host, destination path and NUXT_APP_BASE_URL.',
-      'Add SSH_DEPLOY_KEY as a Forgejo Actions repository secret.',
+      'Add SSH_DEPLOY_KEY as a GitHub Actions repository secret.',
       'Configure SSH host-key verification; the template currently disables it.',
       'Commit pnpm-lock.yaml and push to main.',
     ],
     notes: ['Check the destination: rsync --delete removes files absent from the build.'],
-    files: ['.forgejo/workflows/deploy.yml'],
+    files: ['.github/workflows/rsync.yml'],
   },
   'none': {
     label: 'Decide later / deploy manually',

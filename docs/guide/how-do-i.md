@@ -71,8 +71,10 @@ The `@theme` block at the top of `app/assets/css/main.css`.
 
 **… link slides or a PDF from an entry?**
 Put the file in `public/`, e.g. `public/slides/talk.pdf`, and write
-`slides: /slides/talk.pdf`. For the PDF to link it too, set `url` in
-`content/profile.yml`. [Field types](../content/field-types.md#web-addresses)
+`slides: /slides/talk.pdf`. The website shows a Slides link; the default PDF
+template for talks does not. If you change the template to show that link,
+also set your site's `url` in `content/profile.yml` so the PDF can link to
+its full address. [Field types](../content/field-types.md#web-addresses)
 
 **… change the citation style of the publication list?**
 Save a CSL style as `content/publications.csl`.

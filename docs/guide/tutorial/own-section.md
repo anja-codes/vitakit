@@ -112,7 +112,7 @@ Grants are now on `http://localhost:3000/cv/`.
 
 The draft is a starting point: the comments above fields say what it could
 not decide. Had Lena written `role: PI` in one entry and `role: Applicant` in the
-other three, it would suggest a fixed list:
+other, it would suggest a fixed list:
 
 ```ts
   // values so far: PI, Applicant; to allow only these: z.enum(['PI', 'Applicant'])
@@ -165,9 +165,11 @@ npx vitakit add section teaching --page /teaching/
 A page that shows sections is a small Vue file in `app/pages/` — the text from
 the Markdown file, then one line per section, as on the CV page. (Had the page
 not been in the menu yet, the command would have added it.) Teaching is
-now on both pages; to have it only on the teaching page, she deletes its line
-from `app/pages/cv.vue`. For a page that does not exist yet,
-`vitakit add page <name>` creates both files and the menu entry.
+now on both pages; Lena keeps it that way. If you want it only on the teaching
+page, remove its line from `app/pages/cv.vue`.
+
+For a page that does not exist yet, `vitakit add page <name>` creates both
+files and the menu entry.
 
 ## Where everything is
 
