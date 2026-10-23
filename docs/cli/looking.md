@@ -25,7 +25,9 @@ Sections                                    website   pdf
   talks         3 entries                   /cv/ /    cv
 ✖ teaching      3 entries, has problems     /cv/      cv
 
-Publications   content/publications.bib · 31 entries in 3 groups
+Publications   content/publications.bib · 31 entries
+                 all: 31 entries · /publications/, cv (pdf)
+                 recent: 3 entries · /
 Pages          /  /cv/  /publications/  /research/   (all in the menu)
 PDF            cv-tex/cv.tex → cv.pdf (older than its sources)
 
@@ -39,9 +41,13 @@ which PDF documents. **A section that appears nowhere is not a problem** — it
 may be meant for one application only, or not yet ready — and is shown as `–`.
 Problems are only what would make a build fail.
 
+For each [publication list](../content/publications.md#lists): how many
+publications it shows, and where, or "not shown anywhere".
+
 Where a section appears is read from your files: `<VitaSection id="talks">`
 and your own components with a literal `id`, `useSection('talks')`, and
-`\vitasection{talks}` lines. A page that chooses sections in code
+`\vitasection{talks}` lines; for a list, `<VitaPublications list="recent">` and
+`\vitapublications{recent}`. A page that chooses sections in code
 (`:id="section.id"`) cannot be read that way; such pages are listed, and their
 sections shown as `unknown` rather than absent.
 
@@ -81,9 +87,9 @@ talks
               …
 
   website   /cv/   app/pages/cv.vue:32      <VitaSection title="Talks">
-            /      app/pages/index.vue:10   useSection, in code
+            /      app/pages/index.vue:11   useSection, in code
 
-  pdf       cv   cv-tex/cv.tex:37  \vitasection[Selected talks]{talks}
+  pdf       cv   cv-tex/cv.tex:36  \vitasection[Selected talks]{talks}
                  template: vitakit's talks.eta
                  4 of 12 entries (where kind: invited −8)
 ```
@@ -145,6 +151,9 @@ reports all problems at once:
 
 - every file in `content/` against its schema, the profile, page settings
 - sections that pages or PDF documents include but that do not exist
+- publication lists: their settings, against `publications.bib` (a status, field
+  or citation key no publication has), and lists that pages or documents show but
+  that do not exist
 - `where` on pages and in `cv-tex/<document>.yml` against the section's fields
 - PDF templates: every included section is rendered in memory, so a template
   error shows up here rather than in the middle of a LaTeX run

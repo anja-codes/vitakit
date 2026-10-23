@@ -91,7 +91,7 @@ npx vitakit explain talks
 :::
 
 ```
-  pdf       cv   cv-tex/cv.tex:37  \vitasection[Selected talks]{talks}
+  pdf       cv   cv-tex/cv.tex:36  \vitasection[Selected talks]{talks}
                  template: vitakit's talks.eta
                  1 of 3 entries (where kind: invited −2)
 ```
