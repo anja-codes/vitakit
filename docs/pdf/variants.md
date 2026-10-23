@@ -27,7 +27,7 @@ the `.tex`:
 \newpage
 \tableofcontents                          % 2. table of contents
 \newpage
-\section{Publications}\vitainput{publications} % 3. publications
+\vitapublications[Publications]{all}      % 3. publications
 \input{prose/research-statement.tex}      % 4. research statement
 \vitasection[Courses taught]{teaching}    % 5. courses taught
 \vitasection{supervision}                 % 6. supervised theses

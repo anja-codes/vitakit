@@ -266,4 +266,14 @@ describe('project schemas', () => {
     const error = Object.assign(new TypeError('Unknown file extension ".ts"'), { code: 'ERR_UNKNOWN_FILE_EXTENSION' })
     expect(importFailure(error, '22.17.1')).toBe('cannot load TypeScript on Node 22.17.1; vitakit needs Node 22.18 or newer')
   })
+
+  // As Node reports them: the line and a caret in the stack, not in the message.
+  it('name the line of a syntax error, showing it, and of an error while running', () => {
+    const syntax = Object.assign(new SyntaxError('Expected \',\', got \'ident\''), {
+      stack: '/p/schemas/publications.ts:4\n  defaultStatus: \'published\'\n  fields: [],\n  ^^^^^^\n\nSyntaxError [ERR_INVALID_TYPESCRIPT_SYNTAX]: Expected \',\', got \'ident\'\n    at parseTypeScript (node:internal)',
+    })
+    expect(importFailure(syntax)).toBe('line 4: Expected \',\', got \'ident\' (often a comma missing before it)\n      defaultStatus: \'published\'\n      fields: [],\n      ^^^^^^')
+    const running = Object.assign(new ReferenceError('nope is not defined'), { stack: 'ReferenceError: nope is not defined\n    at file:///p/schemas/talks.ts?mtime=1:3:6\n    at ModuleJob.run' })
+    expect(importFailure(running)).toBe('line 3: nope is not defined')
+  })
 })

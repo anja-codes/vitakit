@@ -40,7 +40,7 @@ const cli: DefaultTheme.SidebarItem[] = [
       { text: "customize", link: "/cli/customize" },
       { text: "pdf, check, verify", link: "/cli/building" },
       { text: "eject", link: "/cli/eject" },
-      { text: "From vitakit 0.1", link: "/cli/migrating" },
+      { text: "Updating vitakit", link: "/cli/migrating" },
     ],
   },
 ];
@@ -50,10 +50,10 @@ const content: DefaultTheme.SidebarItem[] = [
     text: "Content",
     items: [
       { text: "The content folder", link: "/content/" },
+      { text: "Publications and lists", link: "/content/publications" },
       { text: "Field types", link: "/content/field-types" },
       { text: "Built-in sections", link: "/content/sections" },
       { text: "Profile and pages", link: "/content/profile-and-pages" },
-      { text: "Publications", link: "/content/publications" },
       { text: "Schemas", link: "/content/schemas" },
     ],
   },

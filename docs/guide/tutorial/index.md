@@ -10,7 +10,7 @@ example; use your own as you go.
 | [1. Create and run](./create.md) | a working site on your machine, and a tour of it |
 | [2. Make it yours](./make-it-yours.md) | your name, links, menu, and the text of your pages |
 | [3. Your CV entries](./entries.md) | employment, education, teaching, talks; what errors look like |
-| [4. Publications](./publications.md) | your BibTeX file, its groups and links |
+| [4. Publications](./publications.md) | your BibTeX file, and lists of it: the newest, all of them grouped, your selected papers |
 | [5. A section of your own](./own-section.md) | grants: a list vitakit does not know yet |
 | [6. Showing more](./showing-more.md) | a new field, on the website and in the PDF |
 | [7. The PDF](./pdf.md) | what goes into the CV, in which order, and a variant for one application |

@@ -62,6 +62,7 @@ lena-berger/
     talks.yml
     supervision.yml
     publications.bib      your publications
+    publication-lists.yml which of them are shown where
     pages/                the text of the website's pages
   app/                  the website: pages, layout, design
   cv-tex/               the PDF: cv.tex, its settings and styling
@@ -97,7 +98,9 @@ Sections                                    website   pdf
   talks         3 entries                   /cv/ /    cv
   teaching      3 entries                   /cv/      cv
 
-Publications   content/publications.bib · 3 entries in 3 groups
+Publications   content/publications.bib · 3 entries
+                 all: 3 entries · /publications/, cv (pdf)
+                 recent: 3 entries · /
 Pages          /  /cv/  /publications/  /research/   (all in the menu)
 PDF            cv-tex/cv.tex → not built yet
 
@@ -109,6 +112,8 @@ of the website it appears and in which PDF documents. `talks` is on the CV page
 (`/cv/`) and on the home page (`/`), where the three latest talks are listed.
 One employment entry is marked `cv`: it is in the PDF, but not on the website —
 more on that in [chapter 3](./entries.md).
+The publications are shown as two lists: `all` on the publications page and in
+the PDF, `recent` on the home page — [chapter 4](./publications.md) is about them.
 
 Run `pnpm vitakit` on its own for the list of commands; you will meet most of
 them in this tutorial.

@@ -52,7 +52,18 @@ export function importFailure(error: unknown, node: string = process.versions.no
   if ((error as { code?: string } | null)?.code === 'ERR_UNKNOWN_FILE_EXTENSION') {
     return `cannot load TypeScript on Node ${node}; vitakit needs Node 22.18 or newer`
   }
-  return messageOf(error)
+  const message = messageOf(error)
+  const stack = error instanceof Error ? error.stack ?? '' : ''
+  // A syntax error's stack starts with `<file>:<line>`, the code there and a
+  // caret under the spot; Node's message alone names neither.
+  const syntax = /^[^\n]*:(\d+)\n((?:[^\n]*\n)*?[ \t]*\^+)[ \t]*\n/.exec(stack)
+  if (syntax) {
+    const hint = /^Expected ','/.test(message) ? ' (often a comma missing before it)' : ''
+    return `line ${syntax[1]}: ${message}${hint}\n${syntax[2]!.split('\n').map(line => `    ${line}`).join('\n')}`
+  }
+  // Any other error: the first place in a project .ts file it came from.
+  const line = /\.ts(?:\?[^:\s)]*)?:(\d+):\d+/.exec(stack)?.[1]
+  return line ? `line ${line}: ${message}` : message
 }
 
 /** Compact rendering of a Zod error, one line per problem. */

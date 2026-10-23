@@ -22,10 +22,11 @@ import type { Renderer } from './render'
 import type { Entry, Visibility } from './shared/types'
 
 /**
- * File names in `content/` that are not sections. `profile.yml` is the profile;
- * `site` is kept free for site-wide settings.
+ * File names in `content/` that are not sections. `profile.yml` is the profile,
+ * `publication-lists.yml` the publication lists; `site` is kept free for
+ * site-wide settings.
  */
-export const RESERVED_SECTION_NAMES: ReadonlySet<string> = new Set(['site', 'profile'])
+export const RESERVED_SECTION_NAMES: ReadonlySet<string> = new Set(['site', 'profile', 'publication-lists'])
 
 /** Section names are file names: lowercase kebab-case. */
 export const SECTION_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

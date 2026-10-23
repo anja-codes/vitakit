@@ -1,6 +1,6 @@
 # add
 
-`add` creates what is missing — a section, a field, a page — and shows every
+`add` creates what is missing — a section, a field, a page, a publication list — and shows every
 change before it makes it. Running it again only adds what is still missing.
 
 ## add section
@@ -144,3 +144,108 @@ title and text, `app/pages/talks.vue` for its sections, and an entry in the menu
 in `content/profile.yml` (`--no-menu` leaves the menu alone). A page that is
 only text needs no command: it is one Markdown file in `content/pages/`. See
 [pages and routes](../website/index.md).
+
+## add publication-list
+
+A [publication list](../content/publications.md#lists) says which of your
+publications to show — the newest, the preprints, your selected papers — and
+`add publication-list` declares one and shows it on a website page or in a PDF.
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add publication-list preprints
+```
+
+```bash [npm]
+npx vitakit add publication-list preprints
+```
+
+:::
+
+Without options, it asks, in this order:
+
+```
+Which publications?
+  1  all of them   (Enter)
+  2  only some statuses
+> 2
+Which, separated by commas (published, accepted, preprint, software, other): preprint, accepted
+How many at most? (Enter for all):
+In what order?
+  1  newest first   (Enter)
+  2  oldest first
+  3  by title
+  4  as in publications.bib
+>
+In groups, each with a heading?
+  1  no, one list   (Enter)
+  2  by status (Published, Preprints, …)
+  3  by year
+>
+Show preprints on which page of your website?
+  1  /  (app/pages/index.vue)
+  2  /cv/  (app/pages/cv.vue)
+  3  /publications/  (app/pages/publications.vue)   (Enter)
+  4  not on the website, for now
+>
+Include preprints in the PDF cv-tex/cv.tex? [y/N]
+Heading [Preprints]:
+```
+
+and then shows what it will write — the list, at the end of
+`content/publication-lists.yml`, and one line on the page, after the last
+section or list there:
+
+```
+~ content/publication-lists.yml   declares the list preprints
+  + preprints:
+  +   where: { status: [preprint, accepted] }
+~ app/pages/publications.vue   shows the list preprints after all
+        <VitaPublications list="all" class="mt-8" />
+  +     <VitaPublications list="preprints" title="Preprints" />
+
+Write these changes? [Y/n]
+```
+
+The same in one line, without questions:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit add publication-list preprints --where status=preprint --where status=accepted --page /publications/ --yes
+```
+
+```bash [npm]
+npx vitakit add publication-list preprints --where status=preprint --where status=accepted --page /publications/ --yes
+```
+
+:::
+
+The questions cover the common cases. A list can do more — pick papers by a
+keyword or by citation key, group by year — with the options below, or by adding
+a line to the list in `content/publication-lists.yml` afterwards; every setting
+is described in [lists](../content/publications.md#settings).
+
+**The list exists already?** Then the command only shows it somewhere else, e.g.
+`add publication-list recent --document cv`. It does not change a list: to
+change what a list shows, edit it in `content/publication-lists.yml` — the
+command tells you on which line, if you try.
+
+**Checked before writing.** A status that does not exist, or a field that no
+publication has (`--where keywrds=selected`), is refused; a list that matches no
+publication yet is pointed out before anything is written. Afterwards, `vitakit explain <list>` shows which publications it
+contains, and which setting left the others out.
+
+| Option | |
+|---|---|
+| `--where <field=value>` | only publications with this value: `status=preprint`, `keywords=selected`, `year=2024`. Repeat it for several values of a field (any of them) or several fields (all of them) |
+| `--since <year>`, `--until <year>` | only publications from these years |
+| `--sort <by>` | `date` (newest first, the default), `year`, `title`, `source` (as in `publications.bib`), or a BibTeX field |
+| `--order <asc\|desc>` | turn the order around |
+| `--group-by <by>` | a heading per `status`, per `year`, or per value of a BibTeX field |
+| `--limit <count>` | at most this many |
+| `--page <route>` | show it on this page, e.g. `/publications/` |
+| `--document <name>` | show it in this PDF document, e.g. `cv` |
+| `--after <name>` | after this section or list, on the page and in the document |
+| `--title <text>` | its heading; the list's name by default, `--title ""` for none |

@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url'
 import type { Nuxt } from '@nuxt/schema'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import vitakit from '../src/nuxt'
+import { project } from './support/project'
 
 const mocks = vi.hoisted(() => ({
-  loadContent: vi.fn(async () => ({ pages: [{ route: '/research/' }], issues: [] })),
+  loadContent: vi.fn(async () => ({ pages: [{ route: '/research/' }], publications: {}, issues: [] })),
   addPrerenderRoutes: vi.fn(),
   updateTemplates: vi.fn(async () => {}),
 }))
@@ -64,6 +65,12 @@ describe('loading content', () => {
     expect(mocks.addPrerenderRoutes).toHaveBeenCalledWith(['/research/'])
     expect([...app.hooks.keys()]).toEqual([])
     expect(app.nuxt.options.watch).toEqual([])
+  })
+
+  it('fails a build whose pages show a publication list that does not exist', async () => {
+    const root = await project({ 'app/pages/index.vue': '<template>\n  <VitaPublications list="recnet" />\n</template>\n' })
+    mocks.loadContent.mockResolvedValueOnce({ pages: [], publications: { recent: { count: 0, groups: [] } }, issues: [] } as never)
+    await expect(setup({ rootDir: root, dev: false })).rejects.toThrow(/app\/pages\/index\.vue:2: no publication list "recnet"; the lists are recent/)
   })
 
   it('is lenient in development, and reloads in place when content/ or schemas/ change', async () => {

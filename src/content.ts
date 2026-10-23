@@ -9,10 +9,12 @@ import { parse as parseYaml } from 'yaml'
 import { createRenderer, prefixRootRelative, type Renderer } from './render'
 import { absoluteSitePath, resolveSitePaths } from './site-paths'
 import { loadPublications, loadPublicationsSchema } from './bibliography'
+import { LISTS_FILE, loadPublicationLists, publicationListNames, type PublicationListOptions } from './publication-lists'
+import type { PublicationsSchema } from './publications'
 import { findSectionFiles, loadSection, resolveSectionSchema } from './sections'
 import { page as pageSchema, profile as profileSchema } from './schemas'
 import { fail, formatZodIssues, Issues, messageOf, whereOf } from './issues'
-import type { Entry, Page, Profile, PublicationGroup, VitakitContent, Visibility } from './shared/types'
+import type { Entry, Page, Profile, PublicationList, VitakitContent, Visibility } from './shared/types'
 
 export interface LoadContentOptions {
   /** Throw on the first problem (builds) or collect them (dev). */
@@ -161,6 +163,17 @@ async function loadSections(
   return sections
 }
 
+async function loadPublicationContent(rootDir: string, renderer: Renderer, baseURL: string, issues: Issues): Promise<Record<string, PublicationList>> {
+  // A broken file empties the lists rather than removing them, so that pages
+  // showing them still work while it is being fixed.
+  const empty = (names: string[]) => Object.fromEntries(names.map(name => [name, { count: 0, groups: [] }]))
+  const schema = await issues.attempt<PublicationsSchema | undefined>('schemas/publications.ts', () => loadPublicationsSchema(rootDir), undefined)
+  // Without its statuses, the lists and the .bib file would only report follow-up errors.
+  if (!schema) return empty(await publicationListNames(rootDir))
+  const lists = await issues.attempt<Record<string, PublicationListOptions>>(LISTS_FILE, () => loadPublicationLists(rootDir, schema), {})
+  return issues.attempt('content/publications.bib', () => loadPublications(join(rootDir, 'content', 'publications.bib'), renderer, schema, lists, baseURL, issues), empty(Object.keys(lists)))
+}
+
 export async function loadContent(rootDir: string, options: LoadContentOptions = {}): Promise<VitakitContent> {
   const strict = options.strict ?? true
   const baseURL = options.baseURL ?? '/'
@@ -178,16 +191,7 @@ export async function loadContent(rootDir: string, options: LoadContentOptions =
   const [pages, sections, publications] = await Promise.all([
     loadPages(contentDir, renderer, issues),
     loadSections(rootDir, maxVisibility, renderer, resolvePath, issues),
-    issues.attempt<PublicationGroup[]>(
-      'content/publications.bib',
-      async () => {
-        const bib = join(contentDir, 'publications.bib')
-        const present = await readFile(bib, 'utf8').then(() => true, () => false)
-        if (!present) return []
-        return loadPublications(bib, renderer, await loadPublicationsSchema(rootDir), baseURL)
-      },
-      [],
-    ),
+    loadPublicationContent(rootDir, renderer, baseURL, issues),
   ])
 
   return { profile, pages, sections, publications, issues: issues.list }

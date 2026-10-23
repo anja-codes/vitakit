@@ -99,7 +99,7 @@ Lena has not supervised anyone yet, so she deletes `content/supervision.yml`.
 the CV page and the PDF still mention it. `vitakit validate` says so:
 
 ```
-✖ cv-tex/cv.tex:36
+✖ cv-tex/cv.tex:35
     no section called "supervision"
 ✖ app/pages/cv.vue:31
     no section called "supervision" (no content/supervision.yml)

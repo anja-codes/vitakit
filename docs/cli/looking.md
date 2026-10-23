@@ -25,7 +25,9 @@ Sections                                    website   pdf
   talks         3 entries                   /cv/ /    cv
 ✖ teaching      3 entries, has problems     /cv/      cv
 
-Publications   content/publications.bib · 31 entries in 3 groups
+Publications   content/publications.bib · 31 entries
+                 all: 31 entries · /publications/, cv (pdf)
+                 recent: 3 entries · /
 Pages          /  /cv/  /publications/  /research/   (all in the menu)
 PDF            cv-tex/cv.tex → cv.pdf (older than its sources)
 
@@ -39,9 +41,13 @@ which PDF documents. **A section that appears nowhere is not a problem** — it
 may be meant for one application only, or not yet ready — and is shown as `–`.
 Problems are only what would make a build fail.
 
+For each [publication list](../content/publications.md#lists): how many
+publications it shows, and where, or "not shown anywhere".
+
 Where a section appears is read from your files: `<VitaSection id="talks">`
 and your own components with a literal `id`, `useSection('talks')`, and
-`\vitasection{talks}` lines. A page that chooses sections in code
+`\vitasection{talks}` lines; for a list, `<VitaPublications list="recent">` and
+`\vitapublications{recent}`. A page that chooses sections in code
 (`:id="section.id"`) cannot be read that way; such pages are listed, and their
 sections shown as `unknown` rather than absent.
 
@@ -53,15 +59,19 @@ JSON object.
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit explain talks     # a section
-pnpm vitakit explain cv        # a PDF document
-pnpm vitakit explain /cv/      # a website page
+pnpm vitakit explain talks          # a section
+pnpm vitakit explain cv             # a PDF document
+pnpm vitakit explain /cv/           # a website page
+pnpm vitakit explain recent         # a publication list
+pnpm vitakit explain publications   # all publication lists
 ```
 
 ```bash [npm]
-npx vitakit explain talks     # a section
-npx vitakit explain cv        # a PDF document
-npx vitakit explain /cv/      # a website page
+npx vitakit explain talks          # a section
+npx vitakit explain cv             # a PDF document
+npx vitakit explain /cv/           # a website page
+npx vitakit explain recent         # a publication list
+npx vitakit explain publications   # all publication lists
 ```
 
 :::
@@ -77,9 +87,9 @@ talks
               …
 
   website   /cv/   app/pages/cv.vue:32      <VitaSection title="Talks">
-            /      app/pages/index.vue:10   useSection, in code
+            /      app/pages/index.vue:11   useSection, in code
 
-  pdf       cv   cv-tex/cv.tex:37  \vitasection[Selected talks]{talks}
+  pdf       cv   cv-tex/cv.tex:36  \vitasection[Selected talks]{talks}
                  template: vitakit's talks.eta
                  4 of 12 entries (where kind: invited −8)
 ```
@@ -91,7 +101,34 @@ For a section: its file, the fields its schema accepts, every place it appears,
 and for each PDF document the template used and which entries are selected —
 with the setting that removed the others. That is the answer to *"why is this
 talk not in my PDF?"*. For a document: what it includes, in order, with counts.
-For a page: the files behind the route and the sections on it.
+For a page: the files behind the route and the sections and publication lists on
+it. For `publications`: each [list](../content/publications.md#lists), what it
+shows in words (`newest first · at most 3`), how many entries, and where. For one
+list, by its name: which setting left out how many publications, and the citation
+keys of those it shows.
+
+A name is enough while it is unique. To say what it is, put its kind first, as
+`add` does — `section`, `document`, `publication-list` or `page`:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit explain section talks
+pnpm vitakit explain publication-list talks
+pnpm vitakit explain page cv          # the same as /cv/
+```
+
+```bash [npm]
+npx vitakit explain section talks
+npx vitakit explain publication-list talks
+npx vitakit explain page cv          # the same as /cv/
+```
+
+:::
+
+When a section, a PDF document and a publication list share a name, `explain`
+with the name alone lists these commands for each of them, to choose from. In
+scripts, the kind makes the command mean the same however the project grows.
 
 ## `vitakit validate`
 
@@ -114,6 +151,9 @@ reports all problems at once:
 
 - every file in `content/` against its schema, the profile, page settings
 - sections that pages or PDF documents include but that do not exist
+- publication lists: their settings, against `publications.bib` (a status, field
+  or citation key no publication has), and lists that pages or documents show but
+  that do not exist
 - `where` on pages and in `cv-tex/<document>.yml` against the section's fields
 - PDF templates: every included section is rendered in memory, so a template
   error shows up here rather than in the middle of a LaTeX run

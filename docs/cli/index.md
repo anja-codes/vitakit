@@ -14,15 +14,17 @@ website and the PDF build:
 | Command | Does |
 |---|---|
 | [`vitakit status`](./looking.md#vitakit-status) | what is in this project, what is broken, where sections appear |
-| [`vitakit explain <name>`](./looking.md#vitakit-explain-name) | where a section, PDF document or page comes from, and where it goes |
+| [`vitakit explain <name>`](./looking.md#vitakit-explain-name) | where a section, publication list, PDF document or page comes from, and where it goes |
 | [`vitakit validate`](./looking.md#vitakit-validate) | check everything a build would check, without building |
 | [`vitakit add section <name>`](./add.md#add-section) | a section: its file, a schema drafted from your entries, its place on a page and in a PDF |
 | [`vitakit add field <section> <name>`](./add.md#add-field) | one more field a section accepts |
 | [`vitakit add page <name>`](./add.md#add-page) | a website page that can show sections, in the menu |
+| [`vitakit add publication-list <name>`](./add.md#add-publication-list) | which publications a list shows, and its place on a page and in a PDF |
 | [`vitakit customize <section>`](./customize.md) | make one section yours: how it looks on the website and in the PDF, what it may contain |
 | [`vitakit pdf`](./building.md#pdf) | build the PDF documents (what the `pdf` script runs) |
 | [`vitakit verify`](./building.md#check-and-vitakit-verify) | check the generated website (the last step of `check`) |
 | [`vitakit eject <file>`](./eject.md) | take over a file vitakit shares between all sections (advanced) |
+| [`vitakit migrate`](./migrating.md) | after updating vitakit, change what it no longer supports in your files |
 
 Run `vitakit` on its own for the list, and any command with `--help` for its
 options and examples.

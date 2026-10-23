@@ -1,6 +1,6 @@
 import type { CommandSpec } from '../command'
 import { table } from '../io'
-import { countsText, firstLine, pdfCell, pdfPlacementsOf, webCell, webPlacementsOf } from '../describe'
+import { countsText, firstLine, listPlacementsText, pdfCell, pdfPlacementsOf, webCell, webPlacementsOf } from '../describe'
 
 export const status: CommandSpec = {
   name: 'status',
@@ -18,6 +18,7 @@ Reads your files only: no website build, no LaTeX. Entry contents are never
 printed, only how many there are.
 
 Next: \`${run.bin('vitakit', 'explain <section>')}\` for the details of one section,
+\`${run.bin('vitakit', 'explain publications')}\` for the publication lists,
 \`${run.bin('vitakit', 'validate')}\` to check everything before building.`,
 
   async run({ io, style, run, root, json }) {
@@ -69,7 +70,11 @@ Next: \`${run.bin('vitakit', 'explain <section>')}\` for the details of one sect
 
     const facts: string[][] = []
     if (inv.publications) {
-      facts.push([style.bold('Publications'), `${inv.publications.file} · ${inv.publications.entries} entries in ${inv.publications.groups} groups`])
+      const { counts } = inv.publications
+      facts.push([style.bold('Publications'), `${inv.publications.file} · ${inv.publications.entries} entries${Object.keys(counts).length ? '' : ' · no lists yet (content/publication-lists.yml)'}`])
+      for (const [name, count] of Object.entries(counts)) {
+        facts.push(['', `  ${name}: ${count} ${count === 1 ? 'entry' : 'entries'} · ${listPlacementsText(inv, name)}`])
+      }
     }
     const pages = inv.pages.filter(page => page.markdown || page.vue)
     if (pages.length) {

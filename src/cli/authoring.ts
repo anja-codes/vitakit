@@ -7,8 +7,8 @@ import type { z } from 'zod'
 import type { FieldDescription, FieldType } from '../fields'
 import type { Inventory, SectionInventory } from '../inventory'
 import { addSchemaField, ensurePackageImports, propertyKey } from '../edit/typescript'
-import { addSectionToDocument, vitasectionLine } from '../edit/tex'
-import { addSectionToPage, sectionElementSource } from '../edit/vue'
+import { addPublicationsToDocument, addSectionToDocument, vitapublicationsLine, vitasectionLine } from '../edit/tex'
+import { addPublicationsToPage, addSectionToPage, publicationsElementSource, sectionElementSource } from '../edit/vue'
 import { addNavItem, yamlScalar } from '../edit/yaml'
 import { CommandError } from './command'
 import type { Workspace } from './plan'
@@ -260,6 +260,27 @@ export async function planPlaceInDocument(ws: Workspace, document: string, place
   } else {
     ws.paste(path, vitasectionLine(placement.id, placement.title), `cannot be changed safely (${result.reason}); add this line where the section should appear`)
   }
+}
+
+/** Show a publication list on a page. */
+export async function planListOnPage(ws: Workspace, inv: Inventory, path: string, placement: { list: string, title?: string, after?: string }): Promise<void> {
+  const source = await ws.read(path)
+  if (source === undefined) throw new CommandError(`${path} does not exist`)
+  const result = addPublicationsToPage(source, placement, inv.web.components.keys())
+  if (result.ok) await ws.edit(path, result.value.source, `shows the list ${placement.list}${result.value.afterSection ? ` after ${result.value.afterSection}` : ''}`)
+  else if (result.reason.startsWith('it already shows')) ws.keep(path, `already shows the list ${placement.list}`)
+  else ws.paste(path, publicationsElementSource(placement.list, placement.title), `cannot be changed safely (${result.reason}); add this line where the list should appear`)
+}
+
+/** Include a publication list in a PDF document. */
+export async function planListInDocument(ws: Workspace, document: string, placement: Placement): Promise<void> {
+  const path = `cv-tex/${document}.tex`
+  const source = await ws.read(path)
+  if (source === undefined) throw new CommandError(`${path} does not exist`)
+  const result = addPublicationsToDocument(source, { id: placement.id, ...(placement.title ? { heading: placement.title } : {}), ...(placement.after ? { after: placement.after } : {}) })
+  if (result.ok) await ws.edit(path, result.value.source, `includes the list ${placement.id}${result.value.afterSection ? ` after ${result.value.afterSection}` : ''}`)
+  else if (result.reason.startsWith('it already includes')) ws.keep(path, `already includes the list ${placement.id}`)
+  else ws.paste(path, vitapublicationsLine(placement.id, placement.title), `cannot be changed safely (${result.reason}); add this line where the list should appear`)
 }
 
 // Pages ---------------------------------------------------------------------

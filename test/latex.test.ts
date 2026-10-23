@@ -29,6 +29,7 @@ const CONTENT = {
 async function scaffolded(files: Record<string, string> = {}) {
   const root = await project({ ...CONTENT })
   await cp(join(ROOT, 'create/template/cv-tex'), join(root, 'cv-tex'), { recursive: true })
+  await cp(join(ROOT, 'create/template/content/publication-lists.yml'), join(root, 'content/publication-lists.yml'))
   await writeFiles(root, files)
   return root
 }
@@ -58,6 +59,20 @@ describe.skipIf(!hasCommand('latexmk') || !hasCommand('pdftotext'))('latexmk', {
     expect(text.indexOf('A preprint')).toBeGreaterThan(preprints)
     expect(preprints).toBeGreaterThan(published)
     expect(text.replace(/ /g, '')).toContain('https://jane.example.org/site/papers/local.pdf')
+  })
+
+  it('prints a publication list in its own order, and neither an empty list nor its heading', async () => {
+    const root = await scaffolded({
+      'content/publication-lists.yml': 'titles: { sort: title, order: desc }\nnone: { where: { status: software } }\n',
+      'cv-tex/cv.tex': (await readFile(join(ROOT, 'create/template/cv-tex/cv.tex'), 'utf8'))
+        .replace('\\vitapublications[Publications]{all}', '\\vitapublications[By title]{titles}\n\\vitapublications[Software]{none}'),
+    })
+    const text = pdfText((await buildCv({ rootDir: root }))[0]!)
+    // Z to A by title; biblatex alone would sort by year.
+    const order = ['Without a status', 'With a capitalised status', 'A preprint'].map(title => text.indexOf(title))
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    expect(order[0]).toBeGreaterThan(text.indexOf('By title'))
+    expect(text).not.toContain('Software')
   })
 
   // Names, places and titles are not all in pdfLaTeX's default font encoding.

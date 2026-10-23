@@ -95,11 +95,13 @@ existing schema is never replaced. See [schemas](../content/schemas.md).
 
 ## Publications
 
-Publications are shown by `VitaPublications` and `VitaPublication`; to change
-those, `vitakit eject VitaPublication` (see [publications on the
-website](../website/publications.md)). Their PDF template (`--pdf`) groups the
-references; each one is formatted by biblatex (see
-[bibliography](../pdf/bibliography.md)).
+Which publications are shown, in what order and in which groups, is set in
+`content/publication-lists.yml` ([lists](../content/publications.md#lists));
+`vitakit customize publications` writes their statuses, badges and fields. They
+are shown by `VitaPublications` and `VitaPublication`; to change those, `vitakit
+eject VitaPublication` (see [publications on the website](../website/publications.md)).
+Their PDF template (`--pdf`) prints a list's groups; each reference is formatted by
+biblatex (see [bibliography](../pdf/bibliography.md)).
 
 ## Options
 

@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import type { FieldDescription, FieldType } from '../../fields'
 import type { Inventory, SectionInventory } from '../../inventory'
 import { CommandError, UsageError, type CommandContext, type CommandSpec, type ParsedArgs } from '../command'
@@ -9,6 +10,8 @@ type Values = ParsedArgs['values']
 const SECTION_OPTIONS = ['page', 'document', 'title', 'after', 'like']
 const FIELD_OPTIONS = ['type', 'several', 'required', 'choice']
 const PAGE_OPTIONS = ['title', 'no-menu']
+const SELECTION_OPTIONS = ['where', 'since', 'until', 'sort', 'order', 'group-by', 'limit']
+const LIST_OPTIONS = ['page', 'document', 'title', 'after', ...SELECTION_OPTIONS]
 const COMMON = ['help', 'root', 'no-color', 'dry-run', 'yes']
 
 function onlyOptions(kind: string, values: Values, allowed: string[]): void {
@@ -65,7 +68,7 @@ async function addSection(context: CommandContext, id: string, values: Values): 
   const { sectionNameProblem } = await import('../../sections')
   const problem = sectionNameProblem(id)
   if (problem) throw new CommandError(problem)
-  if (id === 'publications') throw new CommandError('publications come from content/publications.bib; `vitakit customize publications` changes their groups')
+  if (id === 'publications') throw new CommandError(`publications come from content/publications.bib; to show some of them, \`${run.bin('vitakit', 'add publication-list <name>')}\` declares a list`)
 
   const { inventory } = await import('../../inventory')
   const { Workspace } = await import('../plan')
@@ -263,6 +266,152 @@ async function addField(context: CommandContext, id: string, name: string, value
   return finish(context, ws, values, { before, after })
 }
 
+// add publication-list ------------------------------------------------------
+
+/** A list's settings from flags, as they are written to the YAML file. */
+function listSettings(values: Values): Record<string, unknown> {
+  const number = (name: string) => {
+    if (values[name] === undefined) return undefined
+    const value = Number(values[name])
+    if (!Number.isInteger(value)) throw new UsageError(`--${name} must be a whole number`, 'add')
+    return value
+  }
+  const where: Record<string, string | string[]> = {}
+  for (const expression of strings(values.where)) {
+    const equals = expression.indexOf('=')
+    const field = expression.slice(0, equals).trim()
+    const value = expression.slice(equals + 1).trim()
+    if (equals === -1 || !field || !value) throw new UsageError(`--where ${expression}: use field=value, e.g. status=preprint`, 'add')
+    const current = where[field]
+    where[field] = current === undefined ? value : [current].flat().concat(value)
+  }
+  return {
+    ...(Object.keys(where).length ? { where } : {}),
+    since: number('since'),
+    until: number('until'),
+    sort: values.sort,
+    order: values.order,
+    limit: number('limit'),
+    groupBy: values['group-by'],
+  }
+}
+
+/** The questions behind the selection flags, in words. */
+async function askListSettings(context: CommandContext, statuses: string[]): Promise<Record<string, unknown>> {
+  const prompt = await import('../prompt')
+  const { io } = context
+  const settings: Record<string, unknown> = {}
+  if (await prompt.choose(io, 'Which publications?', [{ label: 'all of them', value: false }, { label: 'only some statuses', value: true }])) {
+    const answer = await prompt.input(io, `Which, separated by commas (${statuses.join(', ')})`)
+    const chosen = answer.split(',').map(status => status.trim()).filter(Boolean)
+    if (chosen.length) settings.where = { status: chosen.length === 1 ? chosen[0] : chosen }
+  }
+  const limit = await prompt.input(io, 'How many at most? (Enter for all)')
+  if (limit) settings.limit = Number(limit)
+  const order = await prompt.choose(io, 'In what order?', [
+    { label: 'newest first', value: {} },
+    { label: 'oldest first', value: { order: 'asc' } },
+    { label: 'by title', value: { sort: 'title' } },
+    { label: 'as in publications.bib', value: { sort: 'source' } },
+  ])
+  Object.assign(settings, order)
+  const groupBy = await prompt.choose(io, 'In groups, each with a heading?', [
+    { label: 'no, one list', value: undefined },
+    { label: 'by status (Published, Preprints, …)', value: 'status' },
+    { label: 'by year', value: 'year' },
+  ])
+  if (groupBy) settings.groupBy = groupBy
+  return settings
+}
+
+async function addPublicationList(context: CommandContext, name: string, values: Values): Promise<number> {
+  const { io, run, root } = context
+  const { inventory } = await import('../../inventory')
+  const { Workspace } = await import('../plan')
+  const { loadPublicationsSchema } = await import('../../bibliography')
+  const { LISTS_FILE, LISTS_HEADER, resolveList } = await import('../../publication-lists')
+  const { addPublicationList: addToFile, publicationListLine } = await import('../../edit/yaml')
+  const authoring = await import('../authoring')
+  const prompt = await import('../prompt')
+
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) throw new CommandError(`"${name}" must be lowercase kebab-case, e.g. recent-papers`)
+  const inv = await inventory(root)
+  const ws = new Workspace(root)
+  const interactive = asking(context, values)
+  const selecting = SELECTION_OPTIONS.some(option => values[option] !== undefined)
+  const notes: string[] = []
+
+  // The list
+  const source = (await ws.read(LISTS_FILE)) ?? ''
+  const line = publicationListLine(source, name)
+  const exists = line !== undefined
+  if (exists) {
+    if (selecting) throw new CommandError(`${LISTS_FILE}:${line} declares ${name} already; change its settings there. Without selection options, this command only shows it somewhere else.`)
+    ws.keep(LISTS_FILE, `the list ${name}, as it is`)
+  } else {
+    const schema = await loadPublicationsSchema(root)
+    const settings = selecting || !interactive ? listSettings(values) : await askListSettings(context, schema.statuses.map(status => status.id))
+    // Checked against the .bib file too, so that a misspelt field is found now.
+    const { readBibliography } = await import('../../bibliography')
+    const { selectPublications } = await import('../../publication-lists')
+    let empty: boolean
+    try {
+      const list = resolveList(name, Object.fromEntries(Object.entries(settings).filter(([, value]) => value !== undefined)), schema)
+      empty = !selectPublications(await readBibliography(join(root, 'content', 'publications.bib'), schema), name, list, schema).length
+    } catch (error) {
+      throw new CommandError(error instanceof Error ? error.message : String(error))
+    }
+    if (empty) notes.push(`No publication matches ${name} yet, so it shows nothing for now; check its settings if that is a surprise.`)
+    const result = addToFile(source || LISTS_HEADER, name, settings)
+    if (!result.ok) throw new CommandError(`${LISTS_FILE} ${result.reason}`)
+    if (source) await ws.edit(LISTS_FILE, result.value, `declares the list ${name}`)
+    else ws.create(LISTS_FILE, result.value, `declares the list ${name}`, { show: true })
+  }
+
+  // Where it appears
+  const after = values.after as string | undefined
+  const pages = strings(values.page).map(route => route.endsWith('/') ? route : `${route}/`)
+  const documents = strings(values.document)
+  let title = values.title as string | undefined
+  if (interactive && !pages.length && !documents.length) {
+    const shownOn = new Set(inv.web.publications.filter(placement => placement.list === name).map(placement => placement.route))
+    const choices = [
+      ...inv.pages.filter(page => page.vue && !shownOn.has(page.route)).map(page => ({ label: `${page.route}  (${page.vue})`, value: page.route })),
+      { label: 'not on the website, for now', value: '' },
+    ]
+    const route = await prompt.choose(io, `Show ${name} on which page of your website?`, choices, Math.max(0, choices.findIndex(choice => choice.value === '/publications/')))
+    if (route) pages.push(route)
+    for (const document of inv.documents.filter(candidate => !candidate.publications.some(placement => placement.list === name))) {
+      if (await prompt.confirm(io, `\nInclude ${name} in the PDF ${document.tex}?`, false)) documents.push(document.name)
+    }
+    if ((pages.length || documents.length) && title === undefined) title = await prompt.input(io, '\nHeading', prompt.headingFor(name))
+  }
+  // A heading by default, as for a section: in a PDF, a list without one would read as part of the section before it.
+  title ??= prompt.headingFor(name)
+  for (const route of pages) {
+    const path = inv.pages.find(page => page.route === route)?.vue
+    if (!path) throw new CommandError(`--page ${route}: no Vue page has this route; \`${run.bin('vitakit', 'add page <name>')}\` creates one`)
+    await authoring.planListOnPage(ws, inv, path, { list: name, ...(title ? { title } : {}), ...(after ? { after } : {}) })
+  }
+  for (const document of documents) {
+    if (!inv.documents.some(candidate => candidate.name === document)) {
+      throw new CommandError(`--document ${document}: no cv-tex/${document}.tex; the documents are ${inv.documents.map(candidate => candidate.name).join(', ') || '(none)'}`)
+    }
+    await authoring.planListInDocument(ws, document, { id: name, ...(title ? { title } : {}), ...(after ? { after } : {}) })
+  }
+
+  if (!pages.length && !documents.length && !exists) {
+    notes.push(`Not shown anywhere yet: \`${run.bin('vitakit', `add publication-list ${name} --page /publications/`)}\` or \`--document cv\` adds it later.`)
+  }
+  return finish(context, ws, values, {
+    before: notes,
+    after: [
+      `Which publications the list ${name} shows is set in ${LISTS_FILE}.`,
+      `\`${run.bin('vitakit', `explain ${name}`)}\` shows which ones it contains, and why.`,
+    ],
+  })
+}
+
 // add page ------------------------------------------------------------------
 
 async function addPage(context: CommandContext, name: string, values: Values): Promise<number> {
@@ -290,13 +439,20 @@ async function addPage(context: CommandContext, name: string, values: Values): P
 
 export const add: CommandSpec = {
   name: 'add',
-  summary: 'add a section, a field of a section, or a website page',
+  summary: 'add a section, a field of a section, a website page, or a publication list',
   positionals: [{ name: 'what', required: true }, { name: 'name' }, { name: 'field' }],
   options: {
-    'page': { type: 'string', multiple: true, value: '<route>', description: 'section: show it on this page, e.g. /cv/ (repeatable)' },
-    'document': { type: 'string', multiple: true, value: '<name>', description: 'section: include it in this PDF document, e.g. cv (repeatable)' },
-    'after': { type: 'string', value: '<section>', description: 'section: place it after this section' },
-    'title': { type: 'string', value: '<text>', description: 'section: its heading; page: its title' },
+    'page': { type: 'string', multiple: true, value: '<route>', description: 'section, publication-list: show it on this page, e.g. /cv/ (repeatable)' },
+    'document': { type: 'string', multiple: true, value: '<name>', description: 'section, publication-list: include it in this PDF document, e.g. cv (repeatable)' },
+    'after': { type: 'string', value: '<name>', description: 'section, publication-list: place it after this section or list' },
+    'title': { type: 'string', value: '<text>', description: 'section, publication-list: its heading; page: its title' },
+    'where': { type: 'string', multiple: true, value: '<field=value>', description: 'publication-list: only entries with this value, e.g. status=preprint (repeatable)' },
+    'since': { type: 'string', value: '<year>', description: 'publication-list: only entries from this year on' },
+    'until': { type: 'string', value: '<year>', description: 'publication-list: only entries up to this year' },
+    'sort': { type: 'string', value: '<by>', description: 'publication-list: date (default), year, title, source or a field' },
+    'order': { type: 'string', value: '<asc|desc>', description: 'publication-list: sort direction' },
+    'group-by': { type: 'string', value: '<by>', description: 'publication-list: status, year or a field' },
+    'limit': { type: 'string', value: '<count>', description: 'publication-list: at most this many' },
     'like': { type: 'string', value: '<section>', description: 'section: use the schema of another section' },
     'type': { type: 'string', value: '<type>', description: 'field: text, formatted-text, number, yes-no, date, web-address, link or choice' },
     'several': { type: 'boolean', description: 'field: an entry may have a list of values' },
@@ -311,6 +467,7 @@ export const add: CommandSpec = {
     run.bin('vitakit', 'add section <name> [options]'),
     run.bin('vitakit', 'add field <section> <name> [options]'),
     run.bin('vitakit', 'add page <name> [options]'),
+    run.bin('vitakit', 'add publication-list <name> [options]'),
   ],
   help: run => `
 A section is a file content/<name>.yml. \`add section\` creates what is missing:
@@ -333,11 +490,25 @@ content/pages/<name>.md, and adds it to the menu:
 
   ${run.bin('vitakit', 'add page talks --title Talks')}
 
+\`add publication-list\` declares which publications a list shows, in
+content/publication-lists.yml, and shows it on a page or in a PDF:
+
+  ${run.bin('vitakit', 'add publication-list preprints --where status=preprint --page /publications/')}
+  ${run.bin('vitakit', 'add publication-list recent --limit 5 --document cv --title "Recent publications"')}
+
+For a list that exists already, it only adds it to more pages and PDFs.
+
 Everything is shown before it is written, and asked; nothing existing is
 replaced. A file that cannot be changed safely gets a line to paste instead.`,
 
   async run(context, { positionals, values }) {
     const [what, name, field] = positionals
+    if (what === 'publication-list') {
+      if (!name) throw new UsageError('missing <name>: `add publication-list <name>`', 'add')
+      if (field !== undefined) throw new UsageError(`unexpected argument "${field}"`, 'add')
+      onlyOptions(what, values, LIST_OPTIONS)
+      return addPublicationList(context, name, values)
+    }
     if (what === 'section' || what === 'page') {
       if (!name) throw new UsageError(`missing <name>: \`add ${what} <name>\``, 'add')
       if (field !== undefined) throw new UsageError(`unexpected argument "${field}"`, 'add')
@@ -349,6 +520,6 @@ replaced. A file that cannot be changed safely gets a line to paste instead.`,
       onlyOptions(what, values, FIELD_OPTIONS)
       return addField(context, name, field, values)
     }
-    throw new UsageError(`add what? \`add section <name>\`, \`add field <section> <name>\` or \`add page <name>\`${what ? `, not "${what}"` : ''}`, 'add')
+    throw new UsageError(`add what? \`add section <name>\`, \`add field <section> <name>\`, \`add page <name>\` or \`add publication-list <name>\`${what ? `, not "${what}"` : ''}`, 'add')
   },
 }

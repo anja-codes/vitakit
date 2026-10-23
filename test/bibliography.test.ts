@@ -1,12 +1,14 @@
 /**
  * `content/publications.bib` on the website: grouping, links, the citation
- * style, and `schemas/publications.ts`.
+ * style, and `schemas/publications.ts`. Selecting lists is
+ * `publication-lists.test.ts`.
  */
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { defaultCslStyle, defaultPublications, loadPublications } from '../src/bibliography'
 import { resolvePublications, type PublicationsInput } from '../src/publications'
+import { resolveList } from '../src/publication-lists'
 import { loadContent } from '../src/content'
 import { createRenderer } from '../src/render'
 import { builtinSchemaSource } from '../src/cli/schema-source'
@@ -26,10 +28,12 @@ const BIB = [
   '',
 ].join('\n')
 
-/** The groups of a .bib file, with settings as `schemas/publications.ts` would give them. */
+/** A .bib file grouped by status, with settings as `schemas/publications.ts` would give them. */
 async function groups(bib = BIB, input: PublicationsInput = {}, baseURL?: string) {
   const root = await project({ 'publications.bib': bib })
-  return loadPublications(join(root, 'publications.bib'), createRenderer({ baseURL }), resolvePublications(input, defaultPublications), baseURL)
+  const schema = resolvePublications(input, defaultPublications)
+  const lists = { all: resolveList('all', { groupBy: 'status' }, schema) }
+  return (await loadPublications(join(root, 'publications.bib'), createRenderer({ baseURL }), schema, lists, baseURL)).all!.groups
 }
 
 /** The list as `VitaPublications` lays it out. */
@@ -44,7 +48,7 @@ const titleLink = (url: string, title: string) =>
 describe('grouping', () => {
   it('groups by status in the configured order, newest first, as data', async () => {
     const [published, other] = await groups()
-    expect(published).toMatchObject({ id: 'published', label: 'Published', count: 2 })
+    expect(published).toMatchObject({ id: 'all-1', label: 'Published', count: 2 })
     expect(published!.entries.map(entry => entry.key)).toEqual(['art', 'book'])
     expect(other!.entries.map(entry => entry.key)).toEqual(['slides', 'thesis'])
 
@@ -171,8 +175,8 @@ describe('formatting', () => {
 describe('the citation style of a project', () => {
   const MARKER = 'CUSTOM-STYLE'
   const marked = (style: string) => style.replace('<layout>', `<layout prefix="${MARKER} ">`)
-  const site = () => project({ 'content/profile.yml': 'name: Jane Doe\n', 'content/publications.bib': BIB })
-  const list = async (root: string) => renderGroups((await loadContent(root)).publications)
+  const site = () => project({ 'content/profile.yml': 'name: Jane Doe\n', 'content/publications.bib': BIB, 'content/publication-lists.yml': 'all: {}\n' })
+  const list = async (root: string) => renderGroups((await loadContent(root)).publications.all!.groups)
 
   it('is content/publications.csl, found without configuration; eject writes it there', async () => {
     const root = await site()
@@ -206,42 +210,49 @@ describe('schemas/publications.ts', () => {
   const site = (settings?: string) => project({
     'content/profile.yml': 'name: Jane Doe\n',
     'content/publications.bib': BIB,
+    'content/publication-lists.yml': 'all: { groupBy: status }\n',
     ...settings === undefined ? {} : { 'schemas/publications.ts': `${importPackage('publications')}export default publications(${settings})\n` },
   })
-  const GROUPS = `groups: [{ id: 'papers', label: 'Papers' }, { id: 'talk-slides', label: 'Slides' }]`
+  const STATUSES = `statuses: [{ id: 'papers', label: 'Papers' }, { id: 'talk-slides', label: 'Slides' }]`
+  const labels = async (root: string) => (await loadContent(root)).publications.all!.groups.map(group => group.label)
 
-  it('defines the groups, the default group and the fields handed to the website', async () => {
-    const { publications } = await loadContent(await site(`{ ${GROUPS}, fields: ['project'] }`))
-    expect(publications.map(group => [group.id, group.label, group.entries.map(entry => [entry.key, entry.fields])])).toEqual([
-      ['papers', 'Papers', [['paper', { project: 'Alpha' }]]], // no status: the first group
-      ['talk-slides', 'Slides', [['slides', {}]]],
+  it('defines the statuses, the default status and the fields handed to the website', async () => {
+    const { publications } = await loadContent(await site(`{ ${STATUSES}, fields: ['project'] }`))
+    expect(publications.all!.groups.map(group => [group.label, group.entries.map(entry => [entry.key, entry.fields])])).toEqual([
+      ['Papers', [['paper', { project: 'Alpha' }]]], // no status: the first one
+      ['Slides', [['slides', {}]]],
     ])
   })
 
   it.each([
-    [`{ groups: [{ id: 'Talk slides', label: 'Slides' }] }`, /schemas\/publications\.ts: invalid\n.*lowercase id/],
-    [`{ groups: [{ id: 'papers', label: 'Papers' }], defaultGroup: 'published' }`, /defaultGroup "published" is not one of the groups \(papers\)/],
-    [`{ groups: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }`, /group "a" is defined twice/],
+    [`{ statuses: [{ id: 'Talk slides', label: 'Slides' }] }`, /schemas\/publications\.ts: invalid\n.*lowercase id/],
+    [`{ statuses: [{ id: 'papers', label: 'Papers' }], defaultStatus: 'published' }`, /defaultStatus "published" is not one of the statuses \(papers\)/],
+    [`{ statuses: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }`, /status "a" is defined twice/],
     [`{ badge: [] }`, /Unrecognized key: "badge"/],
+    [`{ groups: [], defaultGroup: 'a' }`, /groups and defaultGroup are now called statuses and defaultStatus; `vitakit migrate` renames them/],
   ])('rejects %s, naming the file', async (settings, message) => {
     await expect(loadContent(await site(settings))).rejects.toThrow(message)
   })
 
-  it('names the file where the groups are defined when a status is unknown', async () => {
-    await expect(loadContent(await site())).rejects.toThrow(/unknown status talk-slides on slides; expected one of .* \(groups are defined in schemas\/publications\.ts\)/)
+  it('names the file where the statuses are defined when a status is unknown', async () => {
+    await expect(loadContent(await site())).rejects.toThrow(/unknown status talk-slides on slides; expected one of .* \(statuses are defined in schemas\/publications\.ts\)/)
   })
 
   it('takes effect when edited, without a restart', async () => {
-    const root = await site(`{ ${GROUPS} }`)
-    expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Papers', 'Slides'])
+    const root = await site(`{ ${STATUSES} }`)
+    expect(await labels(root)).toEqual(['Papers', 'Slides'])
     // The modification time is part of the import URL; make sure it differs.
     await new Promise(resolve => setTimeout(resolve, 20))
-    await writeFile(join(root, 'schemas/publications.ts'), `${importPackage('publications')}export default publications({ ${GROUPS.replace('Papers', 'Articles')} })\n`)
-    expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Articles', 'Slides'])
+    await writeFile(join(root, 'schemas/publications.ts'), `${importPackage('publications')}export default publications({ ${STATUSES.replace('Papers', 'Articles')} })\n`)
+    expect(await labels(root)).toEqual(['Articles', 'Slides'])
   })
 
   it('can be copied as the defaults', async () => {
-    const root = await project({ 'content/profile.yml': 'name: Jane Doe\n', 'content/publications.bib': BIB.replace('Talk-Slides', 'other') })
+    const root = await project({
+      'content/profile.yml': 'name: Jane Doe\n',
+      'content/publications.bib': BIB.replace('Talk-Slides', 'other'),
+      'content/publication-lists.yml': 'all: { groupBy: status }\n',
+    })
     const defaults = (await loadContent(root)).publications
 
     const path = join(root, 'schemas/publications.ts')

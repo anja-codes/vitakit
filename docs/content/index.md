@@ -8,11 +8,12 @@ made from it.
 content/
   profile.yml           name, affiliation, links, menu, footer
   <section>.yml         education, employment, teaching, talks, …
-  publications.bib      your publications, grouped by a status field
+  publications.bib      your publications, each with a status
+  publication-lists.yml which publications each list on the website and in the PDF shows
   publications.csl      optional: the website's citation style
   pages/*.md            the website's prose pages, mathematics and images included
 schemas/<section>.ts    what a section of your own may contain
-schemas/publications.ts optional: publication groups, badges, fields
+schemas/publications.ts optional: publication statuses, badges, fields
 ```
 
 A section of your own needs a schema in `schemas/<section>.ts`. Built-in

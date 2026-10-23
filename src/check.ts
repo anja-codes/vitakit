@@ -297,7 +297,7 @@ export async function checkStatic(options: CheckOptions): Promise<CheckResult> {
   // Showing publications on the website is a choice: a .bib file may exist
   // only for the PDF. What must not happen is a list that is shown but broken,
   // e.g. with formulas left as placeholders.
-  if (content.publications.length) {
+  if (Object.values(content.publications).some(list => list.count)) {
     const bibPages = [...pages].filter(([, html]) => html.includes('vita-bib'))
     for (const [file, html] of bibPages) {
       // citation-js-extras' stand-in for a formula while the HTML is sanitized.

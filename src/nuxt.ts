@@ -20,6 +20,8 @@ import {
 import { createRequire } from 'node:module'
 import type { NuxtModule } from '@nuxt/schema'
 import { loadContent } from './content'
+import { fail } from './issues'
+import { findWebPlacements, publicationPlacementProblems } from './placements'
 import { watchComponentOverrides } from './dev-overrides'
 import type { VitakitContent } from './shared/types'
 
@@ -78,6 +80,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
     // a typo cannot kill the server (a throw in setup() is unrecoverable).
     let content = await load(!nuxt.options.dev)
     report(content)
+
+    // Pages showing a list that does not exist, checked once per build. In
+    // development the page itself says so, and no Vue file is watched for it.
+    if (!nuxt.options.dev && !nuxt.options._prepare) {
+      const { publications } = await findWebPlacements(rootDir)
+      const [problem] = publicationPlacementProblems(publications, [], Object.keys(content.publications))
+      if (problem) fail(problem.where, problem.message)
+    }
 
     // The compiled content is a written file aliased as `#vitakit/content`, so
     // components import it like any other module and HMR can replace it.

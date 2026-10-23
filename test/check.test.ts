@@ -12,6 +12,7 @@ const CONTENT = {
   'content/pages/research.md': '---\ntitle: Research\n---\n\nTrees.\n',
   'content/talks.yml': `- { date: 2025, title: A public talk on trees }\n- { date: 2024, title: '${HIDDEN.replace(/'/g, '\'\'')}', visibility: cv }\n`,
   'content/publications.bib': '@article{doe2024, author = {Doe, Jane}, title = {Trees of height $h$}, journal = {J}, year = {2024}}\n',
+  'content/publication-lists.yml': 'all: {}\n',
 }
 
 /**
@@ -26,7 +27,7 @@ async function generate(files: Record<string, string> = {}, { base = '/', extra 
   const site: Record<string, string> = { '_nuxt/entry.css': '' }
   for (const page of content.pages) {
     site[`${page.route.slice(1)}index.html`] = `<html><head><link rel="stylesheet" href="${base}_nuxt/entry.css"></head><body>`
-      + `${page.bodyHtml}${talks}${renderGroups(content.publications)}${page.route === '/' ? extra : ''}</body></html>`
+      + `${page.bodyHtml}${talks}${renderGroups(content.publications.all?.groups ?? [])}${page.route === '/' ? extra : ''}</body></html>`
   }
   await writeFiles(root, Object.fromEntries(Object.entries(site).map(([path, html]) => [`.output/public/${path}`, html])))
   return root
