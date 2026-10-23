@@ -11,7 +11,7 @@ import { indentationAt, insertLinesAfter, insertLinesBefore, lineEnd, lineStart,
 interface Node {
   type: number
   tag?: string
-  props?: { type: number, name: string, value?: { content: string }, arg?: { content: string }, exp?: { content: string } }[]
+  props?: { type: number, name: string, value?: { content: string }, arg?: { content: string }, exp?: { content: string }, loc: { start: { offset: number }, end: { offset: number } } }[]
   children?: Node[]
   loc: { start: { offset: number, line: number }, end: { offset: number } }
 }
@@ -205,3 +205,54 @@ export function useComponentForSection(source: string, id: string, component: st
   return { ok: true, value: { source: result, changed } }
 }
 
+/** One attribute of an element: `list="all"`, `:groups="['a']"`, `v-if="x"`. */
+export interface ElementProp {
+  /** The prop it sets (`groups` for `:groups`), or `v-if` for other directives. */
+  name: string
+  start: number
+  end: number
+  /** The text of a plain attribute; `undefined` for one without a value. */
+  value?: string
+  /** The expression of a bound prop. */
+  expression?: string
+}
+
+export interface PublicationsElement {
+  tag: string
+  start: number
+  line: number
+  props: ElementProp[]
+  hasContent: boolean
+}
+
+/** Every `VitaPublications` element of a page, with its props and their positions. */
+export function publicationsElements(source: string): Recognized<PublicationsElement[]> {
+  let ast: Node | undefined
+  try {
+    const { descriptor, errors } = parse(source)
+    if (errors.length) return { ok: false, reason: `cannot be parsed: ${String(errors[0])}` }
+    ast = descriptor.template?.ast as unknown as Node | undefined
+  } catch (error) {
+    return { ok: false, reason: `cannot be parsed: ${error instanceof Error ? error.message : String(error)}` }
+  }
+  const found: PublicationsElement[] = []
+  const visit = (node: Node) => {
+    if (node.type === ELEMENT && node.tag && (node.tag.includes('-') ? pascal(node.tag) : node.tag) === 'VitaPublications') {
+      found.push({
+        tag: node.tag,
+        start: node.loc.start.offset,
+        line: node.loc.start.line,
+        hasContent: hasContent(node),
+        props: (node.props ?? []).map(prop => ({
+          name: prop.type === ATTRIBUTE ? prop.name : prop.name === 'bind' && prop.arg ? prop.arg.content : `v-${prop.name}`,
+          start: prop.loc.start.offset,
+          end: prop.loc.end.offset,
+          ...(prop.type === ATTRIBUTE ? (prop.value ? { value: prop.value.content } : {}) : { expression: prop.exp?.content ?? '' }),
+        })),
+      })
+    }
+    for (const child of node.children ?? []) visit(child)
+  }
+  if (ast) visit(ast)
+  return { ok: true, value: found }
+}

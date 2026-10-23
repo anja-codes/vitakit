@@ -249,3 +249,32 @@ export function ensurePackageImports(source: string, names: string[]): Recognize
   const position = end === -1 ? source.length : end + 1
   return { ok: true, value: `${source.slice(0, position)}${end === -1 ? '\n' : ''}${line}${source.slice(position)}` }
 }
+
+/**
+ * Rename settings of `schemas/publications.ts`: the keys of the object in its
+ * default export's `publications({...})`. Values and comments stay as written.
+ */
+export function renamePublicationsSettings(source: string, renames: Record<string, string>): Recognized<string> {
+  let body: Statement[]
+  try {
+    body = parseModule(source).body
+  } catch (error) {
+    return { ok: false, reason: `cannot be parsed: ${error instanceof Error ? error.message : String(error)}` }
+  }
+  const expression = defaultExport(body)
+  const object = expression?.type === 'CallExpression' && expression.callee.type === 'Identifier'
+    && packageImports(body).get(expression.callee.name) === 'publications'
+    ? expression.arguments[0]
+    : undefined
+  if (!object || object.type !== 'ObjectExpression') {
+    return { ok: false, reason: `its default export is not publications({ ... }) from ${PACKAGE}` }
+  }
+  let result = source
+  // From the end, so earlier offsets stay valid.
+  for (const property of [...object.properties].reverse()) {
+    const name = keyName(property)
+    if (name === undefined || !Object.hasOwn(renames, name) || property.type !== 'ObjectProperty') continue
+    result = result.slice(0, property.key.start!) + renames[name] + result.slice(property.key.end!)
+  }
+  return { ok: true, value: result }
+}

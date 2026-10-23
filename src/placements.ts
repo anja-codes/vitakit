@@ -247,13 +247,15 @@ export function publicationPlacementProblems(
 ): { where: string, message: string }[] {
   const known = `the lists are ${lists.join(', ') || '(none)'} (content/publication-lists.yml)`
   const unknown = (name: string) => `no publication list "${name}"; ${known}`
+  const migrate = '`vitakit migrate` converts it'
   const problems: { where: string, message: string }[] = []
   for (const placement of web) {
     const where = `${placement.file}:${placement.line}`
+    const legacy = placement.selecting.filter(prop => prop === 'groups' || prop === 'headings')
     if (placement.selecting.length) {
       problems.push({
         where,
-        message: `VitaPublications does not take ${placement.selecting.join(', ')}: which publications a list shows is set in content/publication-lists.yml`,
+        message: `VitaPublications does not take ${placement.selecting.join(', ')}: which publications a list shows is set in content/publication-lists.yml${legacy.length ? `; ${migrate}` : ''}`,
       })
     } else if (placement.list === undefined && placement.expression === undefined) {
       problems.push({ where, message: `VitaPublications needs a list, e.g. <VitaPublications list="all" />; ${known}` })
@@ -266,7 +268,7 @@ export function publicationPlacementProblems(
     if ('list' in placement) {
       if (!lists.includes(placement.list)) problems.push({ where, message: unknown(placement.list) })
     } else if (placement.macro === 'vitainput' && placement.section === 'publications') {
-      problems.push({ where, message: `\\vitainput{publications} is now \\vitapublications[Heading]{list}, with a list from content/publication-lists.yml` })
+      problems.push({ where, message: `\\vitainput{publications} is now \\vitapublications[Heading]{list}, with a list from content/publication-lists.yml; ${migrate}` })
     }
   }
   return problems

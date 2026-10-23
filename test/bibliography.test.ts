@@ -229,7 +229,7 @@ describe('schemas/publications.ts', () => {
     [`{ statuses: [{ id: 'papers', label: 'Papers' }], defaultStatus: 'published' }`, /defaultStatus "published" is not one of the statuses \(papers\)/],
     [`{ statuses: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }`, /status "a" is defined twice/],
     [`{ badge: [] }`, /Unrecognized key: "badge"/],
-    [`{ groups: [], defaultGroup: 'a' }`, /groups and defaultGroup are now called statuses and defaultStatus$/],
+    [`{ groups: [], defaultGroup: 'a' }`, /groups and defaultGroup are now called statuses and defaultStatus; `vitakit migrate` renames them/],
   ])('rejects %s, naming the file', async (settings, message) => {
     await expect(loadContent(await site(settings))).rejects.toThrow(message)
   })

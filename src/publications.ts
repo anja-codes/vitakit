@@ -90,7 +90,7 @@ export function resolvePublications(
 ): PublicationsSchema {
   const renamed = ['groups', 'defaultGroup'].filter(key => typeof value === 'object' && value !== null && Object.hasOwn(value, key))
   if (renamed.length) {
-    fail(where, `${renamed.join(' and ')} ${renamed.length > 1 ? 'are' : 'is'} now called ${renamed.map(key => key === 'groups' ? 'statuses' : 'defaultStatus').join(' and ')}`)
+    fail(where, `${renamed.join(' and ')} ${renamed.length > 1 ? 'are' : 'is'} now called ${renamed.map(key => key === 'groups' ? 'statuses' : 'defaultStatus').join(' and ')}; \`vitakit migrate\` renames ${renamed.length > 1 ? 'them' : 'it'}`)
   }
   const parsed = input.safeParse(value)
   if (!parsed.success) fail(where, `invalid\n${formatZodIssues(parsed.error)}`)

@@ -2,8 +2,9 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { addPublicationsToDocument, addSectionToDocument } from '../src/edit/tex'
-import { addPublicationsToPage, addSectionToPage, sectionElements } from '../src/edit/vue'
+import { addPublicationsToPage, addSectionToPage, publicationsElements, sectionElements } from '../src/edit/vue'
 import { addNavItem, addPublicationList, yamlScalar } from '../src/edit/yaml'
+import { renamePublicationsSettings } from '../src/edit/typescript'
 
 const value = <T>(result: { ok: true, value: T } | { ok: false, reason: string }): T => {
   if (!result.ok) throw new Error(result.reason)
@@ -119,5 +120,24 @@ describe('declaring a publication list', () => {
     expect(value(addPublicationList('', 'all', {}))).toBe('all: {}\n')
     expect(addPublicationList(after, 'recent', {})).toEqual({ ok: false, reason: `it has a list "recent" already, on line ${source.split('\n').indexOf('recent:') + 1}` })
     expect(addPublicationList('{ all: {} }\n', 'recent', {}).ok).toBe(false)
+  })
+})
+
+describe('migrating publications', () => {
+  it('finds VitaPublications elements with their props, for migrating them', () => {
+    const source = '<template>\n  <main>\n    <VitaPublications :groups="[\'a\']" headings class="x" />\n  </main>\n</template>\n'
+    const [element] = value(publicationsElements(source))
+    expect(element!.props.map(prop => [prop.name, prop.expression ?? prop.value ?? true, source.slice(prop.start, prop.end)])).toEqual([
+      ['groups', '[\'a\']', ':groups="[\'a\']"'],
+      ['headings', true, 'headings'],
+      ['class', 'x', 'class="x"'],
+    ])
+  })
+
+  it('renames keys of publications({...}), keeping values and comments', () => {
+    const source = "import { publications } from '@anja.codes/vitakit'\n\nexport default publications({\n  // mine\n  groups: [{ id: 'a', label: 'A' }],\n  'defaultGroup': 'a',\n})\n"
+    expect(value(renamePublicationsSettings(source, { groups: 'statuses', defaultGroup: 'defaultStatus' })))
+      .toBe("import { publications } from '@anja.codes/vitakit'\n\nexport default publications({\n  // mine\n  statuses: [{ id: 'a', label: 'A' }],\n  defaultStatus: 'a',\n})\n")
+    expect(renamePublicationsSettings('export default {}\n', { groups: 'statuses' }).ok).toBe(false)
   })
 })

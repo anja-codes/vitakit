@@ -115,7 +115,7 @@ export async function findDocuments(cvDir: string): Promise<{ documents: Documen
         continue
       }
       if (typeof data === 'object' && data !== null && Object.hasOwn(data, 'publications')) {
-        problems.push({ where, message: 'publications: which publications a PDF shows is now a list in content/publication-lists.yml, placed with \\vitapublications[Heading]{list}' })
+        problems.push({ where, message: 'publications: which publications a PDF shows is now a list in content/publication-lists.yml, placed with \\vitapublications[Heading]{list}; `vitakit migrate` converts it' })
         continue
       }
       const parsed = documentSchema.safeParse(data ?? {})

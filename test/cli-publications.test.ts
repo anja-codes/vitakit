@@ -1,6 +1,7 @@
 /**
- * Publication lists from the command line: what `status`, `explain` and
- * `validate` say about them, and `add publication-list`.
+ * Publication lists from the command line: `add publication-list`, `migrate`
+ * from VitaPublications' groups and headings, and what `status`, `explain` and
+ * `validate` say about lists.
  */
 import { describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
@@ -34,7 +35,7 @@ describe('status, explain and validate', () => {
     const { out, code } = await cli(['validate'], { cwd: root })
     expect(code).toBe(1)
     expect(out).toContain('app/pages/research.vue:3\n    no publication list "recnet"; the lists are all, recent (content/publication-lists.yml)')
-    expect(out).toContain('app/pages/research.vue:4\n    VitaPublications does not take groups: which publications a list shows is set in content/publication-lists.yml')
+    expect(out).toContain('app/pages/research.vue:4\n    VitaPublications does not take groups: which publications a list shows is set in content/publication-lists.yml; `vitakit migrate` converts it')
     expect(out).toMatch(/cv-tex\/cv\.tex:\d+\n {4}no publication list "al"/)
   })
 })
@@ -90,5 +91,61 @@ describe('add publication-list', () => {
     expect(result.code, result.err).toBe(0)
     expect(await read(root, 'content/publication-lists.yml')).toContain('selected:\n  where: { status: [preprint, published] }\n  limit: 2\n  order: asc\n  groupBy: year\n')
     expect(await read(root, 'app/pages/index.vue')).toContain('<VitaPublications list="selected" title="Selected" />')
+  })
+})
+
+/** The example as an earlier vitakit scaffolded it. */
+const LEGACY = {
+  'content/publication-lists.yml': null,
+  'app/pages/index.vue': '<template>\n  <main>\n    <VitaPublications :groups="[\'published\', \'preprint\']" :headings="false" class="mt-4" />\n  </main>\n</template>\n',
+  'app/pages/publications.vue': (source: string) => source.replace('<VitaPublications list="all" class="mt-8" />', '<VitaPublications class="mt-8" />\n    <VitaPublications\n      :groups="[\'preprint\', \'published\']"\n    />'),
+  'cv-tex/cv.tex': (source: string) => source.replace('\\vitapublications[Publications]{all}', '\\section{Publications}\n\\vitainput{publications}'),
+  'cv-tex/cv.yml': (source: string) => `${source}publications:\n  groups: [published]\n`,
+  'schemas/publications.ts': `import { publications } from '@anja.codes/vitakit'\n\nexport default publications({\n  groups: [{ id: 'published', label: 'Papers' }, { id: 'preprint', label: 'Preprints' }, { id: 'software', label: 'Software' }],\n  defaultGroup: 'published',\n})\n`,
+}
+
+describe('migrate', () => {
+  it('turns groups and headings into lists, on pages, in PDFs and in the schema', async () => {
+    const root = await project(LEGACY)
+    expect((await cli(['validate'], { cwd: root })).code).toBe(1)
+
+    const result = await cli(['migrate', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(result.out).toContain('app/pages/index.vue:3 shows the list published-preprint-ungrouped: it is now one list, newest first, rather than one status after the other.')
+    expect(result.out).toContain('app/pages/publications.vue:26 shows the list preprint-published: its groups now appear in the order of the statuses in schemas/publications.ts.')
+
+    expect(await read(root, 'app/pages/index.vue')).toContain('<VitaPublications list="published-preprint-ungrouped" class="mt-4" />')
+    expect(await read(root, 'app/pages/publications.vue')).toContain('<VitaPublications list="all" class="mt-8" />\n    <VitaPublications list="preprint-published"\n    />')
+    expect(await read(root, 'cv-tex/cv.tex')).toContain('\\vitasection[Teaching]{teaching}\n\n\\vitapublications[Publications]{published}\n')
+    expect(await read(root, 'cv-tex/cv.yml')).not.toContain('publications')
+    expect(await read(root, 'schemas/publications.ts')).toContain('  statuses: [{ id: \'published\', label: \'Papers\' }')
+    const lists = await read(root, 'content/publication-lists.yml')
+    for (const list of [
+      'all:\n  groupBy: status\n',
+      'published-preprint-ungrouped:\n  where: { status: [published, preprint] }\n',
+      'preprint-published:\n  where: { status: [preprint, published] }\n  groupBy: status\n',
+      'published:\n  where: { status: published }\n  groupBy: status\n',
+    ]) expect(lists).toContain(`\n\n${list}`)
+
+    const validated = await cli(['validate'], { cwd: root })
+    expect(validated.code, validated.out).toBe(0)
+    const again = await cli(['migrate', '--yes'], { cwd: root })
+    expect(again.out).toContain('Nothing to write.')
+  })
+
+  it('lists what it cannot change, and changes the rest', async () => {
+    const root = await project({
+      ...LEGACY,
+      'app/pages/index.vue': '<script setup>\nconst all = usePublications()\n</script>\n\n<template>\n  <main>\n    <VitaPublications :groups="chosen" />\n  </main>\n</template>\n',
+      'app/components/VitaPublications.vue': '<template><div /></template>\n',
+      'cv-tex/templates/publications.eta': '\\nocite{*}\n',
+    })
+    const result = await cli(['migrate', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(result.out).toContain('By hand: app/pages/index.vue calls usePublications()')
+    expect(result.out).toContain('By hand: app/pages/index.vue:7: its groups are not a literal list')
+    expect(result.out).toContain('By hand: app/components/VitaPublications.vue is your copy of VitaPublications')
+    expect(result.out).toContain('By hand: cv-tex/templates/publications.eta is your copy of the PDF template')
+    expect(await read(root, 'app/pages/publications.vue')).toContain('<VitaPublications list="all" class="mt-8" />')
   })
 })

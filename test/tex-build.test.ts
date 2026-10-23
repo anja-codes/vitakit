@@ -61,7 +61,7 @@ describe('documents', () => {
     ['sections: [\n', /cv-tex\/cv\.yml: /],
     ['sections:\n  talk: { limit: 1 }\n', /cv-tex\/cv\.yml: sections\.talk: unknown section; the sections are talks/],
     ['sections:\n  talks: { where: { knid: invited } }\n', /cv-tex\/cv\.yml: sections\.talks\.where\.knid: unknown field; the fields are year, visibility, date, title/],
-    ['publications: { groups: [published] }\n', /cv-tex\/cv\.yml: publications: which publications a PDF shows is now a list in content\/publication-lists\.yml, placed with \\vitapublications/],
+    ['publications: { groups: [published] }\n', /cv-tex\/cv\.yml: publications: which publications a PDF shows is now a list in content\/publication-lists\.yml.*`vitakit migrate` converts it/],
   ])('reject the options %j, naming the file', async (yaml, message) => {
     await expect(build(await project({ ...BASE, 'cv-tex/cv.yml': yaml }))).rejects.toThrow(message)
   })
@@ -199,7 +199,7 @@ describe('the generated files', () => {
 
   it.each([
     ['an unknown list', LISTED('all: {}\n', '\\vitapublications{recnet}'), /cv-tex\/cv\.tex:4: no publication list "recnet"; the lists are all/],
-    ['\\vitainput{publications}', LISTED('all: {}\n', '\\vitainput{publications}'), /cv-tex\/cv\.tex:4: \\vitainput\{publications\} is now \\vitapublications\[Heading\]\{list\}, with a list from content\/publication-lists\.yml/],
+    ['\\vitainput{publications}', LISTED('all: {}\n', '\\vitainput{publications}'), /cv-tex\/cv\.tex:4: \\vitainput\{publications\} is now \\vitapublications\[Heading\]\{list\}.*`vitakit migrate` converts it/],
   ])('refuse %s, naming the line', async (_case, files, message) => {
     await expect(build(await project(files))).rejects.toThrow(message)
   })
