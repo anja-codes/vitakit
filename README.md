@@ -27,11 +27,12 @@ published site, [concepts](https://vitakit.anja.codes/guide/concepts),
 content/
   profile.yml           name, affiliation, links, menu, footer
   <section>.yml         education, employment, teaching, talks, …
-  publications.bib      grouped, linked publication list
+  publications.bib      your publications, formatted and linked
+  publication-lists.yml which of them each list shows: recent, preprints, by year, …
   pages/*.md            prose pages, mathematics and images included
 schemas/<section>.ts    optional: what a section of your own may contain
-app/pages/*.vue         which sections each website page shows
-cv-tex/<document>.tex   which sections each PDF shows; cv-tex/<document>.yml selects entries
+app/pages/*.vue         which sections and lists each website page shows
+cv-tex/<document>.tex   which sections and lists each PDF shows; cv-tex/<document>.yml selects entries
 ```
 
 - **Validated content.** Every file is checked against its schema. A broken

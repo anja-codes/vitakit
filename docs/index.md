@@ -23,6 +23,8 @@ hero:
 features:
   - title: One source, two outputs
     details: Employment, talks, teaching and publications as YAML and BibTeX. A static website and a LaTeX CV are composed from them independently — a correction is in both at the next build.
+  - title: Publications from your BibTeX
+    details: "Export from Zotero and you are done: the newest on your home page, everything grouped on a publications page, your selected papers in a grant CV — each a list of a line or two, the same on the website and in the PDF."
   - title: Checked, not guessed
     details: Every file is validated. A typo is an error naming the file, the entry and the field, not a line quietly missing from your CV; the development server keeps running while you fix it.
   - title: Private stays private
@@ -61,8 +63,8 @@ No web development experience is needed.
 | | |
 |---|---|
 | [**Guide**](/guide/tutorial/) | the [tutorial](/guide/tutorial/), from an empty directory to a published site; [concepts](/guide/concepts); [how do I …?](/guide/how-do-i); [publishing](/guide/publishing), [privacy](/guide/privacy), [troubleshooting](/guide/troubleshooting) |
-| [**CLI**](/cli/) | the `vitakit` command: status, adding sections, fields and pages, customizing, building |
-| [**Content**](/content/) | what goes into `content/`: field types, built-in sections, publications, schemas |
+| [**CLI**](/cli/) | the `vitakit` command: status, adding sections, fields, pages and publication lists, customizing, building, [updating](/cli/migrating) |
+| [**Content**](/content/) | what goes into `content/`: field types, built-in sections, [publications and lists](/content/publications), schemas |
 | [**Website**](/website/) | pages, placing sections, customising entries, styling, components |
 | [**PDF**](/pdf/) | documents and selection, variants and prose, templates, styling, building |
 

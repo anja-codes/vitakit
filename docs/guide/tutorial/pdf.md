@@ -42,8 +42,7 @@ sections, in order, with their headings:
 \vitasection[Grants]{grants}
 \vitasection[Teaching]{teaching}
 
-\section{Publications}
-\vitainput{publications}
+\vitapublications[Publications]{all}
 
 \vitasection[Selected talks]{talks}
 \end{document}
@@ -51,8 +50,9 @@ sections, in order, with their headings:
 
 `\vitaheader` is the name, position and contact line from `profile.yml`.
 `\vitasection[Heading]{section}` is a heading and the section's entries; a
-section without entries in this document is left out, heading included. Move a
-line to move a section. Anything else LaTeX can do goes between them: a
+section without entries in this document is left out, heading included.
+`\vitapublications[Heading]{list}` does the same for a [publication
+list](./publications.md#where-your-publications-appear). Move a line to move a section. Anything else LaTeX can do goes between them: a
 `\newpage`, a paragraph of your own.
 
 Nothing in `cv-tex/generated/` is yours: it is rewritten on every build.
@@ -134,6 +134,21 @@ appear where a document asks for them:
 and adds it to this document only. In `application-eth.yml`, `visibility:
 private` lets it in — and every other private entry; the website and `cv.pdf`
 still never include them.
+
+**Publications**: ETH asks for those of the last five years. That is a list of
+its own, in `content/publication-lists.yml`:
+
+```yaml
+recent-years:
+  since: 2021
+  groupBy: status
+```
+
+and in `application-eth.tex`, she changes `\vitapublications[Publications]{all}`
+to `\vitapublications[Publications]{recent-years}`. `cv.pdf` still shows `all`.
+(`vitakit add publication-list recent-years --since 2021 --group-by status
+--document application-eth` would declare the list and add the line, but she
+wants it in place of the other one.)
 
 **The cover letter** is plain LaTeX in `cv-tex/prose/`, a directory the website
 never reads:

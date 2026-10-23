@@ -56,12 +56,14 @@ JSON object.
 pnpm vitakit explain talks     # a section
 pnpm vitakit explain cv        # a PDF document
 pnpm vitakit explain /cv/      # a website page
+pnpm vitakit explain publications   # the publication lists
 ```
 
 ```bash [npm]
 npx vitakit explain talks     # a section
 npx vitakit explain cv        # a PDF document
 npx vitakit explain /cv/      # a website page
+npx vitakit explain publications   # the publication lists
 ```
 
 :::
@@ -91,7 +93,9 @@ For a section: its file, the fields its schema accepts, every place it appears,
 and for each PDF document the template used and which entries are selected —
 with the setting that removed the others. That is the answer to *"why is this
 talk not in my PDF?"*. For a document: what it includes, in order, with counts.
-For a page: the files behind the route and the sections on it.
+For a page: the files behind the route and the sections and publication lists on
+it. For `publications`: each [list](../content/publications.md#lists), what it
+shows in words (`newest first · at most 3`), how many entries, and where.
 
 ## `vitakit validate`
 

@@ -121,8 +121,18 @@ the address your site is published at to `content/profile.yml`
 (`url: https://jane.github.io/site/`), and the PDF links the full URL.
 
 **`unknown status …` in `content/publications.bib`** — every `status` must be one of
-the groups in `schemas/publications.ts` (or the default groups, without that file).
-Add the group there, or correct the entry.
+the statuses in `schemas/publications.ts` (or the default ones, without that file).
+Add the status there, or correct the entry.
+
+**`no publication list "…"`** — a page's `<VitaPublications list="…">` or a PDF's
+`\vitapublications{…}` names a list that `content/publication-lists.yml` does not
+declare. Correct the name, or declare the list
+(`vitakit add publication-list <name>`).
+
+**`VitaPublications does not take groups`**, **`\vitainput{publications} is now
+\vitapublications`** — the project was written for vitakit 0.2, when the page or
+the PDF selected publications. Run `vitakit migrate`, which turns them into lists
+([from vitakit 0.2](../cli/migrating.md#from-vitakit-02)).
 
 ## Development
 

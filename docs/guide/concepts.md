@@ -63,6 +63,16 @@ The data is shared; the composition is not. A section can be on the website and
 not in the PDF, on two pages, or in three documents with different selections.
 Leaving a section out somewhere is a choice, not an error.
 
+## Publications
+
+Publications are not a section: they are one BibTeX file,
+`content/publications.bib`, as reference managers export it. What a page or a
+PDF shows of it is a **list**, declared once in `content/publication-lists.yml`
+— `recent: { limit: 3 }` — and placed like a section:
+`<VitaPublications list="recent" title="Recent publications" />`,
+`\vitapublications[Recent publications]{recent}`. Both show the same entries, in
+the same order. See [publications](../content/publications.md).
+
 ## Visibility
 
 Every entry may say who sees it: `public` (the default) everywhere, `cv` only in
@@ -80,6 +90,8 @@ check` verifies that nothing else reached it. See [privacy](./privacy.md).
 | how entries look on the website | CSS, or a component of your own |
 | which sections a PDF includes, in which order | `cv-tex/<document>.tex` |
 | which entries a PDF includes | `cv-tex/<document>.yml` |
+| which publications a list shows, in what order and groups | `content/publication-lists.yml` |
+| where a publication list appears, with which heading | the page's `<VitaPublications>`, the document's `\vitapublications` |
 | how entries look in the PDF | `cv-tex/preamble.tex`, or a template of your own |
 
 `vitakit status` shows the whole picture for your project;

@@ -42,7 +42,7 @@ More about building — without a TeX installation, in CI: [building](./building
 \vitasection[Education]{education}
 \vitasection[Teaching]{teaching}
 
-\section{Publications}\vitainput{publications}
+\vitapublications[Publications]{all}
 
 \vitasection[Supervised theses]{supervision}
 \vitasection[Selected talks]{talks}
@@ -65,7 +65,8 @@ sections:
 | `\vitadocument{name}` | which generated directory to read |
 | `\vitaheader` | name, tagline and contact line from `profile.yml` |
 | `\vitasection[Heading]{id}` | heading + the generated entries; heading argument optional, section omitted when the selection is empty |
-| `\vitainput{id}` | the generated file only, no heading or list (profile, publications) |
+| `\vitapublications[Heading]{list}` | a [publication list](../content/publications.md#lists), with its heading; omitted when the list is empty |
+| `\vitainput{id}` | the generated file only, no heading or list (profile) |
 | `\vitasectiontitle{id}{Text}` | heading wording for this document |
 | `\vitaentry{date}{title}{context}`, `\vitanote{…}` | what generated files emit |
 
@@ -95,9 +96,11 @@ sections:
     until: 2024                          # start year at most this
     limit: 10                            # keep the newest N
     title: Selected talks                # heading wording, this document only
-publications:
-  groups: [published, preprint]          # omit the software group
 ```
+
+Publications are selected by the [list](../content/publications.md#lists) the
+document shows with `\vitapublications`, which accepts the same `where`, `since`,
+`until` and `limit`.
 
 That is the whole list, and it is meant to stay that way. `where` compares against
 the field as written (for rich-text fields, their source text; for a link,
@@ -110,9 +113,9 @@ Unknown options and section IDs are errors naming the document's YAML file.
 For schemas made with `section()` or `extendSection()`, `where` field names are
 checked against the schema too, including optional fields absent from the data.
 
-Empty selections are omitted by `\vitasection`, including their headings.
-Manually written headings, such as `\section{Publications}`, remain yours to show
-or remove.
+Empty selections are omitted by `\vitasection` and `\vitapublications`, including
+their headings. Headings written by hand, such as a `\section{…}` of your own,
+remain yours to show or remove.
 
 A YAML `title` overrides the label from the shared preamble. Keep
 `\vitainput{profile}` after `\input{preamble.tex}`: the generated profile also

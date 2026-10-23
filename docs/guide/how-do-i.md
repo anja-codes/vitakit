@@ -76,9 +76,45 @@ template for talks does not. If you change the template to show that link,
 also set your site's `url` in `content/profile.yml` so the PDF can link to
 its full address. [Field types](../content/field-types.md#web-addresses)
 
-**… change the citation style of the publication list?**
+## Publications
+
+**… use my Zotero (or JabRef, or arXiv) export?**
+Export it as BibTeX and replace `content/publications.bib`. Add `status =
+{preprint}` (or `accepted`, `software`, `other`) to what is not published.
+[Tutorial, chapter 4](./tutorial/publications.md)
+
+**… show more or fewer of my newest publications on the home page?**
+In `content/publication-lists.yml`, change `limit: 3` in the list `recent`.
+[Lists](../content/publications.md#lists)
+
+**… show only my preprints, or only my selected papers?**
+Add a list: `pnpm vitakit add publication-list preprints --where status=preprint`,
+or `--where keywords=selected` for papers tagged `selected` in Zotero. It asks
+where to show it. [add publication-list](../cli/add.md#add-publication-list)
+
+**… choose exactly which papers, in my order?**
+A list with `keys: [berger2024trees, berger2022urns]`, the citation keys from
+`publications.bib`. [Lists](../content/publications.md#examples)
+
+**… group my publications by year instead of by status?**
+`groupBy: year` in the list, e.g. `all: { groupBy: year }`.
+[Settings](../content/publications.md#settings)
+
+**… put only recent publications in one PDF?**
+A list with `since: 2020`, and `\vitapublications[Publications]{<list>}` in that
+document. [Tutorial, chapter 7](./tutorial/pdf.md#a-version-for-one-application)
+
+**… rename "Preprints" to "Submitted"?**
+`pnpm vitakit customize publications`, then change the `label` of `preprint` in
+`schemas/publications.ts`. [Statuses](../content/publications.md#statuses-badges-and-fields)
+
+**… find out why a paper is not in a list?**
+`pnpm vitakit explain <list>` shows how many each setting removed, and the
+citation keys of those it shows.
+
+**… change how references read on the website?**
 Save a CSL style as `content/publications.csl`.
-[Publications](../content/publications.md#citation-style)
+[Citation style](../content/publications.md#citation-style)
 
 ## PDF
 
