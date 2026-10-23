@@ -118,6 +118,10 @@ says so where they apply:
 
 - `:groups="['published', 'preprint']" :headings="false"` showed the published
   papers, then the preprints. The list is one list, newest first.
+- In the PDF, publications come in the list's order, as on the website: newest
+  first, and in the order of `publications.bib` within a year. biblatex sorted
+  them by year and then author before, so two papers of the same year can swap.
+  Each group is numbered from 1, as on the website, instead of continuing.
 - `groups` in another order than the statuses showed the groups in that order. A
   list grouped by status shows them in the order of the statuses in
   `schemas/publications.ts`; reorder them there.

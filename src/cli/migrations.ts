@@ -211,6 +211,7 @@ async function migrateDocuments(root: string, ws: Workspace, lists: ListPlan, no
       if (heading !== undefined) lines.splice(index - 1, 1)
     }
     await ws.edit(tex, lines.join('\n'), `shows the publication list ${name}`)
+    notes.before.push(`${tex} shows the list ${name}: in the PDF too, publications now come in the list's order, as on the website (biblatex sorted them by year and author before), and each group is numbered from 1.`)
   }
   if (await ws.read('cv-tex/templates/publications.eta') !== undefined) {
     notes.after.push('By hand: cv-tex/templates/publications.eta is your copy of the PDF template. vitakit\'s now cites a list in its order, with `<%~ it.bib.cite() %>` instead of `\\nocite{*}`, inside `\\begin{refcontext}[sorting=none]`.')

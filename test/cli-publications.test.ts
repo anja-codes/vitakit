@@ -146,6 +146,7 @@ describe('migrate', () => {
     expect(result.code, result.err).toBe(0)
     expect(result.out).toContain('app/pages/index.vue:3 shows the list published-preprint-ungrouped: it is now one list, newest first, rather than one status after the other.')
     expect(result.out).toContain('app/pages/publications.vue:26 shows the list preprint-published: its groups now appear in the order of the statuses in schemas/publications.ts.')
+    expect(result.out).toContain('cv-tex/cv.tex shows the list published: in the PDF too, publications now come in the list\'s order')
 
     expect(await read(root, 'app/pages/index.vue')).toContain('<VitaPublications list="published-preprint-ungrouped" class="mt-4" />')
     expect(await read(root, 'app/pages/publications.vue')).toContain('<VitaPublications list="all" class="mt-8" />\n    <VitaPublications list="preprint-published"\n    />')
