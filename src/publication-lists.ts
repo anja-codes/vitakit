@@ -252,12 +252,11 @@ export function selectPublications(bib: Bibliography, name: string, list: Public
  * The same selection, step by step, so that "why is this paper not in my
  * list" has an answer: what each setting removed, and the keys that remain.
  */
-export function explainPublications(bib: Bibliography, name: string, list: PublicationListOptions, schema: PublicationsSchema): { total: number, steps: { rule: string, removed: number }[], keys: string[] } {
+export function explainListSelection(bib: Bibliography, name: string, list: PublicationListOptions, schema: PublicationsSchema): { total: number, steps: { rule: string, removed: number }[], keys: string[] } {
   let entries = bib.entries
   const steps: { rule: string, removed: number }[] = []
   for (const step of selectionSteps(bib, name, list, schema)) {
     const next = step.apply(entries)
-    // `keys` chooses rather than removes; it counts like the others.
     steps.push({ rule: step.rule, removed: entries.length - next.length })
     entries = next
   }

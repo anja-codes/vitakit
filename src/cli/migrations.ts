@@ -43,10 +43,16 @@ class ListPlan {
   }
 }
 
-/** The list showing these statuses, grouped by status, as 0.2 grouped everything. */
-const statusList = (statuses?: string[]): { wanted: string, settings: Settings } => statuses
-  ? { wanted: statuses.join('-'), settings: { where: { status: statuses.length === 1 ? statuses[0] : statuses }, groupBy: 'status' } }
-  : { wanted: 'all', settings: { groupBy: 'status' } }
+/** The list of these statuses (all without), grouped by status as 0.2 grouped everything, or not. */
+function statusList(statuses?: string[], grouped = true): { wanted: string, settings: Settings } {
+  return {
+    wanted: `${statuses?.join('-') ?? 'all'}${grouped ? '' : '-ungrouped'}`,
+    settings: {
+      ...(statuses ? { where: { status: statuses.length === 1 ? statuses[0] : statuses } } : {}),
+      ...(grouped ? { groupBy: 'status' } : {}),
+    },
+  }
+}
 
 /** `['published', 'preprint']` as written in a template, or `undefined`. */
 function literalStrings(expression: string): string[] | undefined {
@@ -72,17 +78,12 @@ function legacyList(element: PublicationsElement, statuses: string[]): { wanted:
   const headings = !headingsProp || headingsProp.expression === 'true' || (headingsProp.expression === undefined && headingsProp.value === undefined)
   if (headingsProp && !headings && headingsProp.expression !== 'false') return { reason: 'its headings are not literally true or false' }
 
-  const list = statusList(groups)
-  if (headings) {
-    const reordered = groups && groups.join() !== statuses.filter(status => groups.includes(status)).join()
-    return { ...list, ...(reordered ? { note: 'its groups now appear in the order of the statuses in schemas/publications.ts' } : {}) }
-  }
-  const { groupBy: _grouped, ...ungrouped } = list.settings
-  return {
-    wanted: `${list.wanted}-ungrouped`,
-    settings: ungrouped,
-    ...((groups?.length ?? 2) > 1 ? { note: 'it is now one list, newest first, rather than one status after the other' } : {}),
-  }
+  const list = statusList(groups, headings)
+  const reordered = headings && groups && groups.join() !== statuses.filter(status => groups.includes(status)).join()
+  const merged = !headings && (groups?.length ?? 2) > 1
+  const note = reordered ? 'its groups now appear in the order of the statuses in schemas/publications.ts'
+    : merged ? 'it is now one list, newest first, rather than one status after the other' : undefined
+  return { ...list, ...(note ? { note } : {}) }
 }
 
 /** The status ids in order, also from a schema that still says `groups`. */

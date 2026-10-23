@@ -219,13 +219,13 @@ async function explainPublications(context: CommandContext, inv: Inventory): Pro
 async function explainList(context: CommandContext, inv: Inventory, name: string): Promise<string[]> {
   const { style, run, root } = context
   const { loadPublicationsSchema, readBibliography } = await import('../../bibliography')
-  const { LISTS_FILE, describeList, explainPublications: steps, loadPublicationLists } = await import('../../publication-lists')
+  const { LISTS_FILE, describeList, explainListSelection, loadPublicationLists } = await import('../../publication-lists')
   const { publicationListLine } = await import('../../edit/yaml')
   const { readFile } = await import('node:fs/promises')
   const schema = await loadPublicationsSchema(root)
   const list = (await loadPublicationLists(root, schema))[name]!
   const line = publicationListLine(await readFile(join(root, LISTS_FILE), 'utf8'), name)
-  const { total, steps: removed, keys } = steps(await readBibliography(join(root, 'content', 'publications.bib'), schema), name, list, schema)
+  const { total, steps: removed, keys } = explainListSelection(await readBibliography(join(root, 'content', 'publications.bib'), schema), name, list, schema)
 
   const lines = [style.bold(name), '']
   lines.push(block('list', [[`${LISTS_FILE}${line ? `:${line}` : ''}`], [describeList(list)]]))

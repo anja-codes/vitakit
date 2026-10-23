@@ -238,7 +238,8 @@ const SELECTING_PROPS = ['groups', 'headings', 'where', 'limit', 'sort', 'groupB
 
 /**
  * Publication list placements that a build would fail on: an unknown or
- * missing list name, props of earlier versions, `\vitainput{publications}`.
+ * missing list name, props that select publications on the page, and
+ * `\vitainput{publications}` of vitakit 0.2.
  */
 export function publicationPlacementProblems(
   web: PublicationPlacement[],

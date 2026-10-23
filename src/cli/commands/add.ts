@@ -278,8 +278,10 @@ function listSettings(values: Values): Record<string, unknown> {
   }
   const where: Record<string, string | string[]> = {}
   for (const expression of strings(values.where)) {
-    const [field, value] = [expression.slice(0, expression.indexOf('=')).trim(), expression.slice(expression.indexOf('=') + 1).trim()]
-    if (!field || !value || !expression.includes('=')) throw new UsageError(`--where ${expression}: use field=value, e.g. status=preprint`, 'add')
+    const equals = expression.indexOf('=')
+    const field = expression.slice(0, equals).trim()
+    const value = expression.slice(equals + 1).trim()
+    if (equals === -1 || !field || !value) throw new UsageError(`--where ${expression}: use field=value, e.g. status=preprint`, 'add')
     const current = where[field]
     where[field] = current === undefined ? value : [current].flat().concat(value)
   }
@@ -337,7 +339,6 @@ async function addPublicationList(context: CommandContext, name: string, values:
   const ws = new Workspace(root)
   const interactive = asking(context, values)
   const selecting = SELECTION_OPTIONS.some(option => values[option] !== undefined)
-
   const notes: string[] = []
 
   // The list
