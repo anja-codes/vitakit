@@ -3,8 +3,17 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { diff } from '../src/cli/plan'
 import { cli } from './support/cli'
 import { emptyDirectory, exampleProject as project } from './support/example'
+
+describe('the diff of a planned edit', () => {
+  it('shows each change with its context, not everything between two of them', () => {
+    const before = ['a', 'groups: [', '  x,', '  y,', '  z,', '],', 'defaultGroup: x', 'b'].join('\n')
+    const after = before.replace('groups', 'statuses').replace('defaultGroup', 'defaultStatus')
+    expect(diff(before, after, 1)).toEqual(['    a', '  - groups: [', '  + statuses: [', '      x,', '    …', '    ],', '  - defaultGroup: x', '  + defaultStatus: x', '    b'])
+  })
+})
 
 describe('finding the project', () => {
   it('walks up from a nested directory, and accepts --root', async () => {
