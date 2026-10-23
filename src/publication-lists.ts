@@ -118,6 +118,16 @@ export function resolveList(name: string, value: unknown, schema: PublicationsSc
   }
 }
 
+/** The names of the lists, whatever their settings; none for a file that cannot be read. */
+export async function publicationListNames(rootDir: string): Promise<string[]> {
+  try {
+    const data = parseYaml(await readFile(join(rootDir, LISTS_FILE), 'utf8')) as unknown
+    return data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : []
+  } catch {
+    return []
+  }
+}
+
 /** Every list in `content/publication-lists.yml`; none without the file. */
 export async function loadPublicationLists(rootDir: string, schema: PublicationsSchema): Promise<Record<string, PublicationListOptions>> {
   const raw = await readFile(join(rootDir, LISTS_FILE), 'utf8').catch((error: NodeJS.ErrnoException) => {

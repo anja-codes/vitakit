@@ -134,6 +134,18 @@ describe('content/publication-lists.yml', () => {
     expect(content.issues).toEqual([{ where: 'content/publication-lists.yml', message: 'typo: no publication has a field "projct"' }])
   })
 
+  it('reports a broken schemas/publications.ts alone, not what follows from it', async () => {
+    const root = await project({
+      'content/profile.yml': 'name: Jane Doe\n',
+      'content/publications.bib': '@misc{a, title = {A}, year = {2024}, status = {thesis}}\n',
+      'content/publication-lists.yml': 'theses: { where: { status: thesis } }\n',
+      'schemas/publications.ts': 'export default {\n',
+    })
+    const content = await loadContent(root, { strict: false })
+    expect(content.issues.map(issue => issue.where)).toEqual(['schemas/publications.ts'])
+    expect(content.publications).toEqual({ theses: { count: 0, groups: [] } })
+  })
+
   it('empties its lists while the .bib file is broken in development, rather than dropping them', async () => {
     const root = await project({ 'content/profile.yml': 'name: Jane Doe\n', 'content/publications.bib': '@misc{a, status = {nope}}\n', 'content/publication-lists.yml': 'all: {}\n' })
     const content = await loadContent(root, { strict: false })

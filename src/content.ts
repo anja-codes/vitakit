@@ -8,8 +8,9 @@ import matter from 'gray-matter'
 import { parse as parseYaml } from 'yaml'
 import { createRenderer, prefixRootRelative, type Renderer } from './render'
 import { absoluteSitePath, resolveSitePaths } from './site-paths'
-import { defaultPublications, loadPublications, loadPublicationsSchema } from './bibliography'
-import { LISTS_FILE, loadPublicationLists, type PublicationListOptions } from './publication-lists'
+import { loadPublications, loadPublicationsSchema } from './bibliography'
+import { LISTS_FILE, loadPublicationLists, publicationListNames, type PublicationListOptions } from './publication-lists'
+import type { PublicationsSchema } from './publications'
 import { findSectionFiles, loadSection, resolveSectionSchema } from './sections'
 import { page as pageSchema, profile as profileSchema } from './schemas'
 import { fail, formatZodIssues, Issues, messageOf, whereOf } from './issues'
@@ -163,12 +164,14 @@ async function loadSections(
 }
 
 async function loadPublicationContent(rootDir: string, renderer: Renderer, baseURL: string, issues: Issues): Promise<Record<string, PublicationList>> {
-  const schema = await issues.attempt('schemas/publications.ts', () => loadPublicationsSchema(rootDir), defaultPublications)
+  // A broken file empties the lists rather than removing them, so that pages
+  // showing them still work while it is being fixed.
+  const empty = (names: string[]) => Object.fromEntries(names.map(name => [name, { count: 0, groups: [] }]))
+  const schema = await issues.attempt<PublicationsSchema | undefined>('schemas/publications.ts', () => loadPublicationsSchema(rootDir), undefined)
+  // Without its statuses, the lists and the .bib file would only report follow-up errors.
+  if (!schema) return empty(await publicationListNames(rootDir))
   const lists = await issues.attempt<Record<string, PublicationListOptions>>(LISTS_FILE, () => loadPublicationLists(rootDir, schema), {})
-  // A broken .bib file empties the lists rather than removing them, so that
-  // pages showing them still work while it is being fixed.
-  const empty = Object.fromEntries(Object.keys(lists).map(name => [name, { count: 0, groups: [] }]))
-  return issues.attempt('content/publications.bib', () => loadPublications(join(rootDir, 'content', 'publications.bib'), renderer, schema, lists, baseURL, issues), empty)
+  return issues.attempt('content/publications.bib', () => loadPublications(join(rootDir, 'content', 'publications.bib'), renderer, schema, lists, baseURL, issues), empty(Object.keys(lists)))
 }
 
 export async function loadContent(rootDir: string, options: LoadContentOptions = {}): Promise<VitakitContent> {
