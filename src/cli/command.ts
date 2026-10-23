@@ -135,7 +135,8 @@ export function commandHelp(spec: CommandSpec, run: Commands): string {
     'Usage',
     ...(spec.usage ? spec.usage(run) : [usageLine(spec, run)]).map(line => `  ${line}`),
     '',
-    spec.help(run).trim(),
+    // Only blank lines: help that starts with an indented example keeps its indent.
+    spec.help(run).replace(/^\s*\n/, '').trimEnd(),
     '',
     'Options',
     ...rows.map(([flag, description]) => `  ${flag!.padEnd(width)}  ${description}`),
