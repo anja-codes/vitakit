@@ -201,7 +201,7 @@ async function explainPublications(context: CommandContext, inv: Inventory): Pro
   if (!lists) {
     lines.push(block('lists', [[style.red(`${LISTS_FILE} has problems`)]]))
   } else if (!Object.keys(lists).length) {
-    lines.push(block('lists', [[`none yet: declare one in ${LISTS_FILE}`]]))
+    lines.push(block('lists', [[`none yet: \`${run.bin('vitakit', 'add publication-list <name>')}\` declares one in ${LISTS_FILE}`]]))
   } else {
     lines.push(block('lists', [[LISTS_FILE]]))
     lines.push(block('', Object.entries(lists).flatMap(([name, list]) => [
@@ -241,7 +241,7 @@ async function explainList(context: CommandContext, inv: Inventory, name: string
   lines.push('', block('pdf', pdf.length
     ? pdf.map(placement => [placement.document, `${placement.file}:${placement.line}`, `\\vitapublications${placement.heading !== undefined ? `[${placement.heading}]` : ''}{${name}}`])
     : [['not in any PDF document']]))
-  if (!web.length && !pdf.length) lines.push('', `Show it with <VitaPublications list="${name}" /> on a page, or \\vitapublications{${name}} in a PDF.`)
+  if (!web.length && !pdf.length) lines.push('', `Show it: \`${run.bin('vitakit', `add publication-list ${name} --page /publications/`)}\`, or --document cv.`)
   return lines
 }
 

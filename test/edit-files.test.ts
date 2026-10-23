@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { addSectionToDocument } from '../src/edit/tex'
-import { addSectionToPage, sectionElements } from '../src/edit/vue'
+import { addPublicationsToDocument, addSectionToDocument } from '../src/edit/tex'
+import { addPublicationsToPage, addSectionToPage, sectionElements } from '../src/edit/vue'
 import { addNavItem, addPublicationList, yamlScalar } from '../src/edit/yaml'
 
 const value = <T>(result: { ok: true, value: T } | { ok: false, reason: string }): T => {
@@ -60,8 +60,34 @@ describe('adding a section to a Vue page', () => {
     ['several root elements', '<template>\n  <h1>x</h1>\n  <p>y</p>\n</template>\n'],
     ['a one-line root', '<template><main><h1>x</h1></main></template>\n'],
     ['no template', '<script setup>\n</script>\n'],
+    ['an anchor shown conditionally', '<template>\n  <main>\n    <VitaSection v-if="a" id="talks" />\n    <p v-else>None</p>\n  </main>\n</template>\n'],
+    ['an anchor sharing its line', '<template>\n  <main>\n    <VitaSection id="talks" /><hr>\n  </main>\n</template>\n'],
   ])('prints instead for %s', (_label, source) => {
-    expect(addSectionToPage(source, { id: 'talks' }).ok).toBe(false)
+    expect(addSectionToPage(source, { id: 'grants' }).ok).toBe(false)
+  })
+})
+
+describe('adding a publication list to a page or a PDF', () => {
+  it('to a page: after a named section or list, and never twice', async () => {
+    const source = await template('app/pages/cv.vue')
+    const { source: after } = value(addPublicationsToPage(source, { list: 'recent', title: 'Recent papers', after: 'education' }))
+    expect(after).toContain('    <VitaSection id="education" title="Education" />\n    <VitaPublications list="recent" title="Recent papers" />\n')
+    expect(value(addPublicationsToPage(after, { list: 'preprints', after: 'recent' })).source)
+      .toContain('<VitaPublications list="recent" title="Recent papers" />\n    <VitaPublications list="preprints" />\n')
+    expect(addPublicationsToPage(after, { list: 'recent' })).toEqual({ ok: false, reason: 'it already shows the list recent' })
+  })
+
+  it('to a page: after the whole block a list is in, such as the landing page\'s recent publications', async () => {
+    const source = await template('app/pages/index.vue')
+    const { source: after } = value(addPublicationsToPage(source, { list: 'selected', title: 'Selected' }))
+    expect(after).toContain('          All publications →\n        </NuxtLink>\n      </p>\n    </section>\n    <VitaPublications list="selected" title="Selected" />\n')
+  })
+
+  it('to a PDF document: after a named section, and never twice', async () => {
+    const source = await template('cv-tex/cv.tex')
+    const { source: after } = value(addPublicationsToDocument(source, { id: 'recent', heading: 'Recent & selected', after: 'education' }))
+    expect(after).toContain('\\vitasection[Education]{education}\n\\vitapublications[Recent \\& selected]{recent}\n')
+    expect(addPublicationsToDocument(after, { id: 'recent' })).toEqual({ ok: false, reason: 'it already includes the list recent' })
   })
 })
 
