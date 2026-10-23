@@ -65,7 +65,7 @@ async function addSection(context: CommandContext, id: string, values: Values): 
   const { sectionNameProblem } = await import('../../sections')
   const problem = sectionNameProblem(id)
   if (problem) throw new CommandError(problem)
-  if (id === 'publications') throw new CommandError('publications come from content/publications.bib; `vitakit customize publications` changes their groups')
+  if (id === 'publications') throw new CommandError('publications come from content/publications.bib; which of them are shown is set in content/publication-lists.yml')
 
   const { inventory } = await import('../../inventory')
   const { Workspace } = await import('../plan')

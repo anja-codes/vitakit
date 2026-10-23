@@ -32,6 +32,14 @@ export function pdfCell(inventory: Inventory, section: string): string {
   return documents.length ? documents.join(', ') : '–'
 }
 
+/** Where a publication list appears: pages and PDF documents, or `not shown anywhere`. */
+export function listPlacementsText(inventory: Inventory, list: string): string {
+  const pages = inventory.web.publications.filter(placement => placement.list === list).map(placement => placement.route ?? placement.file)
+  const documents = inventory.documents.filter(document => document.publications.some(placement => placement.list === list)).map(document => `${document.name} (pdf)`)
+  const all = [...new Set([...pages, ...documents])]
+  return all.length ? all.join(', ') : 'not shown anywhere'
+}
+
 /** Zod's `- 2.title: …` as people count: `entry 3, title: …`. */
 export function readableIssue(line: string): string {
   return line.replace(/^(\s*)- (\d+)(?:\.([\w.-]+))?: /, (_match, indent: string, index: string, field?: string) =>

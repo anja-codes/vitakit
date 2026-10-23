@@ -14,6 +14,7 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 import { fail, formatZodIssues, messageOf } from '../issues'
 import type { SectionSource } from '../sections'
+import { findPdfPlacements, findPdfPublicationPlacements, type PdfPlacement, type PdfPublicationPlacement } from '../placements'
 import { atMost } from '../shared/visibility'
 import { fieldValue, filterWhere } from '../shared/select'
 import type { Entry, Visibility } from '../shared/types'
@@ -61,9 +62,6 @@ export const documentSchema = z.strictObject({
    */
   visibility: z.enum(['public', 'cv', 'private']).default('cv'),
   sections: z.record(z.string(), sectionOptions).default({}),
-  publications: z.strictObject({
-    groups: z.array(z.string()).optional(),
-  }).default({}),
 })
 
 export type DocumentOptions = z.infer<typeof documentSchema>
@@ -73,6 +71,10 @@ export interface DocumentSource {
   name: string
   texFile: string
   options: DocumentOptions
+  /** Its `\vitasection` and `\vitainput` lines. */
+  placements: PdfPlacement[]
+  /** Its `\vitapublications` lines. */
+  publications: PdfPublicationPlacement[]
 }
 
 const DEFAULTS: DocumentOptions = documentSchema.parse({})
@@ -112,6 +114,10 @@ export async function findDocuments(cvDir: string): Promise<{ documents: Documen
         problems.push({ where, message: messageOf(error) })
         continue
       }
+      if (typeof data === 'object' && data !== null && Object.hasOwn(data, 'publications')) {
+        problems.push({ where, message: 'publications: which publications a PDF shows is now a list in content/publication-lists.yml, placed with \\vitapublications[Heading]{list}' })
+        continue
+      }
       const parsed = documentSchema.safeParse(data ?? {})
       if (!parsed.success) {
         problems.push({ where, message: `invalid\n${formatZodIssues(parsed.error)}` })
@@ -119,7 +125,14 @@ export async function findDocuments(cvDir: string): Promise<{ documents: Documen
       }
       options = parsed.data
     }
-    documents.push({ name, texFile: join(cvDir, file), options })
+    const tex = `cv-tex/${file}`
+    documents.push({
+      name,
+      texFile: join(cvDir, file),
+      options,
+      placements: findPdfPlacements(name, tex, source),
+      publications: findPdfPublicationPlacements(name, tex, source),
+    })
   }
   return { documents, problems }
 }

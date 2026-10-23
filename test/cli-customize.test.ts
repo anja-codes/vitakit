@@ -58,7 +58,7 @@ describe('customize --web', () => {
     const root = await project()
     const result = await cli(['customize', 'talks', '--web', '--list', '--component', 'TalkList', '--yes'], { cwd: root })
     expect(result.code, result.err).toBe(0)
-    expect(result.out).toContain(`app/pages/index.vue:10 uses useSection('talks') in code; that is left as it is.`)
+    expect(result.out).toContain(`app/pages/index.vue:11 uses useSection('talks') in code; that is left as it is.`)
     expect(await read(root, 'app/pages/cv.vue')).toContain('<TalkList id="talks" title="Talks" />')
     const html = await renderComponent(root, 'app/components/TalkList.vue', { id: 'talks', title: 'Talks', where: { kind: 'invited' } })
     expect(html).toMatch(/^<section id="talks" class="vita-section-group"><h2 class="vita-section-group__title">Talks<\/h2><ul class="vita-section"><li class="vita-entry">/)

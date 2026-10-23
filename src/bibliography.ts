@@ -1,13 +1,14 @@
 /**
- * BibTeX -> grouped, formatted, linked reference lists, at build time.
+ * BibTeX -> the publication lists of `content/publication-lists.yml`,
+ * formatted and linked, at build time.
  *
  * The formatting itself is @behackl/citation-js-extras: title links, badges,
  * identifiers printed once, eprint fields, DOI spellings and formulas kept
  * through the style. What is left here is vitakit's part:
  *
- *   1. grouping by the custom `status` field, as `schemas/publications.ts`
- *      defines the statuses; the field only survives citation-js when declared
- *      in `customFields`
+ *   1. selecting each list (`publication-lists.ts`), with the custom `status`
+ *      field as `schemas/publications.ts` defines it; the field only survives
+ *      citation-js when declared in `customFields`
  *   2. sanitizing, while formulas are still placeholders, so that KaTeX
  *      markup survives; `defaultSchema` allows `className` only per tag with
  *      an explicit value list, so allowed classes must be merged into it
@@ -21,23 +22,21 @@ import { existsSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { isAbsolute, join, resolve } from 'node:path'
 import { resolveAsset } from './assets'
-import { Bibliography, type BadgeConfig, type BibEntry, type FormatOptions } from '@behackl/citation-js-extras'
+import { Bibliography, type BibEntry, type FormatOptions } from '@behackl/citation-js-extras'
 import { unified } from 'unified'
 import rehypeParse from 'rehype-parse'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import type { Root } from 'hast'
 import { prefixRootRelative, type Renderer } from './render'
-import { fail, importProjectModule } from './issues'
+import { fail, importProjectModule, Issues } from './issues'
 import { resolvePublications, type PublicationsSchema } from './publications'
+import { LISTS_FILE, publicationStatus, selectPublications, type PublicationListOptions } from './publication-lists'
 import packageDefaults from './schemas/publications'
-import type { Publication, PublicationGroup } from './shared/types'
+import type { Publication, PublicationList } from './shared/types'
 
 /** The package's settings for publications: `src/schemas/publications.ts`. */
 export const defaultPublications: PublicationsSchema = resolvePublications(packageDefaults, undefined, 'src/schemas/publications.ts')
-
-/** BibTeX fields that become links after a reference, unless a project sets its own. */
-export const defaultBadges: BadgeConfig[] = defaultPublications.badges
 
 /**
  * A project's `schemas/publications.ts`, validated, or the defaults. Loaded
@@ -158,29 +157,46 @@ const GENRES: Record<string, string> = {
 const readableGenre: NonNullable<FormatOptions['wrapVariable']> = (html, { variable }) =>
   variable === 'genre' ? GENRES[html.toLowerCase()] ?? html : html
 
+/** The text of a .bib file; a missing one has no entries. */
+const readBib = (path: string) => readFile(path, 'utf8').catch((error: NodeJS.ErrnoException) => {
+  if (error.code === 'ENOENT') return ''
+  throw error
+})
+
+/** The entries of a .bib file, for selecting without formatting. */
+export async function readBibliography(bibPath: string, schema: PublicationsSchema): Promise<Bibliography> {
+  try {
+    return new Bibliography({ data: await readBib(bibPath), customFields: ['status', ...schema.fields], preserveMath: true })
+  } catch (error) {
+    throw new Error(`${bibPath}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+  }
+}
+
 /**
- * `baseURL` is where the site is served, as for the Markdown renderer: a
- * root-relative link in the .bib file (`url = {/papers/x.pdf}`, a file in
- * `public/`) gets it prepended.
+ * Every list, selected from `bibPath` and formatted; a missing file has no
+ * publications. `baseURL` is where the site is served, as for the Markdown
+ * renderer: a root-relative link in the .bib file (`url = {/papers/x.pdf}`, a
+ * file in `public/`) gets it prepended.
  */
 export async function loadPublications(
   bibPath: string,
   renderer: Renderer,
-  schema: PublicationsSchema = defaultPublications,
+  schema: PublicationsSchema,
+  lists: Record<string, PublicationListOptions>,
   baseURL = '/',
-): Promise<PublicationGroup[]> {
-  const { statuses: groups, fields } = schema
+  issues = new Issues(true),
+): Promise<Record<string, PublicationList>> {
+  const { statuses, fields } = schema
   const prefix = baseURL.replace(/\/$/, '')
   const withFile = (error: unknown) =>
     new Error(`${bibPath}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
-
   let bib: Bibliography
   try {
     bib = new Bibliography({
-      data: await readFile(bibPath, 'utf8'),
+      data: await readBib(bibPath),
       cslStyle: schema.cslStyle ?? projectCslStyle(bibPath) ?? defaultCslStyle,
       // Only fields listed here survive the citation-js pipeline; they then
-      // appear as `entry.custom.<field>`. Badges read the raw fields.
+      // appear as `entry.custom.<field>`. Badges and lists read the raw fields.
       customFields: ['status', ...fields],
       preserveMath: true,
       // Defaults for every formatHtml call below.
@@ -193,8 +209,8 @@ export async function loadPublications(
     throw withFile(error)
   }
 
-  const statusOf = (entry: BibEntry) => (entry.custom.status?.trim() || schema.defaultStatus).toLowerCase()
-  const known = new Set(groups.map(group => group.id))
+  const statusOf = (entry: BibEntry) => publicationStatus(entry, schema)
+  const known = new Set(statuses.map(status => status.id))
   const unknown = bib.entries.filter(entry => !known.has(statusOf(entry)))
   if (unknown.length) {
     throw new Error(
@@ -204,12 +220,8 @@ export async function loadPublications(
     )
   }
 
-  const result: PublicationGroup[] = []
-  for (const group of groups) {
-    // Newest first: by year, then month and day where the entry has them.
-    const entries = bib.sort(bib.entries.filter(entry => statusOf(entry) === group.id), { by: 'date' })
-    if (!entries.length) continue
-
+  /** One group, formatted in one pass and split into its entries. */
+  const format = (entries: BibEntry[]): Publication[] => {
     let items: Map<string, string>
     try {
       items = splitList(bib.formatHtml(entries, {
@@ -222,8 +234,7 @@ export async function loadPublications(
     } catch (error) {
       throw withFile(error)
     }
-
-    const publications = entries.map((entry): Publication => {
+    return entries.map((entry): Publication => {
       const html = items.get(entry.key)
       if (html === undefined) throw new Error(`${bibPath}: ${entry.key} is missing from the formatted list`)
       const { title, badges } = bib.links(entry)
@@ -243,8 +254,20 @@ export async function loadPublications(
         })),
       }
     })
-    result.push({ id: group.id, label: group.label, count: entries.length, entries: publications })
   }
 
+  const result: Record<string, PublicationList> = {}
+  for (const [name, list] of Object.entries(lists)) {
+    // While developing, a mistake in one list empties that one only.
+    result[name] = await issues.attempt(LISTS_FILE, () => {
+      const groups = selectPublications(bib, name, list, schema).map((group, index) => ({
+        id: `${name}-${index + 1}`,
+        ...(group.label !== undefined ? { label: group.label } : {}),
+        count: group.entries.length,
+        entries: format(group.entries),
+      }))
+      return { count: groups.reduce((sum, group) => sum + group.count, 0), groups }
+    }, { count: 0, groups: [] })
+  }
   return result
 }

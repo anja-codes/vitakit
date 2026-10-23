@@ -22,6 +22,6 @@ useHead({
   <article>
     <h1 class="text-3xl font-semibold" v-html="page.titleHtml" />
     <VitaMarkdown class="mt-6" :html="page.bodyHtml" />
-    <VitaPublications class="mt-8" />
+    <VitaPublications list="all" class="mt-8" />
   </article>
 </template>

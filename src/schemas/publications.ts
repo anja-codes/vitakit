@@ -1,6 +1,7 @@
 /**
- * How `content/publications.bib` is grouped and linked -- on the website, in
- * `vitakit verify` and in the PDF alike.
+ * The statuses of `content/publications.bib`, and how references are linked
+ * -- on the website, in `vitakit verify` and in the PDF alike. Which
+ * publications a list shows is decided in `content/publication-lists.yml`.
  *
  * Also the file `vitakit customize publications` writes into a project, with the
  * import rewritten to `@anja.codes/vitakit`; it is therefore the single definition
@@ -12,8 +13,8 @@ import { badgePresets, publications } from '../publications'
 export default publications({
   /**
    * The values of the `status` field, with the heading of their group, in
-   * the order the groups appear. A status that is not listed here is an
-   * error, in any capitalisation.
+   * the order the groups appear in a list grouped by status. A status that
+   * is not listed here is an error, in any capitalisation.
    */
   statuses: [
     { id: 'published', label: 'Published' },

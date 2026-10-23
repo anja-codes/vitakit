@@ -1,11 +1,13 @@
 /**
- * Where sections appear: on which website pages and in which PDF documents.
+ * Where sections and publication lists appear: on which website pages and in
+ * which PDF documents.
  *
  * Read from the source files, not from a build. Only literal, recognizable
  * usages count -- `<VitaSection id="talks">`, `<TalkList id="talks" />`,
- * `useSection('talks')`, `\vitasection[…]{talks}` -- and every usage that
- * cannot be resolved statically (`:id="section.id"`) is reported as dynamic,
- * so a caller can say "unknown" instead of "not shown".
+ * `useSection('talks')`, `\vitasection[…]{talks}`, `<VitaPublications
+ * list="recent">`, `\vitapublications{recent}` -- and every usage that cannot
+ * be resolved statically (`:id="section.id"`) is reported as dynamic, so a
+ * caller can say "unknown" instead of "not shown".
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
@@ -45,8 +47,32 @@ export interface PdfPlacement {
   heading?: string
 }
 
+/** A `<VitaPublications>` element. */
+export interface PublicationPlacement {
+  file: string
+  route?: string
+  line: number
+  /** The literal list name; absent when there is none or it is chosen in code. */
+  list?: string
+  /** `:list="…"`, when the name is chosen in code. */
+  expression?: string
+  title?: string
+  /** Props that select publications, which a list does instead. */
+  selecting: string[]
+}
+
+/** A `\vitapublications[Heading]{list}` line. */
+export interface PdfPublicationPlacement {
+  list: string
+  document: string
+  file: string
+  line: number
+  heading?: string
+}
+
 export interface WebPlacements {
   placements: WebPlacement[]
+  publications: PublicationPlacement[]
   dynamic: DynamicUsage[]
   /** Local components, by the name a template uses: `TalkList`. */
   components: Map<string, string>
@@ -137,6 +163,7 @@ export async function findWebPlacements(rootDir: string): Promise<WebPlacements>
   }
 
   const placements: WebPlacement[] = []
+  const publications: PublicationPlacement[] = []
   const dynamic: DynamicUsage[] = []
 
   for (const path of await vueFiles(appDir)) {
@@ -150,7 +177,19 @@ export async function findWebPlacements(rootDir: string): Promise<WebPlacements>
     const visit = (node: TemplateNode) => {
       if (node.type === ELEMENT && node.tag) {
         const tag = node.tag.includes('-') ? pascal(node.tag) : node.tag
-        if (tag === 'VitaSection' || components.has(tag)) {
+        if (tag === 'VitaPublications') {
+          const list = attribute(node, 'list')
+          const title = attribute(node, 'title')
+          const name = list?.static ?? (list?.expression !== undefined ? literal(list.expression) : undefined)
+          publications.push({
+            file,
+            route,
+            line: node.loc.start.line,
+            ...(name !== undefined ? { list: name } : list?.expression !== undefined ? { expression: list.expression } : {}),
+            ...(title?.static !== undefined ? { title: title.static } : {}),
+            selecting: SELECTING_PROPS.filter(prop => attribute(node, prop) !== undefined),
+          })
+        } else if (tag === 'VitaSection' || components.has(tag)) {
           const id = attribute(node, 'id')
           const section = id?.static ?? (id?.expression !== undefined ? literal(id.expression) : undefined)
           if (section) {
@@ -188,7 +227,49 @@ export async function findWebPlacements(rootDir: string): Promise<WebPlacements>
     }
   }
 
-  return { placements, dynamic, components }
+  return { placements, publications, dynamic, components }
+}
+
+/**
+ * Props that select publications: `groups` and `headings` of vitakit 0.2, and
+ * those `VitaSection` takes. A list selects instead, the same on every page.
+ */
+const SELECTING_PROPS = ['groups', 'headings', 'where', 'limit', 'sort', 'groupBy', 'group-by']
+
+/**
+ * Publication list placements that a build would fail on: an unknown or
+ * missing list name, props of earlier versions, `\vitainput{publications}`.
+ */
+export function publicationPlacementProblems(
+  web: PublicationPlacement[],
+  pdf: (PdfPlacement | PdfPublicationPlacement)[],
+  lists: string[],
+): { where: string, message: string }[] {
+  const known = `the lists are ${lists.join(', ') || '(none)'} (content/publication-lists.yml)`
+  const unknown = (name: string) => `no publication list "${name}"; ${known}`
+  const problems: { where: string, message: string }[] = []
+  for (const placement of web) {
+    const where = `${placement.file}:${placement.line}`
+    if (placement.selecting.length) {
+      problems.push({
+        where,
+        message: `VitaPublications does not take ${placement.selecting.join(', ')}: which publications a list shows is set in content/publication-lists.yml`,
+      })
+    } else if (placement.list === undefined && placement.expression === undefined) {
+      problems.push({ where, message: `VitaPublications needs a list, e.g. <VitaPublications list="all" />; ${known}` })
+    } else if (placement.list !== undefined && !lists.includes(placement.list)) {
+      problems.push({ where, message: unknown(placement.list) })
+    }
+  }
+  for (const placement of pdf) {
+    const where = `${placement.file}:${placement.line}`
+    if ('list' in placement) {
+      if (!lists.includes(placement.list)) problems.push({ where, message: unknown(placement.list) })
+    } else if (placement.macro === 'vitainput' && placement.section === 'publications') {
+      problems.push({ where, message: `\\vitainput{publications} is now \\vitapublications[Heading]{list}, with a list from content/publication-lists.yml` })
+    }
+  }
+  return problems
 }
 
 /** Remove a TeX comment: everything from an unescaped `%`. */
@@ -220,6 +301,23 @@ export function findPdfPlacements(document: string, file: string, source: string
     }
     for (const match of line.matchAll(/\\vitainput\{([^}]*)\}/g)) {
       placements.push({ section: match[1]!.trim(), document, file, line: index + 1, macro: 'vitainput' })
+    }
+  }
+  return placements
+}
+
+/** `\vitapublications` lines in a document's body. */
+export function findPdfPublicationPlacements(document: string, file: string, source: string): PdfPublicationPlacement[] {
+  const placements: PdfPublicationPlacement[] = []
+  let inBody = false
+  for (const [index, raw] of source.split('\n').entries()) {
+    const line = stripComment(raw)
+    if (!inBody) {
+      if (/\\begin\{document\}/.test(line)) inBody = true
+      else continue
+    }
+    for (const match of line.matchAll(/\\vitapublications(?:\[([^\]]*)\])?\{([^}]*)\}/g)) {
+      placements.push({ list: match[2]!.trim(), document, file, line: index + 1, ...(match[1] !== undefined ? { heading: match[1] } : {}) })
     }
   }
   return placements

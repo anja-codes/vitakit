@@ -88,9 +88,7 @@ export async function validateProject(rootDir: string, { sections: only }: { sec
     for (const document of inv.documents) {
       for (const placement of document.placements) {
         try {
-          if (placement.section === 'publications') {
-            await renderPublications(content.publications, document.options, templateDir, content.profile.url)
-          } else if (valid.has(placement.section)) {
+          if (valid.has(placement.section)) {
             await renderSection(placement.section, content.sections[placement.section] ?? [], document.options, templateDir)
           }
         } catch (error) {
@@ -99,6 +97,15 @@ export async function validateProject(rootDir: string, { sections: only }: { sec
             section: placement.section,
             message: `${messageOf(error)} (in ${document.tex})`,
           })
+        }
+      }
+      for (const placement of document.publications) {
+        const list = content.publications[placement.list]
+        if (!list) continue
+        try {
+          await renderPublications(list, templateDir, content.profile.url)
+        } catch (error) {
+          add({ where: local(whereOf(error, 'cv-tex/templates/publications.eta')), message: `${messageOf(error)} (in ${document.tex})` })
         }
       }
     }

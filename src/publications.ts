@@ -5,7 +5,8 @@
  * Like a section schema, it is a file in the project that the website,
  * `vitakit verify` and the PDF all read, so the three cannot disagree about
  * which statuses exist. `vitakit customize publications` writes the defaults
- * (`src/schemas/publications.ts`) as a starting point.
+ * (`src/schemas/publications.ts`) as a starting point. Which publications a
+ * list shows is decided in `content/publication-lists.yml`.
  */
 import { z } from 'zod'
 import { badgePresets, type BadgeConfig } from '@behackl/citation-js-extras'

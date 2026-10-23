@@ -40,6 +40,7 @@ export type {
   Publication,
   PublicationBadge,
   PublicationGroup,
+  PublicationList,
   RichText,
   VitakitContent,
   Visibility,

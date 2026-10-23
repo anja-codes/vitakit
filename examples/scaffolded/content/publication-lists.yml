@@ -1,0 +1,23 @@
+# Publication lists: which publications of publications.bib a list shows,
+# in what order and in which groups. A page shows one with
+#   <VitaPublications list="recent" title="Recent publications" />
+# and a PDF with
+#   \vitapublications[Recent publications]{recent}
+#
+# Settings, all optional:
+#   where:    { status: preprint }, { keywords: selected }, { year: 2024 } --
+#             fields of the entries in publications.bib; [a, b] means a or b
+#   keys:     [doe2024, roe2023] -- exactly these, in this order
+#   since, until: years
+#   sort:     date (newest first), year, title, source (as in publications.bib),
+#             or a field; order: asc or desc
+#   limit:    at most this many
+#   groupBy:  status, year or a field; otherLabel: the heading for the entries
+#             without it (Other)
+# `vitakit explain publications` shows what each list contains and where.
+
+all:
+  groupBy: status
+
+recent:
+  limit: 3

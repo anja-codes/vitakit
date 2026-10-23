@@ -1,8 +1,9 @@
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Inventory, SectionInventory, DocumentInventory, PageInventory } from '../../inventory'
 import { CommandError, UsageError, type CommandSpec, type CommandContext } from '../command'
 import { block } from '../io'
-import { countsText, problemLines, webPlacementsOf } from '../describe'
+import { countsText, listPlacementsText, problemLines, webPlacementsOf } from '../describe'
 
 const STARTER = (id: string) => [
   `import { section, dateRange, richText, text } from '@anja.codes/vitakit'`,
@@ -151,9 +152,7 @@ async function explainDocument(context: CommandContext, inv: Inventory, document
     lines.push(block('includes', document.placements.map((placement) => {
       const section = inv.sections.find(candidate => candidate.id === placement.section)
       let detail = ''
-      if (placement.section === 'publications') {
-        detail = inv.publications ? `${inv.publications.entries} entries in ${inv.publications.groups} groups` : 'no content/publications.bib'
-      } else if (section?.problems.length) {
+      if (section?.problems.length) {
         detail = style.red('has problems')
       } else if (section) {
         const { total, steps } = explainSelection(inv.content.sections[section.id] ?? [], document.options, section.id)
@@ -171,6 +170,14 @@ async function explainDocument(context: CommandContext, inv: Inventory, document
   } else {
     lines.push(block('includes', [['no \\vitasection or \\vitainput lines found']]))
   }
+  if (document.publications.length) {
+    lines.push('', block('lists', document.publications.map(placement => [
+      `line ${placement.line}`,
+      placement.list,
+      placement.heading ?? '',
+      inv.publications?.counts[placement.list] !== undefined ? entriesText(inv.publications.counts[placement.list]!) : style.red('no such list'),
+    ])))
+  }
 
   const pdf = document.pdf
     ? `${document.pdf.file}${document.pdf.mtimeMs < inv.sourcesMtimeMs ? ', older than its sources' : ''}`
@@ -178,6 +185,63 @@ async function explainDocument(context: CommandContext, inv: Inventory, document
   lines.push('', block('pdf', [[pdf]]))
   if (document.problems.length) lines.push('', style.bold('Problems'), ...problemLines(document.problems))
   lines.push('', `Build it: \`${run.bin('vitakit', `pdf ${document.name}`)}\`; per section: \`${run.bin('vitakit', 'explain <section>')}\``)
+  return lines
+}
+
+const entriesText = (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`
+
+async function explainPublications(context: CommandContext, inv: Inventory): Promise<string[]> {
+  const { style, run, root } = context
+  const { loadPublicationsSchema } = await import('../../bibliography')
+  const { LISTS_FILE, describeList, loadPublicationLists } = await import('../../publication-lists')
+  const lines = [style.bold('publications'), '']
+  lines.push(block('data', [[inv.publications ? `${inv.publications.file} · ${inv.publications.entries} entries` : 'no content/publications.bib']]))
+  lines.push(block('statuses', [[existsSync(join(root, 'schemas', 'publications.ts')) ? 'schemas/publications.ts (yours)' : `vitakit's (\`${run.bin('vitakit', 'customize publications')}\` to change them)`]]))
+  const lists = await loadPublicationsSchema(root).then(schema => loadPublicationLists(root, schema)).catch(() => undefined)
+  if (!lists) {
+    lines.push(block('lists', [[style.red(`${LISTS_FILE} has problems`)]]))
+  } else if (!Object.keys(lists).length) {
+    lines.push(block('lists', [[`none yet: declare one in ${LISTS_FILE}`]]))
+  } else {
+    lines.push(block('lists', [[LISTS_FILE]]))
+    lines.push(block('', Object.entries(lists).flatMap(([name, list]) => [
+      [`  ${name}`, `${entriesText(inv.publications?.counts[name] ?? 0)} · ${describeList(list)}`],
+      ['', listPlacementsText(inv, name)],
+    ])))
+  }
+  const files = [LISTS_FILE, 'content/publications.bib', 'schemas/publications.ts']
+  const problems = inv.problems.filter(problem => files.includes(problem.where))
+  if (problems.length) lines.push('', style.bold('Problems'), ...problemLines(problems))
+  lines.push('', `Show a list: <VitaPublications list="<name>" /> on a page, \\vitapublications[Heading]{<name>} in a PDF.`)
+  return lines
+}
+
+async function explainList(context: CommandContext, inv: Inventory, name: string): Promise<string[]> {
+  const { style, run, root } = context
+  const { loadPublicationsSchema, readBibliography } = await import('../../bibliography')
+  const { LISTS_FILE, describeList, explainPublications: steps, loadPublicationLists } = await import('../../publication-lists')
+  const { publicationListLine } = await import('../../edit/yaml')
+  const { readFile } = await import('node:fs/promises')
+  const schema = await loadPublicationsSchema(root)
+  const list = (await loadPublicationLists(root, schema))[name]!
+  const line = publicationListLine(await readFile(join(root, LISTS_FILE), 'utf8'), name)
+  const { total, steps: removed, keys } = steps(await readBibliography(join(root, 'content', 'publications.bib'), schema), name, list, schema)
+
+  const lines = [style.bold(name), '']
+  lines.push(block('list', [[`${LISTS_FILE}${line ? `:${line}` : ''}`], [describeList(list)]]))
+  lines.push(block('shows', [
+    [`${keys.length} of ${total} publications${removed.length ? ` (${removed.map(step => `${step.rule} −${step.removed}`).join(', ')})` : ''}`],
+    ...(keys.length ? [[keys.join(', ')]] : []),
+  ]), '')
+  const web = inv.web.publications.filter(placement => placement.list === name)
+  lines.push(block('website', web.length
+    ? web.map(placement => [placement.route ?? '', `${placement.file}:${placement.line}`, `<VitaPublications${placement.title !== undefined ? ` title="${placement.title}"` : ''}>`])
+    : [['not on any page']]))
+  const pdf = inv.documents.flatMap(document => document.publications.filter(placement => placement.list === name))
+  lines.push('', block('pdf', pdf.length
+    ? pdf.map(placement => [placement.document, `${placement.file}:${placement.line}`, `\\vitapublications${placement.heading !== undefined ? `[${placement.heading}]` : ''}{${name}}`])
+    : [['not in any PDF document']]))
+  if (!web.length && !pdf.length) lines.push('', `Show it with <VitaPublications list="${name}" /> on a page, or \\vitapublications{${name}} in a PDF.`)
   return lines
 }
 
@@ -200,6 +264,14 @@ function explainRoute(context: CommandContext, inv: Inventory, page: PageInvento
       placement.component === 'code' ? 'useSection, in code' : `<${placement.component}${placement.title !== undefined ? ` title="${placement.title}"` : ''}>`,
     ])))
   }
+  const lists = inv.web.publications.filter(placement => placement.route === route)
+  if (lists.length) {
+    lines.push('', block('lists', lists.map(placement => [
+      placement.list ?? placement.expression ?? '(no list)',
+      `line ${placement.line}`,
+      `<VitaPublications${placement.title !== undefined ? ` title="${placement.title}"` : ''}>`,
+    ])))
+  }
   const dynamic = inv.web.dynamic.filter(usage => usage.file === page?.vue)
   if (dynamic.length) {
     lines.push('', 'Chosen in code, so not listed:', ...dynamic.map(usage => `  line ${usage.line}  ${usage.usage}`))
@@ -209,7 +281,7 @@ function explainRoute(context: CommandContext, inv: Inventory, page: PageInvento
 
 export const explain: CommandSpec = {
   name: 'explain',
-  summary: 'where a section, PDF document or page comes from, and where it goes',
+  summary: 'where a section, publication list, PDF document or page comes from, and where it goes',
   positionals: [{ name: 'name', required: true }],
   options: {
     section: { type: 'boolean', description: 'the name is a section (when a document has the same name)' },
@@ -221,11 +293,14 @@ export const explain: CommandSpec = {
   ${run.bin('vitakit', 'explain talks')}       a section: its file, fields, pages and PDFs
   ${run.bin('vitakit', 'explain cv')}          a PDF document: what it includes, from where
   ${run.bin('vitakit', 'explain /cv/')}        a website page: its files and sections
+  ${run.bin('vitakit', 'explain publications')}   every publication list: what it shows, and where
+  ${run.bin('vitakit', 'explain recent')}      one publication list: which publications, and why
   ${run.bin('vitakit', 'explain teaching --field evaluation')}   lines that show a field
 
 For a section it shows which entries each PDF document selects, and which
 setting removed the others -- the answer to "why is this not in my PDF?".
-Never prints entry contents, only counts.`,
+For a publication list, the same: which setting removed which publications,
+and the citation keys of those it shows. Entry contents are never printed.`,
 
   async run(context, { positionals, values }) {
     const { inventory } = await import('../../inventory')
@@ -236,6 +311,8 @@ Never prints entry contents, only counts.`,
     if (name.startsWith('/')) {
       const route = name.endsWith('/') ? name : `${name}/`
       lines = explainRoute(context, inv, inv.pages.find(page => page.route === route), route)
+    } else if (name === 'publications' && !values.section && !values.document) {
+      lines = await explainPublications(context, inv)
     } else {
       const section = inv.sections.find(candidate => candidate.id === name)
       const document = inv.documents.find(candidate => candidate.name === name)
@@ -247,10 +324,13 @@ Never prints entry contents, only counts.`,
       if (fields.length && !(section && !values.document)) throw new UsageError('--field goes with a section', 'explain')
       if (section && !values.document) lines = await explainSection(context, inv, section, fields)
       else if (document && !values.section) lines = await explainDocument(context, inv, document)
+      else if (inv.publications?.counts[name] !== undefined && !values.section && !values.document) lines = await explainList(context, inv, name)
       else {
+        const lists = Object.keys(inv.publications?.counts ?? {})
         const known = [
           inv.sections.length ? `sections: ${inv.sections.map(candidate => candidate.id).join(', ')}` : '',
           inv.documents.length ? `documents: ${inv.documents.map(candidate => candidate.name).join(', ')}` : '',
+          lists.length ? `publication lists: ${lists.join(', ')}` : '',
         ].filter(Boolean).join('; ')
         throw new CommandError(`nothing called "${name}"${known ? `; ${known}` : ''}. A page is explained by its route, e.g. /cv/.`)
       }

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { addSectionToDocument } from '../src/edit/tex'
 import { addSectionToPage, sectionElements } from '../src/edit/vue'
-import { addNavItem, yamlScalar } from '../src/edit/yaml'
+import { addNavItem, addPublicationList, yamlScalar } from '../src/edit/yaml'
 
 const value = <T>(result: { ok: true, value: T } | { ok: false, reason: string }): T => {
   if (!result.ok) throw new Error(result.reason)
@@ -82,5 +82,16 @@ describe('adding a menu entry', () => {
 
   it('refuses a flow-style nav', () => {
     expect(addNavItem('nav: [{ label: A, to: / }]\n', { label: 'B', to: '/b/' }).ok).toBe(false)
+  })
+})
+
+describe('declaring a publication list', () => {
+  it('goes at the end of content/publication-lists.yml, one setting per line', async () => {
+    const source = await template('content/publication-lists.yml')
+    const after = value(addPublicationList(source, 'preprints', { where: { status: ['preprint', 'accepted'] }, limit: 5, sort: undefined }))
+    expect(after).toBe(`${source}\npreprints:\n  where: { status: [preprint, accepted] }\n  limit: 5\n`)
+    expect(value(addPublicationList('', 'all', {}))).toBe('all: {}\n')
+    expect(addPublicationList(after, 'recent', {})).toEqual({ ok: false, reason: `it has a list "recent" already, on line ${source.split('\n').indexOf('recent:') + 1}` })
+    expect(addPublicationList('{ all: {} }\n', 'recent', {}).ok).toBe(false)
   })
 })

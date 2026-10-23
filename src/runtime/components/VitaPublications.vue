@@ -1,36 +1,35 @@
 <script setup lang="ts">
 /**
- * Publication groups formatted from `content/publications.bib` at build time.
+ * A publication list from `content/publication-lists.yml`, formatted from
+ * `content/publications.bib` at build time.
  *
- * This component lays out the groups; each entry is a `VitaPublication`, which
- * can be ejected on its own to change how a reference looks. Grouping, style
- * and badge fields are configured in `nuxt.config.ts` and
- * `content/publications.csl`.
+ * Which publications, in what order and in which groups is the list's
+ * business; this component decides where it appears and under which heading.
+ * Each entry is a `VitaPublication`, which can be ejected on its own to change
+ * how a reference looks. Nothing is shown for an empty list, heading included.
  */
 import { computed } from 'vue'
-import { usePublications } from '#imports'
+import { usePublicationList } from '#imports'
 
-// `withDefaults` is required for the boolean: Vue casts an absent Boolean prop
-// to `false`, so `headings` would silently default to off.
-const props = withDefaults(defineProps<{
-  /** Restrict to these group ids, in this order. */
-  groups?: string[]
-  /** Show the group label above each list. */
-  headings?: boolean
-}>(), { groups: undefined, headings: true })
+const props = defineProps<{
+  /** The list's name in `content/publication-lists.yml`. */
+  list: string
+  /** A heading above the list. */
+  title?: string
+}>()
 
-const all = usePublications()
-const shown = computed(() => props.groups
-  ? props.groups.map(id => all.find(group => group.id === id)).filter(group => group !== undefined)
-  : all)
+const publications = computed(() => usePublicationList(props.list))
 </script>
 
 <template>
-  <div class="vita-publications">
-    <section v-for="group in shown" :key="group.id" class="vita-publications__group">
-      <h2 v-if="headings" class="vita-publications__heading">
+  <div v-if="publications.count" class="vita-publications">
+    <h2 v-if="title !== undefined" class="vita-publications__title">
+      {{ title }}
+    </h2>
+    <section v-for="group in publications.groups" :key="group.id" class="vita-publications__group">
+      <component :is="title !== undefined ? 'h3' : 'h2'" v-if="group.label !== undefined" class="vita-publications__heading">
         {{ group.label }}
-      </h2>
+      </component>
       <ol class="vita-bib csl-bib-body">
         <VitaPublication v-for="entry in group.entries" :key="entry.key" :entry="entry" />
       </ol>
