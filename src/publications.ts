@@ -1,10 +1,10 @@
 /**
- * `schemas/publications.ts`: how `content/publications.bib` is grouped and
- * linked.
+ * `schemas/publications.ts`: the statuses of `content/publications.bib`, and
+ * how references are linked and formatted.
  *
  * Like a section schema, it is a file in the project that the website,
  * `vitakit verify` and the PDF all read, so the three cannot disagree about
- * which groups exist. `vitakit customize publications` writes the defaults
+ * which statuses exist. `vitakit customize publications` writes the defaults
  * (`src/schemas/publications.ts`) as a starting point.
  */
 import { z } from 'zod'
@@ -14,19 +14,19 @@ import { fail, formatZodIssues } from './issues'
 export { badgePresets }
 export type { BadgeConfig }
 
-export interface PublicationGroupConfig {
+export interface PublicationStatusConfig {
   /** A value of the `status` field; lowercase, e.g. `preprint` or `talk-slides`. */
   id: string
-  /** Heading on the website and in the PDF. */
+  /** Heading of its group, on the website and in the PDF. */
   label: string
 }
 
 /** What `schemas/publications.ts` may set; everything is optional. */
 export interface PublicationsInput {
-  /** The values of `status`, in the order the groups appear. */
-  groups?: PublicationGroupConfig[]
-  /** The group of an entry without `status`. Defaults to the first group. */
-  defaultGroup?: string
+  /** The values of `status`, in the order their groups appear. */
+  statuses?: PublicationStatusConfig[]
+  /** The status of an entry without one. Defaults to the first status. */
+  defaultStatus?: string
   /** BibTeX fields that become links after a reference, on the website. */
   badges?: BadgeConfig[]
   /** Further BibTeX fields to hand to the website, as `entry.fields`. */
@@ -40,8 +40,8 @@ export interface PublicationsInput {
 
 /** The validated settings, defaults filled in. */
 export interface PublicationsSchema {
-  groups: PublicationGroupConfig[]
-  defaultGroup: string
+  statuses: PublicationStatusConfig[]
+  defaultStatus: string
   badges: BadgeConfig[]
   fields: string[]
   cslStyle?: string
@@ -68,11 +68,11 @@ const badge = z.strictObject({
 })
 
 const input = z.strictObject({
-  groups: z.array(z.strictObject({
+  statuses: z.array(z.strictObject({
     id: z.string().regex(ID, 'expected a lowercase id such as `preprint` or `talk-slides`'),
     label: z.string().trim().min(1),
-  })).min(1, 'expected at least one group').optional(),
-  defaultGroup: z.string().optional(),
+  })).min(1, 'expected at least one status').optional(),
+  defaultStatus: z.string().optional(),
   badges: z.array(badge).optional(),
   fields: z.array(z.string().regex(/^[a-z][a-z0-9_-]*$/i, 'expected a BibTeX field name')).optional(),
   cslStyle: z.string().trim().min(1).optional(),
@@ -84,25 +84,29 @@ const input = z.strictObject({
  */
 export function resolvePublications(
   value: unknown,
-  defaults: PublicationsSchema = { groups: [], defaultGroup: '', badges: [], fields: [] },
+  defaults: PublicationsSchema = { statuses: [], defaultStatus: '', badges: [], fields: [] },
   where = 'schemas/publications.ts',
 ): PublicationsSchema {
+  const renamed = ['groups', 'defaultGroup'].filter(key => typeof value === 'object' && value !== null && Object.hasOwn(value, key))
+  if (renamed.length) {
+    fail(where, `${renamed.join(' and ')} ${renamed.length > 1 ? 'are' : 'is'} now called ${renamed.map(key => key === 'groups' ? 'statuses' : 'defaultStatus').join(' and ')}`)
+  }
   const parsed = input.safeParse(value)
   if (!parsed.success) fail(where, `invalid\n${formatZodIssues(parsed.error)}`)
 
-  const groups = parsed.data.groups ?? defaults.groups
-  const ids = groups.map(group => group.id)
+  const statuses = parsed.data.statuses ?? defaults.statuses
+  const ids = statuses.map(status => status.id)
   const duplicate = ids.find((id, index) => ids.indexOf(id) !== index)
-  if (duplicate) fail(where, `group "${duplicate}" is defined twice`)
+  if (duplicate) fail(where, `status "${duplicate}" is defined twice`)
 
-  const defaultGroup = parsed.data.defaultGroup ?? (parsed.data.groups ? ids[0]! : defaults.defaultGroup)
-  if (!ids.includes(defaultGroup)) {
-    fail(where, `defaultGroup "${defaultGroup}" is not one of the groups (${ids.join(', ')})`)
+  const defaultStatus = parsed.data.defaultStatus ?? (parsed.data.statuses ? ids[0]! : defaults.defaultStatus)
+  if (!ids.includes(defaultStatus)) {
+    fail(where, `defaultStatus "${defaultStatus}" is not one of the statuses (${ids.join(', ')})`)
   }
 
   return {
-    groups,
-    defaultGroup,
+    statuses,
+    defaultStatus,
     badges: parsed.data.badges ?? defaults.badges,
     fields: parsed.data.fields ?? defaults.fields,
     ...(parsed.data.cslStyle ? { cslStyle: parsed.data.cslStyle } : {}),

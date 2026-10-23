@@ -199,13 +199,13 @@ export async function buildCv(options: BuildOptions): Promise<string[]> {
   // A misspelt group would otherwise just be missing from the PDF. Checked
   // against the defined groups, not the ones that have entries: an empty
   // group is fine.
-  const groups = (await loadPublicationsSchema(options.rootDir)).groups.map(group => group.id)
+  const groups = (await loadPublicationsSchema(options.rootDir)).statuses.map(status => status.id)
   for (const document of documents) {
     validateDocumentSections(document, sources)
     const unknown = (document.options.publications.groups ?? []).filter(id => !groups.includes(id))
     if (unknown.length) {
       fail(`cv-tex/${document.name}.yml`, `publications.groups: unknown group ${unknown.join(', ')}; `
-        + `the groups are ${groups.join(', ')} (schemas/publications.ts)`)
+        + `the statuses are ${groups.join(', ')} (schemas/publications.ts)`)
     }
   }
 

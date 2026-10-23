@@ -208,10 +208,10 @@ describe('schemas/publications.ts', () => {
     'content/publications.bib': BIB,
     ...settings === undefined ? {} : { 'schemas/publications.ts': `${importPackage('publications')}export default publications(${settings})\n` },
   })
-  const GROUPS = `groups: [{ id: 'papers', label: 'Papers' }, { id: 'talk-slides', label: 'Slides' }]`
+  const STATUSES = `statuses: [{ id: 'papers', label: 'Papers' }, { id: 'talk-slides', label: 'Slides' }]`
 
-  it('defines the groups, the default group and the fields handed to the website', async () => {
-    const { publications } = await loadContent(await site(`{ ${GROUPS}, fields: ['project'] }`))
+  it('defines the statuses, the default status and the fields handed to the website', async () => {
+    const { publications } = await loadContent(await site(`{ ${STATUSES}, fields: ['project'] }`))
     expect(publications.map(group => [group.id, group.label, group.entries.map(entry => [entry.key, entry.fields])])).toEqual([
       ['papers', 'Papers', [['paper', { project: 'Alpha' }]]], // no status: the first group
       ['talk-slides', 'Slides', [['slides', {}]]],
@@ -219,24 +219,25 @@ describe('schemas/publications.ts', () => {
   })
 
   it.each([
-    [`{ groups: [{ id: 'Talk slides', label: 'Slides' }] }`, /schemas\/publications\.ts: invalid\n.*lowercase id/],
-    [`{ groups: [{ id: 'papers', label: 'Papers' }], defaultGroup: 'published' }`, /defaultGroup "published" is not one of the groups \(papers\)/],
-    [`{ groups: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }`, /group "a" is defined twice/],
+    [`{ statuses: [{ id: 'Talk slides', label: 'Slides' }] }`, /schemas\/publications\.ts: invalid\n.*lowercase id/],
+    [`{ statuses: [{ id: 'papers', label: 'Papers' }], defaultStatus: 'published' }`, /defaultStatus "published" is not one of the statuses \(papers\)/],
+    [`{ statuses: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }`, /status "a" is defined twice/],
     [`{ badge: [] }`, /Unrecognized key: "badge"/],
+    [`{ groups: [], defaultGroup: 'a' }`, /groups and defaultGroup are now called statuses and defaultStatus$/],
   ])('rejects %s, naming the file', async (settings, message) => {
     await expect(loadContent(await site(settings))).rejects.toThrow(message)
   })
 
-  it('names the file where the groups are defined when a status is unknown', async () => {
-    await expect(loadContent(await site())).rejects.toThrow(/unknown status talk-slides on slides; expected one of .* \(groups are defined in schemas\/publications\.ts\)/)
+  it('names the file where the statuses are defined when a status is unknown', async () => {
+    await expect(loadContent(await site())).rejects.toThrow(/unknown status talk-slides on slides; expected one of .* \(statuses are defined in schemas\/publications\.ts\)/)
   })
 
   it('takes effect when edited, without a restart', async () => {
-    const root = await site(`{ ${GROUPS} }`)
+    const root = await site(`{ ${STATUSES} }`)
     expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Papers', 'Slides'])
     // The modification time is part of the import URL; make sure it differs.
     await new Promise(resolve => setTimeout(resolve, 20))
-    await writeFile(join(root, 'schemas/publications.ts'), `${importPackage('publications')}export default publications({ ${GROUPS.replace('Papers', 'Articles')} })\n`)
+    await writeFile(join(root, 'schemas/publications.ts'), `${importPackage('publications')}export default publications({ ${STATUSES.replace('Papers', 'Articles')} })\n`)
     expect((await loadContent(root)).publications.map(group => group.label)).toEqual(['Articles', 'Slides'])
   })
 

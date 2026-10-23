@@ -22,12 +22,12 @@ async function planSchema(context: CommandContext, ws: Workspace, inv: Inventory
 
   if (id === 'publications') {
     if (ws.exists(path)) {
-      notes.after.push(`${path} is yours already: its groups, badges and fields decide how content/publications.bib is grouped and linked.`)
+      notes.after.push(`${path} is yours already: its statuses, badges and fields decide how content/publications.bib is grouped and linked.`)
       return
     }
-    ws.create(path, await builtinSchemaSource('publications'), 'vitakit\'s publication groups, badges and fields, to change')
+    ws.create(path, await builtinSchemaSource('publications'), 'vitakit\'s publication statuses, badges and fields, to change')
     notes.before.push('The website, `vitakit verify` and the PDF all read it from now on.')
-    notes.after.push(`Edit ${path}: change groups, add badges, pass on BibTeX fields. Check it: \`${run.bin('vitakit', 'validate')}\``)
+    notes.after.push(`Edit ${path}: change statuses, add badges, pass on BibTeX fields. Check it: \`${run.bin('vitakit', 'validate')}\``)
     return
   }
 

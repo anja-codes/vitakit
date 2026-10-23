@@ -11,10 +11,11 @@ import { badgePresets, publications } from '../publications'
 
 export default publications({
   /**
-   * The values of the `status` field, in the order the groups appear. A
-   * status that is not listed here is an error, in any capitalisation.
+   * The values of the `status` field, with the heading of their group, in
+   * the order the groups appear. A status that is not listed here is an
+   * error, in any capitalisation.
    */
-  groups: [
+  statuses: [
     { id: 'published', label: 'Published' },
     { id: 'accepted', label: 'Accepted' },
     { id: 'preprint', label: 'Preprints' },
@@ -22,8 +23,8 @@ export default publications({
     { id: 'other', label: 'Other' },
   ],
 
-  /** The group of an entry without `status`; the first group if left out. */
-  defaultGroup: 'published',
+  /** The status of an entry without one; the first status if left out. */
+  defaultStatus: 'published',
 
   /**
    * BibTeX fields that become links after a reference on the website. The

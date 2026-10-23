@@ -61,7 +61,7 @@ describe('documents', () => {
     ['sections: [\n', /cv-tex\/cv\.yml: /],
     ['sections:\n  talk: { limit: 1 }\n', /cv-tex\/cv\.yml: sections\.talk: unknown section; the sections are talks/],
     ['sections:\n  talks: { where: { knid: invited } }\n', /cv-tex\/cv\.yml: sections\.talks\.where\.knid: unknown field; the fields are year, visibility, date, title/],
-    ['publications: { groups: [published, preprints] }\n', /cv-tex\/cv\.yml: publications\.groups: unknown group preprints; the groups are published, accepted, preprint/],
+    ['publications: { groups: [published, preprints] }\n', /cv-tex\/cv\.yml: publications\.groups: unknown group preprints; the statuses are published, accepted, preprint/],
   ])('reject the options %j, naming the file', async (yaml, message) => {
     await expect(build(await project({ ...BASE, 'cv-tex/cv.yml': yaml }))).rejects.toThrow(message)
   })
@@ -176,7 +176,7 @@ describe('the generated files', () => {
   it('custom publication groups reach the PDF as they reach the website', async () => {
     const root = await project({
       ...BASE,
-      'schemas/publications.ts': `${importPackage('publications')}export default publications({ groups: [{ id: 'papers', label: 'Articles' }, { id: 'talk-slides', label: 'Talk slides' }] })\n`,
+      'schemas/publications.ts': `${importPackage('publications')}export default publications({ statuses: [{ id: 'papers', label: 'Articles' }, { id: 'talk-slides', label: 'Talk slides' }] })\n`,
       'content/publications.bib': '@misc{slides2023, title = {Slides}, year = {2023}, status = {talk-slides}}\n',
       'cv-tex/cv.yml': 'publications: { groups: [talk-slides] }\n',
     })

@@ -6,7 +6,7 @@
  * through the style. What is left here is vitakit's part:
  *
  *   1. grouping by the custom `status` field, as `schemas/publications.ts`
- *      defines the groups; the field only survives citation-js when declared
+ *      defines the statuses; the field only survives citation-js when declared
  *      in `customFields`
  *   2. sanitizing, while formulas are still placeholders, so that KaTeX
  *      markup survives; `defaultSchema` allows `className` only per tag with
@@ -29,7 +29,7 @@ import rehypeStringify from 'rehype-stringify'
 import type { Root } from 'hast'
 import { prefixRootRelative, type Renderer } from './render'
 import { fail, importProjectModule } from './issues'
-import { resolvePublications, type PublicationGroupConfig, type PublicationsSchema } from './publications'
+import { resolvePublications, type PublicationsSchema } from './publications'
 import packageDefaults from './schemas/publications'
 import type { Publication, PublicationGroup } from './shared/types'
 
@@ -38,8 +38,6 @@ export const defaultPublications: PublicationsSchema = resolvePublications(packa
 
 /** BibTeX fields that become links after a reference, unless a project sets its own. */
 export const defaultBadges: BadgeConfig[] = defaultPublications.badges
-
-export const defaultGroups: PublicationGroupConfig[] = defaultPublications.groups
 
 /**
  * A project's `schemas/publications.ts`, validated, or the defaults. Loaded
@@ -171,7 +169,7 @@ export async function loadPublications(
   schema: PublicationsSchema = defaultPublications,
   baseURL = '/',
 ): Promise<PublicationGroup[]> {
-  const { groups, fields } = schema
+  const { statuses: groups, fields } = schema
   const prefix = baseURL.replace(/\/$/, '')
   const withFile = (error: unknown) =>
     new Error(`${bibPath}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
@@ -195,14 +193,14 @@ export async function loadPublications(
     throw withFile(error)
   }
 
-  const statusOf = (entry: BibEntry) => (entry.custom.status?.trim() || schema.defaultGroup).toLowerCase()
+  const statusOf = (entry: BibEntry) => (entry.custom.status?.trim() || schema.defaultStatus).toLowerCase()
   const known = new Set(groups.map(group => group.id))
   const unknown = bib.entries.filter(entry => !known.has(statusOf(entry)))
   if (unknown.length) {
     throw new Error(
       `${bibPath}: unknown status ${[...new Set(unknown.map(statusOf))].join(', ')} `
       + `on ${unknown.map(entry => entry.key).join(', ')}; expected one of ${[...known].join(', ')}`
-      + ' (groups are defined in schemas/publications.ts)',
+      + ' (statuses are defined in schemas/publications.ts)',
     )
   }
 

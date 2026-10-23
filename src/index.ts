@@ -23,7 +23,7 @@ export {
   publications,
   badgePresets,
   type BadgeConfig,
-  type PublicationGroupConfig,
+  type PublicationStatusConfig,
   type PublicationsInput,
 } from './publications'
 
