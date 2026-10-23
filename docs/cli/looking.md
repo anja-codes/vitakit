@@ -53,17 +53,19 @@ JSON object.
 ::: code-group
 
 ```bash [pnpm]
-pnpm vitakit explain talks     # a section
-pnpm vitakit explain cv        # a PDF document
-pnpm vitakit explain /cv/      # a website page
-pnpm vitakit explain publications   # the publication lists
+pnpm vitakit explain talks          # a section
+pnpm vitakit explain cv             # a PDF document
+pnpm vitakit explain /cv/           # a website page
+pnpm vitakit explain recent         # a publication list
+pnpm vitakit explain publications   # all publication lists
 ```
 
 ```bash [npm]
-npx vitakit explain talks     # a section
-npx vitakit explain cv        # a PDF document
-npx vitakit explain /cv/      # a website page
-npx vitakit explain publications   # the publication lists
+npx vitakit explain talks          # a section
+npx vitakit explain cv             # a PDF document
+npx vitakit explain /cv/           # a website page
+npx vitakit explain recent         # a publication list
+npx vitakit explain publications   # all publication lists
 ```
 
 :::
@@ -95,7 +97,32 @@ with the setting that removed the others. That is the answer to *"why is this
 talk not in my PDF?"*. For a document: what it includes, in order, with counts.
 For a page: the files behind the route and the sections and publication lists on
 it. For `publications`: each [list](../content/publications.md#lists), what it
-shows in words (`newest first · at most 3`), how many entries, and where.
+shows in words (`newest first · at most 3`), how many entries, and where. For one
+list, by its name: which setting left out how many publications, and the citation
+keys of those it shows.
+
+A name is enough while it is unique. To say what it is, put its kind first, as
+`add` does — `section`, `document`, `publication-list` or `page`:
+
+::: code-group
+
+```bash [pnpm]
+pnpm vitakit explain section talks
+pnpm vitakit explain publication-list talks
+pnpm vitakit explain page cv          # the same as /cv/
+```
+
+```bash [npm]
+npx vitakit explain section talks
+npx vitakit explain publication-list talks
+npx vitakit explain page cv          # the same as /cv/
+```
+
+:::
+
+When a section, a PDF document and a publication list share a name, `explain`
+with the name alone lists these commands for each of them, to choose from. In
+scripts, the kind makes the command mean the same however the project grows.
 
 ## `vitakit validate`
 

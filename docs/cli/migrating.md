@@ -147,6 +147,10 @@ npx vitakit add publication-list recent --limit 3 --page / --title "Recent publi
   prints one list, in its order. `vitakit customize publications --pdf --force`
   writes vitakit's, keeping yours next to it as a `.backup` to compare.
 
+**On the command line**, `vitakit explain cv --document` (and `--section`) is now
+`vitakit explain document cv`, with the kind first as in `add`; a name alone
+works as before.
+
 ## From vitakit 0.1
 
 | 0.1 | now |

@@ -27,6 +27,39 @@ describe('status, explain and validate', () => {
     expect(out).toContain('add publication-list preprints --page /publications/')
   })
 
+  it('ask which is meant when a list has the name of a section, rather than hiding it', async () => {
+    const root = await project({ 'content/publication-lists.yml': source => `${source}\ntalks: {}\npublications: { limit: 1 }\n` })
+    const both = await cli(['explain', 'talks'], { cwd: root })
+    expect(both.code).toBe(2)
+    expect(both.err).toContain('"talks" is a section and a publication list; say which:\n  pnpm vitakit explain section talks\n  pnpm vitakit explain publication-list talks')
+    expect((await cli(['explain', 'publication-list', 'talks'], { cwd: root })).out).toMatch(/^talks\n\n {2}list {6}content\/publication-lists\.yml:\d+/)
+    expect((await cli(['explain', 'section', 'talks'], { cwd: root })).out).toContain('content/talks.yml')
+    // `publications` alone is the overview; a list of that name has its kind.
+    expect((await cli(['explain', 'publications'], { cwd: root })).out).toMatch(/^publications\n\n {2}data/)
+    expect((await cli(['explain', 'publication-list', 'publications'], { cwd: root })).out).toContain('at most 1')
+  })
+
+  it.each([
+    [['publication-list', 'recnet'], 'no publication list called "recnet"; sections: '],
+    [['list', 'recent'], '"list" is not a kind: `explain <kind> <name>` takes section, document, publication-list, page'],
+    [['section'], 'missing <name>: `explain section <name>`'],
+  ])('explain %j says what is wrong', async (args, message) => {
+    expect((await cli(['explain', ...args], { cwd: await project() })).err).toContain(message)
+  })
+
+  it('explain a page by its route or by its name', async () => {
+    const root = await project()
+    for (const args of [['/publications/'], ['page', 'publications'], ['page', '/publications/']]) {
+      expect((await cli(['explain', ...args], { cwd: root })).out).toMatch(/^\/publications\/\n/)
+    }
+  })
+
+  it('explain a list without a .bib file yet', async () => {
+    const { out, code } = await cli(['explain', 'recent'], { cwd: await project({ 'content/publications.bib': null }) })
+    expect(code).toBe(0)
+    expect(out).toContain('shows     0 of 0 publications')
+  })
+
   it('report unknown lists on pages and in PDFs, and props that select on the page', async () => {
     const root = await project({
       'app/pages/research.vue': '<template>\n  <main>\n    <VitaPublications list="recnet" />\n    <VitaPublications :groups="[\'preprint\']" />\n  </main>\n</template>\n',

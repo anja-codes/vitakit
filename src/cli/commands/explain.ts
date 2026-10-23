@@ -279,23 +279,39 @@ function explainRoute(context: CommandContext, inv: Inventory, page: PageInvento
   return lines
 }
 
+/** The kinds `explain <kind> <name>` takes, named as `add` names them. */
+const KINDS = ['section', 'document', 'publication-list', 'page'] as const
+type Kind = typeof KINDS[number]
+const KIND_NAMES: Record<Kind, string> = { 'section': 'section', 'document': 'PDF document', 'publication-list': 'publication list', 'page': 'page' }
+
 export const explain: CommandSpec = {
   name: 'explain',
   summary: 'where a section, publication list, PDF document or page comes from, and where it goes',
-  positionals: [{ name: 'name', required: true }],
+  // `<name>`, or `<kind> <name>`; the usage lines say so.
+  positionals: [{ name: 'name', required: true }, { name: 'name' }],
+  usage: run => [
+    run.bin('vitakit', 'explain <name> [options]'),
+    run.bin('vitakit', 'explain <kind> <name> [options]'),
+  ],
   options: {
-    section: { type: 'boolean', description: 'the name is a section (when a document has the same name)' },
-    document: { type: 'boolean', description: 'the name is a PDF document (when a section has the same name)' },
     field: { type: 'string', multiple: true, value: '<name>', description: 'a section: lines that show this field, on the website and in the PDF' },
   },
   project: true,
   help: run => `
-  ${run.bin('vitakit', 'explain talks')}       a section: its file, fields, pages and PDFs
-  ${run.bin('vitakit', 'explain cv')}          a PDF document: what it includes, from where
-  ${run.bin('vitakit', 'explain /cv/')}        a website page: its files and sections
-  ${run.bin('vitakit', 'explain publications')}   every publication list: what it shows, and where
-  ${run.bin('vitakit', 'explain recent')}      one publication list: which publications, and why
+  ${run.bin('vitakit', 'explain talks')}            a section: its file, fields, pages and PDFs
+  ${run.bin('vitakit', 'explain cv')}               a PDF document: what it includes, from where
+  ${run.bin('vitakit', 'explain /cv/')}             a website page: its files, sections and lists
+  ${run.bin('vitakit', 'explain recent')}           a publication list: which publications, and why
+  ${run.bin('vitakit', 'explain publications')}     every publication list: what it shows, and where
   ${run.bin('vitakit', 'explain teaching --field evaluation')}   lines that show a field
+
+A name is enough while it is unique. To say what it is -- when a section, a
+document and a list share a name, or in a script -- put the kind first, as
+\`add\` does: ${KINDS.join(', ')}.
+
+  ${run.bin('vitakit', 'explain section talks')}
+  ${run.bin('vitakit', 'explain publication-list talks')}
+  ${run.bin('vitakit', 'explain page cv')}
 
 For a section it shows which entries each PDF document selects, and which
 setting removed the others -- the answer to "why is this not in my PDF?".
@@ -305,37 +321,51 @@ and the citation keys of those it shows. Entry contents are never printed.`,
   async run(context, { positionals, values }) {
     const { inventory } = await import('../../inventory')
     const inv = await inventory(context.root)
-    const name = positionals[0]!
-
-    let lines: string[]
-    if (name.startsWith('/')) {
-      const route = name.endsWith('/') ? name : `${name}/`
-      lines = explainRoute(context, inv, inv.pages.find(page => page.route === route), route)
-    } else if (name === 'publications' && !values.section && !values.document) {
-      lines = await explainPublications(context, inv)
-    } else {
-      const section = inv.sections.find(candidate => candidate.id === name)
-      const document = inv.documents.find(candidate => candidate.name === name)
-      if (values.section && values.document) throw new UsageError('use --section or --document, not both', 'explain')
-      if (section && document && !values.section && !values.document) {
-        throw new UsageError(`"${name}" is both a section and a PDF document; add --section or --document`, 'explain')
-      }
-      const fields = (values.field as string[] | undefined) ?? []
-      if (fields.length && !(section && !values.document)) throw new UsageError('--field goes with a section', 'explain')
-      if (section && !values.document) lines = await explainSection(context, inv, section, fields)
-      else if (document && !values.section) lines = await explainDocument(context, inv, document)
-      else if (inv.publications?.counts[name] !== undefined && !values.section && !values.document) lines = await explainList(context, inv, name)
-      else {
-        const lists = Object.keys(inv.publications?.counts ?? {})
-        const known = [
-          inv.sections.length ? `sections: ${inv.sections.map(candidate => candidate.id).join(', ')}` : '',
-          inv.documents.length ? `documents: ${inv.documents.map(candidate => candidate.name).join(', ')}` : '',
-          lists.length ? `publication lists: ${lists.join(', ')}` : '',
-        ].filter(Boolean).join('; ')
-        throw new CommandError(`nothing called "${name}"${known ? `; ${known}` : ''}. A page is explained by its route, e.g. /cv/.`)
-      }
+    const typed = positionals.length === 2
+    const kind = typed ? positionals[0] as Kind : undefined
+    const name = typed ? positionals[1]! : positionals[0]!
+    if (kind !== undefined && !KINDS.includes(kind)) {
+      throw new UsageError(`"${kind}" is not a kind: \`explain <kind> <name>\` takes ${KINDS.join(', ')}; or a name alone`, 'explain')
     }
-    context.io.out(`${lines.join('\n')}\n`)
-    return 0
+    const fields = (values.field as string[] | undefined) ?? []
+    const out = (lines: string[]) => {
+      context.io.out(`${lines.join('\n')}\n`)
+      return 0
+    }
+
+    if (kind === 'page' || (!kind && name.startsWith('/'))) {
+      const route = name === '/' || name === 'index' ? '/' : `/${name.replace(/^\/|\/$/g, '')}/`
+      return out(explainRoute(context, inv, inv.pages.find(page => page.route === route), route))
+    }
+    if (!kind && name === 'publications') return out(await explainPublications(context, inv))
+
+    // A name can be a section, a PDF document and a publication list at once;
+    // then the kind says which, rather than one silently hiding the others.
+    const lists = Object.keys(inv.content.publications)
+    const section = inv.sections.find(candidate => candidate.id === name)
+    const document = inv.documents.find(candidate => candidate.name === name)
+    const found: { kind: Kind, explain: () => Promise<string[]> }[] = [
+      ...(section ? [{ kind: 'section' as const, explain: () => explainSection(context, inv, section, fields) }] : []),
+      ...(document ? [{ kind: 'document' as const, explain: () => explainDocument(context, inv, document) }] : []),
+      ...(lists.includes(name) ? [{ kind: 'publication-list' as const, explain: () => explainList(context, inv, name) }] : []),
+    ]
+    const chosen = kind ? found.filter(candidate => candidate.kind === kind) : found
+    if (chosen.length > 1) {
+      throw new UsageError([
+        `"${name}" is ${chosen.map(candidate => `a ${KIND_NAMES[candidate.kind]}`).join(' and ')}; say which:`,
+        ...chosen.map(candidate => `  ${context.run.bin('vitakit', `explain ${candidate.kind} ${name}`)}`),
+      ].join('\n'), 'explain')
+    }
+    if (chosen.length === 1) {
+      if (fields.length && chosen[0]!.kind !== 'section') throw new UsageError('--field goes with a section', 'explain')
+      return out(await chosen[0]!.explain())
+    }
+    if (!kind && (KINDS as readonly string[]).includes(name)) throw new UsageError(`missing <name>: \`explain ${name} <name>\``, 'explain')
+    const known = [
+      inv.sections.length ? `sections: ${inv.sections.map(candidate => candidate.id).join(', ')}` : '',
+      inv.documents.length ? `documents: ${inv.documents.map(candidate => candidate.name).join(', ')}` : '',
+      lists.length ? `publication lists: ${lists.join(', ')}` : '',
+    ].filter(Boolean).join('; ')
+    throw new CommandError(`${kind ? `no ${KIND_NAMES[kind]}` : 'nothing'} called "${name}"${known ? `; ${known}` : ''}. A page is explained by its route, e.g. /cv/.`)
   },
 }

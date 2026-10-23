@@ -210,8 +210,9 @@ describe('explain', () => {
     const root = await project({ 'content/cv.yml': '[]\n', 'schemas/cv.ts': `import { section, text } from '${join(process.cwd(), 'src/index.ts')}'\nexport default section({ title: text })\n` })
     const result = await cli(['explain', 'cv'], { cwd: root })
     expect(result.code).toBe(2)
-    expect(result.err).toMatch(/both a section and a PDF document/)
-    expect((await cli(['explain', 'cv', '--document'], { cwd: root })).out).toContain('includes')
+    expect(result.err).toContain('"cv" is a section and a PDF document; say which:\n  pnpm vitakit explain section cv\n  pnpm vitakit explain document cv')
+    expect((await cli(['explain', 'document', 'cv'], { cwd: root })).out).toContain('includes')
+    expect((await cli(['explain', 'section', 'cv'], { cwd: root })).out).toContain('content/cv.yml')
   })
 
   it('names what exists when nothing matches', async () => {

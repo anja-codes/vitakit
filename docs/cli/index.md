@@ -14,7 +14,7 @@ website and the PDF build:
 | Command | Does |
 |---|---|
 | [`vitakit status`](./looking.md#vitakit-status) | what is in this project, what is broken, where sections appear |
-| [`vitakit explain <name>`](./looking.md#vitakit-explain-name) | where a section, PDF document or page comes from, and where it goes |
+| [`vitakit explain <name>`](./looking.md#vitakit-explain-name) | where a section, publication list, PDF document or page comes from, and where it goes |
 | [`vitakit validate`](./looking.md#vitakit-validate) | check everything a build would check, without building |
 | [`vitakit add section <name>`](./add.md#add-section) | a section: its file, a schema drafted from your entries, its place on a page and in a PDF |
 | [`vitakit add field <section> <name>`](./add.md#add-field) | one more field a section accepts |
