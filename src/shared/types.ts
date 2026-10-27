@@ -103,16 +103,28 @@ export interface Publication {
   fields: Record<string, string>
 }
 
-/** One group of formatted references, e.g. all preprints. */
+/** One group of a publication list, e.g. its preprints or its 2024 papers. */
 export interface PublicationGroup {
+  /** Made from the list name, `recent-1`; safe as an HTML id and in LaTeX. */
   id: string
-  label: string
+  /** The group's heading; none for the single group of an ungrouped list. */
+  label?: string
   count: number
   /**
-   * Newest first. Formatted together, so numbering and year suffixes
+   * In the list's order. Formatted together, so numbering and year suffixes
    * (2024a, 2024b) are right within the group.
    */
   entries: Publication[]
+}
+
+/**
+ * A list declared in `content/publication-lists.yml`, selected, sorted,
+ * grouped and formatted at build time. An ungrouped list is one group
+ * without a label.
+ */
+export interface PublicationList {
+  count: number
+  groups: PublicationGroup[]
 }
 
 export interface Page {
@@ -162,7 +174,8 @@ export interface VitakitContent {
   pages: Page[]
   /** Section id -> validated, sorted, visibility-filtered entries. */
   sections: Record<string, Entry[]>
-  publications: PublicationGroup[]
+  /** List name -> its publications, as `content/publication-lists.yml` declares. */
+  publications: Record<string, PublicationList>
   /** Always empty in a production build, which fails instead. */
   issues: ContentIssue[]
 }

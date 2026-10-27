@@ -23,7 +23,7 @@ export {
   publications,
   badgePresets,
   type BadgeConfig,
-  type PublicationGroupConfig,
+  type PublicationStatusConfig,
   type PublicationsInput,
 } from './publications'
 
@@ -40,6 +40,7 @@ export type {
   Publication,
   PublicationBadge,
   PublicationGroup,
+  PublicationList,
   RichText,
   VitakitContent,
   Visibility,

@@ -3,13 +3,15 @@
  * composables. (`examples/scaffolded` is generated from the template and kept
  * identical by `pnpm example:check`.)
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Element } from 'hast'
 import rehypeParse from 'rehype-parse'
 import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
 import { describe, expect, it } from 'vitest'
 import { loadContent } from '../src/content'
-import { project } from './support/project'
+import { project, ROOT } from './support/project'
 import { renderGroup } from './support/publications'
 import { renderScaffold } from './support/scaffold-vue'
 
@@ -17,7 +19,10 @@ const PAGES = {
   'content/profile.yml': 'name: Jane Doe\n',
   'content/pages/cv.md': '---\ntitle: CV\n---\n\nCV introduction.\n',
   'content/pages/publications.md': '---\ntitle: Publications\n---\n\nPublications introduction.\n',
+  'content/publication-lists.yml': readFileSync(join(ROOT, 'create/template/content/publication-lists.yml'), 'utf8'),
 }
+
+const BIB = [1, 2, 3, 4].map(n => `@article{p${n}, author = {Doe, Jane}, title = {Paper ${n}}, journal = {J}, year = {202${n}}${n === 4 ? ', status = {preprint}' : ''}}`).join('\n')
 
 const content = async (files: Record<string, string> = {}) => loadContent(await project({ ...PAGES, ...files }))
 const render = async (page: string, files: Record<string, string> = {}) => renderScaffold(page, await content(files))
@@ -58,6 +63,13 @@ describe('index', () => {
     expect(html).not.toContain('CV talk')
     expect(elements(html, 'a').find(node => textOf(node) === 'All talks →')?.properties.href).toBe('/cv/#talks')
   })
+
+  it('shows the three newest publications of any status, linking to the rest', async () => {
+    const { html } = await render('index', { 'content/publications.bib': BIB })
+    expect(elements(html, 'h2').map(textOf)).toEqual(['Recent publications'])
+    expect(html.match(/Paper \d/g)).toEqual(['Paper 4', 'Paper 3', 'Paper 2'])
+    expect(elements(html, 'a').find(node => textOf(node) === 'All publications →')?.properties.href).toBe('/publications/')
+  })
 })
 
 describe('cv', () => {
@@ -85,7 +97,7 @@ describe('publications', () => {
     const { html } = await renderScaffold('publications', data)
     expect(elements(html, 'h2').map(textOf)).toEqual(['Published', 'Preprints'])
     const markup = html.replace(/<!--[\s\S]*?-->/g, '')
-    for (const group of data.publications) expect(markup).toContain(renderGroup(group).replace(/\n/g, ''))
+    for (const group of data.publications.all!.groups) expect(markup).toContain(renderGroup(group).replace(/\n/g, ''))
   })
 })
 

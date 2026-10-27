@@ -3,8 +3,17 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { diff } from '../src/cli/plan'
 import { cli } from './support/cli'
 import { emptyDirectory, exampleProject as project } from './support/example'
+
+describe('the diff of a planned edit', () => {
+  it('shows each change with its context, not everything between two of them', () => {
+    const before = ['a', 'groups: [', '  x,', '  y,', '  z,', '],', 'defaultGroup: x', 'b'].join('\n')
+    const after = before.replace('groups', 'statuses').replace('defaultGroup', 'defaultStatus')
+    expect(diff(before, after, 1)).toEqual(['    a', '  - groups: [', '  + statuses: [', '      x,', '    …', '    ],', '  - defaultGroup: x', '  + defaultStatus: x', '    b'])
+  })
+})
 
 describe('finding the project', () => {
   it('walks up from a nested directory, and accepts --root', async () => {
@@ -210,8 +219,9 @@ describe('explain', () => {
     const root = await project({ 'content/cv.yml': '[]\n', 'schemas/cv.ts': `import { section, text } from '${join(process.cwd(), 'src/index.ts')}'\nexport default section({ title: text })\n` })
     const result = await cli(['explain', 'cv'], { cwd: root })
     expect(result.code).toBe(2)
-    expect(result.err).toMatch(/both a section and a PDF document/)
-    expect((await cli(['explain', 'cv', '--document'], { cwd: root })).out).toContain('includes')
+    expect(result.err).toContain('"cv" is a section and a PDF document; say which:\n  pnpm vitakit explain section cv\n  pnpm vitakit explain document cv')
+    expect((await cli(['explain', 'document', 'cv'], { cwd: root })).out).toContain('includes')
+    expect((await cli(['explain', 'section', 'cv'], { cwd: root })).out).toContain('content/cv.yml')
   })
 
   it('names what exists when nothing matches', async () => {

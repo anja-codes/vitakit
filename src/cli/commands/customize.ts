@@ -22,12 +22,12 @@ async function planSchema(context: CommandContext, ws: Workspace, inv: Inventory
 
   if (id === 'publications') {
     if (ws.exists(path)) {
-      notes.after.push(`${path} is yours already: its groups, badges and fields decide how content/publications.bib is grouped and linked.`)
+      notes.after.push(`${path} is yours already: its statuses, badges and fields decide what publications can be and how they are linked. Which ones a list shows is set in content/publication-lists.yml.`)
       return
     }
-    ws.create(path, await builtinSchemaSource('publications'), 'vitakit\'s publication groups, badges and fields, to change')
+    ws.create(path, await builtinSchemaSource('publications'), 'vitakit\'s publication statuses, badges and fields, to change')
     notes.before.push('The website, `vitakit verify` and the PDF all read it from now on.')
-    notes.after.push(`Edit ${path}: change groups, add badges, pass on BibTeX fields. Check it: \`${run.bin('vitakit', 'validate')}\``)
+    notes.after.push(`Edit ${path}: change statuses, add badges, pass on BibTeX fields. Check it: \`${run.bin('vitakit', 'validate')}\``)
     return
   }
 
@@ -216,10 +216,16 @@ async function planPdf(context: CommandContext, ws: Workspace, inv: Inventory, i
   if (ws.exists(path)) ws.replace(path, source, `${reason}; yours is kept next to it as a .backup`, { show: true })
   else ws.create(path, source, reason, { show: true })
 
-  const included = inv.documents.filter(document => document.placements.some(placement => placement.section === id))
-  if (!included.length) notes.before.push(`No PDF document includes ${id} yet: \`${run.bin('vitakit', `add section ${id} --document ${inv.documents[0]!.name}`)}\``)
+  const included = inv.documents.filter(document => id === 'publications'
+    ? document.publications.length
+    : document.placements.some(placement => placement.section === id))
+  if (!included.length) {
+    notes.before.push(id === 'publications'
+      ? `No PDF document shows a publication list yet: add \\vitapublications[Publications]{all} to ${inv.documents[0]!.tex}`
+      : `No PDF document includes ${id} yet: \`${run.bin('vitakit', `add section ${id} --document ${inv.documents[0]!.name}`)}\``)
+  }
   if (id === 'publications') {
-    notes.before.push('This template groups the references; how each one is formatted is up to biblatex, in cv-tex/preamble.tex.')
+    notes.before.push('This template prints a publication list, group by group; how each reference is formatted is up to biblatex, in cv-tex/preamble.tex.')
   }
   notes.after.push(`Edit ${path}; \`${run.bin('vitakit', `validate ${id}`)}\` checks it without LaTeX, \`${run.bin('vitakit', 'pdf')}\` builds.`)
 }

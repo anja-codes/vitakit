@@ -36,10 +36,10 @@
   \RequirePackage[backend=biber, style=numeric, sorting=ydnt,
                   defernumbers=true, maxbibnames=99, giveninits=true]{biblatex}
   %% \vitabibgroup{id}{key,key,...} defines the bibliography check `vita-id`,
-  %% which keeps exactly the listed entries. The generated publications.tex
-  %% uses one per group: vitakit decides the groups, with the website's rules
-  %% (a missing `status` is `published`, case does not matter), so the PDF
-  %% lists what the website lists. Keys are compared as strings.
+  %% which keeps exactly the listed entries. A generated list cites its keys
+  %% in the list's order and prints one bibliography per group with
+  %% sorting=none, so the PDF lists what the website lists, in its order.
+  %% Keys are compared as strings.
   \newcommand{\vitabibgroup}[2]{%
     \defbibcheck{vita-#1}{%
       \edef\vita@bibkey{\thefield{entrykey}}%
@@ -130,5 +130,16 @@
 %% \vitainput{id} -- the generated file without heading or list wrapper,
 %% for sections that bring their own structure (publications).
 \newcommand{\vitainput}[1]{\input{generated/\vita@document/#1.tex}}
+
+%% Generated profile.tex marks publication lists without entries.
+\newcommand{\vitaemptypublications}[1]{\expandafter\def\csname vita@emptylist@#1\endcsname{}}
+
+%% \vitapublications[Heading]{list} -- a list from content/publication-lists.yml,
+%% with an optional heading; neither appears when the list has no entries.
+\NewDocumentCommand{\vitapublications}{o m}{%
+  \ifcsname vita@emptylist@#2\endcsname\else
+    \IfNoValueF{#1}{\section{#1}}%
+    \input{generated/\vita@document/publications/#2.tex}%
+  \fi}
 
 \endinput

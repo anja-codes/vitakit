@@ -24,22 +24,58 @@ export interface Plan {
 
 const writes = (plan: Plan) => plan.items.filter(item => item.kind === 'create' || item.kind === 'replace' || item.kind === 'edit')
 
-/** A line diff, with a little context: enough to see what changes where. */
+/**
+ * A line diff, with a little context: enough to see what changes where. Each
+ * change is shown on its own, so two edits far apart in a file do not show
+ * everything between them as changed.
+ */
 export function diff(before: string, after: string, context = 2): string[] {
   const a = before.split('\n')
   const b = after.split('\n')
+  // Common start and end first; the longest common subsequence of the rest.
   let start = 0
   while (start < a.length && start < b.length && a[start] === b[start]) start++
   let endA = a.length
   let endB = b.length
   while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA--; endB-- }
-  const from = Math.max(0, start - context)
-  return [
-    ...a.slice(from, start).map(line => `    ${line}`),
-    ...a.slice(start, endA).map(line => `  - ${line}`),
-    ...b.slice(start, endB).map(line => `  + ${line}`),
-    ...a.slice(endA, Math.min(a.length, endA + context)).map(line => `    ${line}`),
-  ]
+  const midA = a.slice(start, endA)
+  const midB = b.slice(start, endB)
+  const ops: { kind: ' ' | '-' | '+', line: string }[] = a.slice(0, start).map(line => ({ kind: ' ' as const, line }))
+  if (midA.length * midB.length > 1_000_000) {
+    ops.push(...midA.map(line => ({ kind: '-' as const, line })), ...midB.map(line => ({ kind: '+' as const, line })))
+  } else {
+    const lengths = Array.from({ length: midA.length + 1 }, () => new Array<number>(midB.length + 1).fill(0))
+    for (let i = midA.length - 1; i >= 0; i--) {
+      for (let j = midB.length - 1; j >= 0; j--) {
+        lengths[i]![j] = midA[i] === midB[j] ? lengths[i + 1]![j + 1]! + 1 : Math.max(lengths[i + 1]![j]!, lengths[i]![j + 1]!)
+      }
+    }
+    let i = 0
+    let j = 0
+    while (i < midA.length || j < midB.length) {
+      if (i < midA.length && j < midB.length && midA[i] === midB[j]) {
+        ops.push({ kind: ' ', line: midA[i]! })
+        i++
+        j++
+      } else if (i < midA.length && (j === midB.length || lengths[i + 1]![j]! >= lengths[i]![j + 1]!)) {
+        ops.push({ kind: '-', line: midA[i++]! })
+      } else {
+        ops.push({ kind: '+', line: midB[j++]! })
+      }
+    }
+  }
+  ops.push(...a.slice(endA).map(line => ({ kind: ' ' as const, line })))
+
+  // Changed lines with `context` unchanged ones around them; a gap in between.
+  const shown = ops.map((op, index) => op.kind !== ' '
+    || ops.slice(Math.max(0, index - context), index + context + 1).some(near => near.kind !== ' '))
+  const lines: string[] = []
+  ops.forEach((op, index) => {
+    if (!shown[index]) return
+    if (lines.length && !shown[index - 1]) lines.push('    …')
+    lines.push(`  ${op.kind === ' ' ? ' ' : op.kind} ${op.line}`)
+  })
+  return lines
 }
 
 export function printPlan(io: Io, style: Style, plan: Plan): void {

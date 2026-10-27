@@ -11,7 +11,7 @@ everyone.
 | | |
 |---|---|
 | `useSection(id)` | a section's entries: validated, public only, newest first; empty for an unknown id |
-| `usePublications()` | publication groups; each entry has its formatted `html`, its `badges` as data, and the `fields` listed in `schemas/publications.ts` |
+| `usePublicationList(name)` | a [publication list](../content/publications.md#lists): `count` and `groups`, each with an optional `label` and its entries; each entry has its formatted `html`, its `badges` as data, and the `fields` listed in `schemas/publications.ts`. An unknown name is an error |
 | `usePage(route)`, `usePages()` | the compiled Markdown pages: `title`, `titleHtml`, `description`, `bodyHtml` |
 | `useProfile()` | everything in `profile.yml`, including `nav` |
 | `useVitakit()` | everything above, and `issues` while developing |
@@ -30,7 +30,7 @@ Fields of formatted text arrive as `{ text, html }`: `text` is the source,
 | `VitaDate` | a date or range, formatted as in the PDF; `value`, optional `locale` and `presentLabel` |
 | `VitaLinks` | a row of links, such as `profile.links` |
 | `VitaMarkdown` | trusted, compiled HTML of a page, as `html` |
-| `VitaPublications`, `VitaPublication` | the publication list and one reference; see [publications](./publications.md) |
+| `VitaPublications`, `VitaPublication` | a publication list (`list`, optional `title`) and one reference; see [publications](./publications.md) |
 | `VitaIssues` | the development banner listing content problems |
 
 ## Ejecting a component

@@ -27,7 +27,7 @@ const SCOPES: Record<string, string> = {
   VitaLinks: 'the profile links',
   VitaMarkdown: 'every Markdown page body',
   VitaIssues: 'the development error banner',
-  VitaPublications: 'the publication list and its groups',
+  VitaPublications: 'how a publication list is laid out: its headings and groups',
   VitaPublication: 'how each reference looks on the website',
 }
 

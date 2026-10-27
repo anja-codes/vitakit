@@ -1,9 +1,11 @@
 <% if (it.groups.length) { %>
 \begin{refsection}
-\nocite{*}
+\begin{refcontext}[sorting=none]
+<%~ it.bib.cite() %>
 <% for (const group of it.groups) { %>
 <%~ it.bib.group(group) %>
-\printbibliography[check=vita-<%~ group.id %>, title={<%~ it.text(group.label) %>}, heading=subbibliography]
+\printbibliography[resetnumbers=true, check=vita-<%~ group.id %>, <% if (group.label !== undefined) { %>heading=subbibliography, title={<%~ it.text(group.label) %>}<% } else { %>heading=none<% } %>]
 <% } %>
+\end{refcontext}
 \end{refsection}
 <% } %>

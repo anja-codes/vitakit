@@ -1,13 +1,15 @@
 <script setup lang="ts">
 /**
  * The landing page: who you are, then the prose from
- * `content/pages/index.md`, then a few recent items.
+ * `content/pages/index.md`, then a few recent items: the list `recent` of
+ * `content/publication-lists.yml`, and the newest talks.
  *
  * This file is yours — reorder it, delete parts, add your own markup.
  */
 const profile = useProfile()
 const page = usePage('/')
 const talks = useSection('talks')
+const publications = usePublicationList('recent')
 
 useHead({
   title: profile.name,
@@ -46,6 +48,18 @@ useHead({
     </header>
 
     <VitaMarkdown v-if="page" class="mt-8" :html="page.bodyHtml" />
+
+    <section v-if="publications.count" class="mt-10">
+      <h2 class="text-xl font-semibold">
+        Recent publications
+      </h2>
+      <VitaPublications list="recent" class="mt-3" />
+      <p class="mt-3 text-sm">
+        <NuxtLink to="/publications/">
+          All publications →
+        </NuxtLink>
+      </p>
+    </section>
 
     <section v-if="talks.length" class="mt-10">
       <h2 class="text-xl font-semibold">

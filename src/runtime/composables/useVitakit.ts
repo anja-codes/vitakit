@@ -6,7 +6,7 @@
  * chunk.
  */
 import content from '#vitakit/content'
-import type { Entry, Page, Profile, PublicationGroup, VitakitContent } from '@anja.codes/vitakit/shared'
+import type { Entry, Page, Profile, PublicationList, VitakitContent } from '@anja.codes/vitakit/shared'
 
 export function useVitakit(): VitakitContent {
   return content
@@ -32,8 +32,19 @@ export function useSectionIds(): string[] {
   return Object.keys(content.sections)
 }
 
-export function usePublications(): PublicationGroup[] {
-  return content.publications
+/**
+ * A list declared in `content/publication-lists.yml`, formatted at build time.
+ *
+ * Unlike a section, an unknown name is an error: a list is declared on
+ * purpose, so a name that matches none is a typo. Builds report it before
+ * this runs.
+ */
+export function usePublicationList(name: string): PublicationList {
+  if (Object.hasOwn(content.publications, name)) return content.publications[name]!
+  const names = Object.keys(content.publications)
+  throw new Error(name
+    ? `no publication list "${name}" in content/publication-lists.yml; the lists are ${names.join(', ') || '(none)'}`
+    : 'VitaPublications needs a list, e.g. <VitaPublications list="all" />; the lists are in content/publication-lists.yml')
 }
 
 /** The page for a route, or `undefined`. Routes always end with a slash. */

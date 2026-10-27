@@ -10,10 +10,10 @@ import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promis
 import { existsSync } from 'node:fs'
 import process from 'node:process'
 import { delimiter, join, resolve } from 'node:path'
-import { loadPublicationsSchema } from '../bibliography'
 import { loadContent } from '../content'
 import { fail } from '../issues'
 import { discoverDocuments, selectEntries, validateDocumentSections, type DocumentSource } from './documents'
+import { publicationPlacementProblems } from '../placements'
 import { discoverSections } from '../sections'
 import { bundledTexDir, emitDocument, SITE_PATH_HELP } from './emit'
 import { escapeTex, escapeUrl } from './escape'
@@ -88,7 +88,7 @@ function run(
  * `profile.url`, a biblatex sourcemap that makes a `url` in the .bib file that
  * is a path on the site (`/papers/x.pdf`) absolute, as biblatex prints it.
  */
-function profilePreamble(content: VitakitContent, document: DocumentSource): string {
+function profilePreamble(content: VitakitContent, document: DocumentSource, lists: string[]): string {
   const { profile } = content
   const href = (url: string) => {
     if (isSitePath(url)) fail('content/profile.yml', `links: ${url} ${SITE_PATH_HELP}`)
@@ -114,6 +114,7 @@ function profilePreamble(content: VitakitContent, document: DocumentSource): str
         ...(title ? [`\\vitasectiontitle{${id}}{${escapeTex(title)}}`] : []),
       ]
     }),
+    ...lists.filter(name => !content.publications[name]?.count).map(name => `\\vitaemptypublications{${name}}`),
     '',
   ].join('\n')
 }
@@ -140,15 +141,16 @@ async function buildDocument(
   cvDir: string,
 ): Promise<void> {
   const outDir = join(cvDir, 'generated', document.name)
+  const lists = [...new Set(document.publications.map(placement => placement.list))]
   const written = await emitDocument({
     sections: content.sections,
-    publications: content.publications,
+    publications: Object.fromEntries(lists.map(name => [name, content.publications[name]!])),
     siteUrl: content.profile.url,
     options: document.options,
     templateDir: join(cvDir, 'templates'),
     outDir,
   })
-  await writeFile(join(outDir, 'profile.tex'), profilePreamble(content, document))
+  await writeFile(join(outDir, 'profile.tex'), profilePreamble(content, document, lists))
 
   // The document class lives in the package and is copied into the generated
   // directory -- which vitakit owns and .gitignore excludes -- rather than into
@@ -196,17 +198,10 @@ export async function buildCv(options: BuildOptions): Promise<string[]> {
   const documents = await discoverDocuments(cvDir)
   const sources = await discoverSections(options.rootDir)
 
-  // A misspelt group would otherwise just be missing from the PDF. Checked
-  // against the defined groups, not the ones that have entries: an empty
-  // group is fine.
-  const groups = (await loadPublicationsSchema(options.rootDir)).groups.map(group => group.id)
   for (const document of documents) {
     validateDocumentSections(document, sources)
-    const unknown = (document.options.publications.groups ?? []).filter(id => !groups.includes(id))
-    if (unknown.length) {
-      fail(`cv-tex/${document.name}.yml`, `publications.groups: unknown group ${unknown.join(', ')}; `
-        + `the groups are ${groups.join(', ')} (schemas/publications.ts)`)
-    }
+    const [problem] = publicationPlacementProblems([], [...document.placements, ...document.publications], Object.keys(content.publications))
+    if (problem) fail(problem.where, problem.message)
   }
 
   const unknown = options.only?.filter(name => !documents.some(document => document.name === name)) ?? []

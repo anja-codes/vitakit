@@ -17,7 +17,7 @@ import { describeSection, type FieldDescription } from './fields'
 import { findSectionFiles, resolveSectionSchema, type SectionFile } from './sections'
 import { schemas as builtinSchemas } from './schemas'
 import { documentSectionProblems, findDocuments, type DocumentOptions } from './tex/documents'
-import { documentDirective, findPdfPlacements, findWebPlacements, pageRoute, type PdfPlacement, type WebPlacements } from './placements'
+import { documentDirective, findWebPlacements, pageRoute, publicationPlacementProblems, type PdfPlacement, type PdfPublicationPlacement, type WebPlacements } from './placements'
 import { messageOf, whereOf } from './issues'
 import type { ContentIssue, VitakitContent, Visibility } from './shared/types'
 
@@ -63,6 +63,8 @@ export interface DocumentInventory {
   yml?: string
   options: DocumentOptions
   placements: PdfPlacement[]
+  /** Its `\vitapublications` lines. */
+  publications: PdfPublicationPlacement[]
   /** `cv-tex/cv.pdf` with its modification time, when built. */
   pdf?: { file: string, mtimeMs: number }
   problems: Problem[]
@@ -74,7 +76,12 @@ export interface Inventory {
   pages: PageInventory[]
   /** A catch-all Vue page serving the Markdown pages, e.g. `app/pages/[...slug].vue`. */
   catchAll?: string
-  publications?: { file: string, entries: number, groups: number }
+  publications?: {
+    file: string
+    entries: number
+    /** List name -> how many publications it shows. */
+    counts: Record<string, number>
+  }
   documents: DocumentInventory[]
   web: WebPlacements
   /** Newest modification time of the sources a PDF is built from. */
@@ -211,21 +218,22 @@ export async function inventory(rootDir: string, options: InventoryOptions = {})
   }
 
   // Publications
-  const bib = join(rootDir, 'content', 'publications.bib')
-  const publications = existsSync(bib)
-    ? {
+  const bib = await readFile(join(rootDir, 'content', 'publications.bib'), 'utf8').catch(() => undefined)
+  const publications = bib === undefined
+    ? undefined
+    : {
         file: 'content/publications.bib',
-        entries: content.publications.reduce((sum, group) => sum + group.entries.length, 0),
-        groups: content.publications.length,
+        // Counted, not parsed: the lists were parsed above, and may be broken.
+        entries: bib.match(/^\s*@(?!comment\b|string\b|preamble\b)\w+\s*[{(]/gim)?.length ?? 0,
+        counts: Object.fromEntries(Object.entries(content.publications).map(([name, list]) => [name, list.count])),
       }
-    : undefined
 
   // Documents
   const cvDir = join(rootDir, 'cv-tex')
   const { documents: found, problems: documentProblems } = await findDocuments(cvDir)
   problems.push(...documentProblems)
-  const known = new Set([...sections.map(section => section.id), 'publications', 'profile'])
-  const groupIds = new Set(content.publications.map(group => group.id))
+  const known = new Set([...sections.map(section => section.id), 'profile'])
+  const lists = Object.keys(content.publications)
   const documents: DocumentInventory[] = []
   for (const document of found) {
     const tex = `cv-tex/${document.name}.tex`
@@ -239,17 +247,13 @@ export async function inventory(rootDir: string, options: InventoryOptions = {})
     else if (directive.name !== document.name) {
       own.push({ where: `${tex}:${directive.line}`, message: `\\vitadocument{${directive.name}} does not match the file name; expected \\vitadocument{${document.name}}` })
     }
-    const placements = findPdfPlacements(document.name, tex, source)
+    const { placements } = document
     for (const placement of placements) {
-      if (!known.has(placement.section)) {
+      if (!known.has(placement.section) && placement.section !== 'publications') {
         own.push({ where: `${tex}:${placement.line}`, message: `no section called "${placement.section}"` })
       }
     }
-    for (const group of document.options.publications.groups ?? []) {
-      if (!groupIds.has(group) && publications) {
-        own.push({ where: `cv-tex/${document.name}.yml`, message: `publications.groups: no publication group "${group}"` })
-      }
-    }
+    own.push(...publicationPlacementProblems([], [...placements, ...document.publications], lists))
     problems.push(...own)
     documents.push({
       name: document.name,
@@ -257,6 +261,7 @@ export async function inventory(rootDir: string, options: InventoryOptions = {})
       ...(existsSync(join(cvDir, `${document.name}.yml`)) ? { yml: `cv-tex/${document.name}.yml` } : {}),
       options: document.options,
       placements,
+      publications: document.publications,
       ...(pdf ? { pdf: { file: `cv-tex/${document.name}.pdf`, mtimeMs: pdf.mtimeMs } } : {}),
       problems: [...documentProblems.filter(problem => problem.where === `cv-tex/${document.name}.yml`), ...own],
     })
@@ -269,12 +274,14 @@ export async function inventory(rootDir: string, options: InventoryOptions = {})
       list.filter(path => !relative(cvDir, path).startsWith('generated'))),
   ])
 
+  const none = (): WebPlacements => ({ placements: [], publications: [], dynamic: [], components: new Map<string, string>() })
   const web = options.web === false
-    ? { placements: [], dynamic: [], components: new Map<string, string>() }
+    ? none()
     : await findWebPlacements(rootDir).catch((error: unknown) => {
         problems.push({ where: whereOf(error, 'app/'), message: messageOf(error) })
-        return { placements: [], dynamic: [], components: new Map<string, string>() }
+        return none()
       })
+  problems.push(...publicationPlacementProblems(web.publications, [], lists))
 
   return {
     root: rootDir,

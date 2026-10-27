@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { addSectionToDocument } from '../src/edit/tex'
-import { addSectionToPage, sectionElements } from '../src/edit/vue'
-import { addNavItem, yamlScalar } from '../src/edit/yaml'
+import { addPublicationsToDocument, addSectionToDocument } from '../src/edit/tex'
+import { addPublicationsToPage, addSectionToPage, publicationsElements, sectionElements } from '../src/edit/vue'
+import { addNavItem, addPublicationList, yamlScalar } from '../src/edit/yaml'
+import { renamePublicationsSettings } from '../src/edit/typescript'
 
 const value = <T>(result: { ok: true, value: T } | { ok: false, reason: string }): T => {
   if (!result.ok) throw new Error(result.reason)
@@ -60,8 +61,34 @@ describe('adding a section to a Vue page', () => {
     ['several root elements', '<template>\n  <h1>x</h1>\n  <p>y</p>\n</template>\n'],
     ['a one-line root', '<template><main><h1>x</h1></main></template>\n'],
     ['no template', '<script setup>\n</script>\n'],
+    ['an anchor shown conditionally', '<template>\n  <main>\n    <VitaSection v-if="a" id="talks" />\n    <p v-else>None</p>\n  </main>\n</template>\n'],
+    ['an anchor sharing its line', '<template>\n  <main>\n    <VitaSection id="talks" /><hr>\n  </main>\n</template>\n'],
   ])('prints instead for %s', (_label, source) => {
-    expect(addSectionToPage(source, { id: 'talks' }).ok).toBe(false)
+    expect(addSectionToPage(source, { id: 'grants' }).ok).toBe(false)
+  })
+})
+
+describe('adding a publication list to a page or a PDF', () => {
+  it('to a page: after a named section or list, and never twice', async () => {
+    const source = await template('app/pages/cv.vue')
+    const { source: after } = value(addPublicationsToPage(source, { list: 'recent', title: 'Recent papers', after: 'education' }))
+    expect(after).toContain('    <VitaSection id="education" title="Education" />\n    <VitaPublications list="recent" title="Recent papers" />\n')
+    expect(value(addPublicationsToPage(after, { list: 'preprints', after: 'recent' })).source)
+      .toContain('<VitaPublications list="recent" title="Recent papers" />\n    <VitaPublications list="preprints" />\n')
+    expect(addPublicationsToPage(after, { list: 'recent' })).toEqual({ ok: false, reason: 'it already shows the list recent' })
+  })
+
+  it('to a page: after the whole block a list is in, such as the landing page\'s recent publications', async () => {
+    const source = await template('app/pages/index.vue')
+    const { source: after } = value(addPublicationsToPage(source, { list: 'selected', title: 'Selected' }))
+    expect(after).toContain('          All publications →\n        </NuxtLink>\n      </p>\n    </section>\n    <VitaPublications list="selected" title="Selected" />\n')
+  })
+
+  it('to a PDF document: after a named section, and never twice', async () => {
+    const source = await template('cv-tex/cv.tex')
+    const { source: after } = value(addPublicationsToDocument(source, { id: 'recent', heading: 'Recent & selected', after: 'education' }))
+    expect(after).toContain('\\vitasection[Education]{education}\n\\vitapublications[Recent \\& selected]{recent}\n')
+    expect(addPublicationsToDocument(after, { id: 'recent' })).toEqual({ ok: false, reason: 'it already includes the list recent' })
   })
 })
 
@@ -82,5 +109,35 @@ describe('adding a menu entry', () => {
 
   it('refuses a flow-style nav', () => {
     expect(addNavItem('nav: [{ label: A, to: / }]\n', { label: 'B', to: '/b/' }).ok).toBe(false)
+  })
+})
+
+describe('declaring a publication list', () => {
+  it('goes at the end of content/publication-lists.yml, one setting per line', async () => {
+    const source = await template('content/publication-lists.yml')
+    const after = value(addPublicationList(source, 'preprints', { where: { status: ['preprint', 'accepted'] }, limit: 5, sort: undefined }))
+    expect(after).toBe(`${source}\npreprints:\n  where: { status: [preprint, accepted] }\n  limit: 5\n`)
+    expect(value(addPublicationList('', 'all', {}))).toBe('all: {}\n')
+    expect(addPublicationList(after, 'recent', {})).toEqual({ ok: false, reason: `it has a list "recent" already, on line ${source.split('\n').indexOf('recent:') + 1}` })
+    expect(addPublicationList('{ all: {} }\n', 'recent', {}).ok).toBe(false)
+  })
+})
+
+describe('migrating publications', () => {
+  it('finds VitaPublications elements with their props, for migrating them', () => {
+    const source = '<template>\n  <main>\n    <VitaPublications :groups="[\'a\']" headings class="x" />\n  </main>\n</template>\n'
+    const [element] = value(publicationsElements(source))
+    expect(element!.props.map(prop => [prop.name, prop.expression ?? prop.value ?? true, source.slice(prop.start, prop.end)])).toEqual([
+      ['groups', '[\'a\']', ':groups="[\'a\']"'],
+      ['headings', true, 'headings'],
+      ['class', 'x', 'class="x"'],
+    ])
+  })
+
+  it('renames keys of publications({...}), keeping values and comments', () => {
+    const source = "import { publications } from '@anja.codes/vitakit'\n\nexport default publications({\n  // mine\n  groups: [{ id: 'a', label: 'A' }],\n  'defaultGroup': 'a',\n})\n"
+    expect(value(renamePublicationsSettings(source, { groups: 'statuses', defaultGroup: 'defaultStatus' })))
+      .toBe("import { publications } from '@anja.codes/vitakit'\n\nexport default publications({\n  // mine\n  statuses: [{ id: 'a', label: 'A' }],\n  defaultStatus: 'a',\n})\n")
+    expect(renamePublicationsSettings('export default {}\n', { groups: 'statuses' }).ok).toBe(false)
   })
 })

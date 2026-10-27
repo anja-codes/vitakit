@@ -6,12 +6,12 @@
  * `vitakit status`.
  */
 import { parse } from '@vue/compiler-sfc'
-import { indentationAt, insertLinesAfter, insertLinesBefore, lineStart, type Recognized } from './text'
+import { indentationAt, insertLinesAfter, insertLinesBefore, lineEnd, lineStart, type Recognized } from './text'
 
 interface Node {
   type: number
   tag?: string
-  props?: { type: number, name: string, value?: { content: string }, arg?: { content: string }, exp?: { content: string } }[]
+  props?: { type: number, name: string, value?: { content: string }, arg?: { content: string }, exp?: { content: string }, loc: { start: { offset: number }, end: { offset: number } } }[]
   children?: Node[]
   loc: { start: { offset: number, line: number }, end: { offset: number } }
 }
@@ -20,14 +20,23 @@ const ELEMENT = 1
 const ATTRIBUTE = 6
 const pascal = (name: string) => name.split('-').map(part => part[0]!.toUpperCase() + part.slice(1)).join('')
 
-function literalId(node: Node): string | undefined {
+function literalAttribute(node: Node, name: string): string | undefined {
   for (const prop of node.props ?? []) {
-    if (prop.type === ATTRIBUTE && prop.name === 'id') return prop.value?.content
-    if (prop.type !== ATTRIBUTE && prop.name === 'bind' && prop.arg?.content === 'id') {
+    if (prop.type === ATTRIBUTE && prop.name === name) return prop.value?.content
+    if (prop.type !== ATTRIBUTE && prop.name === 'bind' && prop.arg?.content === name) {
       return /^\s*(['"`])([^'"`$]*)\1\s*$/.exec(prop.exp?.content ?? '')?.[2]
     }
   }
   return undefined
+}
+
+/** Where a new line can go after an element: after the block of the page holding it. */
+export interface Anchor {
+  start: number
+  end: number
+  line: number
+  /** Whether a `v-else` follows it, which nothing may be put before. */
+  chained: boolean
 }
 
 export interface SectionElement {
@@ -38,13 +47,24 @@ export interface SectionElement {
   line: number
   /** Whether it has content between its tags, such as slots. */
   hasContent: boolean
+  /**
+   * The element itself, or the block of the root element it is in -- such as
+   * a `<section v-if>` with a heading -- after which a new element goes.
+   */
+  anchor: Anchor
 }
+
+const hasContent = (node: Node) =>
+  (node.children ?? []).some(child => child.type !== 3 && !(child.type === 2 && !(child as unknown as { content: string }).content.trim()))
+
+const directive = (node: Node | undefined, ...names: string[]) =>
+  (node?.props ?? []).some(prop => prop.type !== ATTRIBUTE && names.includes(prop.name))
 
 /**
  * Section elements in a page's template: `VitaSection`, or a component from
- * `components`, with a literal id.
+ * `components`, with a literal id; and `VitaPublications` with a literal list.
  */
-export function sectionElements(source: string, components: Iterable<string> = []): Recognized<{ elements: SectionElement[], root?: Node }> {
+export function sectionElements(source: string, components: Iterable<string> = []): Recognized<{ elements: SectionElement[], lists: SectionElement[], root?: Node }> {
   const known = new Set(['VitaSection', ...components])
   let ast: Node | undefined
   try {
@@ -55,22 +75,38 @@ export function sectionElements(source: string, components: Iterable<string> = [
     return { ok: false, reason: `cannot be parsed: ${error instanceof Error ? error.message : String(error)}` }
   }
   if (!ast) return { ok: false, reason: 'it has no <template>' }
+  const roots = (ast.children ?? []).filter(node => node.type === ELEMENT)
+  const root = roots.length === 1 ? roots[0] : undefined
 
   const elements: SectionElement[] = []
-  const visit = (node: Node) => {
+  const lists: SectionElement[] = []
+  const visit = (node: Node, anchor?: Anchor) => {
     if (node.type === ELEMENT && node.tag) {
       const tag = node.tag.includes('-') ? pascal(node.tag) : node.tag
-      const id = known.has(tag) ? literalId(node) : undefined
-      if (id) {
-        const hasContent = (node.children ?? []).some(child => child.type !== 3 && !(child.type === 2 && !(child as unknown as { content: string }).content.trim()))
-        elements.push({ id, tag: node.tag, start: node.loc.start.offset, end: node.loc.end.offset, line: node.loc.start.line, hasContent })
-      }
+      const found = (id: string): SectionElement => ({
+        id,
+        tag: node.tag!,
+        start: node.loc.start.offset,
+        end: node.loc.end.offset,
+        line: node.loc.start.line,
+        hasContent: hasContent(node),
+        anchor: anchor ?? { start: node.loc.start.offset, end: node.loc.end.offset, line: node.loc.start.line, chained: false },
+      })
+      const id = known.has(tag) ? literalAttribute(node, 'id') : undefined
+      if (id) elements.push(found(id))
+      const list = tag === 'VitaPublications' ? literalAttribute(node, 'list') : undefined
+      if (list) lists.push(found(list))
     }
-    for (const child of node.children ?? []) visit(child)
+    const children = (node.children ?? []).filter(child => child.type === ELEMENT)
+    for (const [index, child] of children.entries()) {
+      const block = node === root
+        ? { start: child.loc.start.offset, end: child.loc.end.offset, line: child.loc.start.line, chained: directive(children[index + 1], 'else', 'else-if') }
+        : anchor
+      visit(child, block)
+    }
   }
   visit(ast)
-  const roots = (ast.children ?? []).filter(node => node.type === ELEMENT)
-  return { ok: true, value: { elements, ...(roots.length === 1 ? { root: roots[0] } : {}) } }
+  return { ok: true, value: { elements, lists, ...(root ? { root } : {}) } }
 }
 
 /** An HTML attribute value. */
@@ -91,21 +127,25 @@ export function sectionElementSource(placement: VuePlacement): string {
   return `<${placement.component ?? 'VitaSection'} id="${placement.id}"${placement.title ? ` title="${attribute(placement.title)}"` : ''} />`
 }
 
-/**
- * The page with one more section element: after `after`, else after the last
- * section, else at the end of the template's single root element.
- */
-export function addSectionToPage(source: string, placement: VuePlacement, components: Iterable<string> = []): Recognized<{ source: string, afterSection?: string }> {
-  const found = sectionElements(source, components)
-  if (!found.ok) return found
-  const { elements, root } = found.value
-  if (elements.some(element => element.id === placement.id)) return { ok: false, reason: `it already shows ${placement.id}` }
-  const element = sectionElementSource(placement)
+export function publicationsElementSource(list: string, title?: string): string {
+  return `<VitaPublications list="${attribute(list)}"${title ? ` title="${attribute(title)}"` : ''} />`
+}
 
-  const anchor = (placement.after && elements.find(existing => existing.id === placement.after)) ?? elements[elements.length - 1]
-  if (anchor) {
+/**
+ * The page with one more element: after the anchor named `after`, else after
+ * the last anchor, else at the end of the template's single root element.
+ */
+function insertElement(source: string, markup: string, anchors: SectionElement[], root: Node | undefined, after?: string): Recognized<{ source: string, afterSection?: string }> {
+  const sorted = [...anchors].sort((a, b) => a.start - b.start)
+  const found = (after && sorted.find(existing => existing.id === after)) ?? sorted[sorted.length - 1]
+  if (found) {
+    const { anchor } = found
+    if (anchor.chained) return { ok: false, reason: `a v-else follows line ${anchor.line}; a line after it would split the v-if from its v-else` }
+    if (source.slice(lineStart(source, anchor.start), anchor.start).trim() || source.slice(anchor.end, lineEnd(source, anchor.end)).trim()) {
+      return { ok: false, reason: `line ${anchor.line} holds other markup too` }
+    }
     const indent = indentationAt(source, anchor.start)
-    return { ok: true, value: { source: insertLinesAfter(source, anchor.end - 1, [`${indent}${element}`]), afterSection: anchor.id } }
+    return { ok: true, value: { source: insertLinesAfter(source, anchor.end - 1, [`${indent}${markup}`]), afterSection: found.id } }
   }
   if (!root || !root.tag) return { ok: false, reason: 'its template has no single root element to add to' }
   const close = source.lastIndexOf(`</${root.tag}`, root.loc.end.offset)
@@ -113,7 +153,30 @@ export function addSectionToPage(source: string, placement: VuePlacement, compon
     return { ok: false, reason: `its <${root.tag}> does not end on a line of its own` }
   }
   const indent = `${indentationAt(source, close)}  `
-  return { ok: true, value: { source: insertLinesBefore(source, close, ['', `${indent}${element}`]) } }
+  return { ok: true, value: { source: insertLinesBefore(source, close, ['', `${indent}${markup}`]) } }
+}
+
+/**
+ * The page with one more section element: after `after`, else after the last
+ * section, else at the end of the template's single root element.
+ */
+export function addSectionToPage(source: string, placement: VuePlacement, components: Iterable<string> = []): Recognized<{ source: string, afterSection?: string }> {
+  const found = sectionElements(source, components)
+  if (!found.ok) return found
+  const { elements, lists, root } = found.value
+  if (elements.some(element => element.id === placement.id)) return { ok: false, reason: `it already shows ${placement.id}` }
+  // A publication list counts as an anchor only when asked for by name.
+  const anchors = [...elements, ...lists.filter(list => list.id === placement.after && !elements.some(element => element.id === list.id))]
+  return insertElement(source, sectionElementSource(placement), anchors, root, placement.after)
+}
+
+/** The page with a publication list added, after a section or another list. */
+export function addPublicationsToPage(source: string, placement: { list: string, title?: string, after?: string }, components: Iterable<string> = []): Recognized<{ source: string, afterSection?: string }> {
+  const found = sectionElements(source, components)
+  if (!found.ok) return found
+  const { elements, lists, root } = found.value
+  if (lists.some(list => list.id === placement.list)) return { ok: false, reason: `it already shows the list ${placement.list}` }
+  return insertElement(source, publicationsElementSource(placement.list, placement.title), [...elements, ...lists], root, placement.after)
 }
 
 /**
@@ -140,4 +203,56 @@ export function useComponentForSection(source: string, id: string, component: st
     changed.unshift(element.line)
   }
   return { ok: true, value: { source: result, changed } }
+}
+
+/** One attribute of an element: `list="all"`, `:groups="['a']"`, `v-if="x"`. */
+export interface ElementProp {
+  /** The prop it sets (`groups` for `:groups`), or `v-if` for other directives. */
+  name: string
+  start: number
+  end: number
+  /** The text of a plain attribute; `undefined` for one without a value. */
+  value?: string
+  /** The expression of a bound prop. */
+  expression?: string
+}
+
+export interface PublicationsElement {
+  tag: string
+  start: number
+  line: number
+  props: ElementProp[]
+  hasContent: boolean
+}
+
+/** Every `VitaPublications` element of a page, with its props and their positions. */
+export function publicationsElements(source: string): Recognized<PublicationsElement[]> {
+  let ast: Node | undefined
+  try {
+    const { descriptor, errors } = parse(source)
+    if (errors.length) return { ok: false, reason: `cannot be parsed: ${String(errors[0])}` }
+    ast = descriptor.template?.ast as unknown as Node | undefined
+  } catch (error) {
+    return { ok: false, reason: `cannot be parsed: ${error instanceof Error ? error.message : String(error)}` }
+  }
+  const found: PublicationsElement[] = []
+  const visit = (node: Node) => {
+    if (node.type === ELEMENT && node.tag && (node.tag.includes('-') ? pascal(node.tag) : node.tag) === 'VitaPublications') {
+      found.push({
+        tag: node.tag,
+        start: node.loc.start.offset,
+        line: node.loc.start.line,
+        hasContent: hasContent(node),
+        props: (node.props ?? []).map(prop => ({
+          name: prop.type === ATTRIBUTE ? prop.name : prop.name === 'bind' && prop.arg ? prop.arg.content : `v-${prop.name}`,
+          start: prop.loc.start.offset,
+          end: prop.loc.end.offset,
+          ...(prop.type === ATTRIBUTE ? (prop.value ? { value: prop.value.content } : {}) : { expression: prop.exp?.content ?? '' }),
+        })),
+      })
+    }
+    for (const child of node.children ?? []) visit(child)
+  }
+  if (ast) visit(ast)
+  return { ok: true, value: found }
 }
