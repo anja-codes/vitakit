@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
 import { slug } from "github-slugger";
 import { defineConfig, type DefaultTheme } from "vitepress";
 import { katex } from "@mdit/plugin-katex";
 import { transformerTwoslash } from "@shikijs/vitepress-twoslash";
+
+// The released version, shown in the nav; the docs are rebuilt when it changes.
+const { version } = JSON.parse(
+  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 const guide: DefaultTheme.SidebarItem[] = [
   {
@@ -118,6 +124,14 @@ export default defineConfig({
       { text: "Content", link: "/content/", activeMatch: "^/content/" },
       { text: "Website", link: "/website/", activeMatch: "^/website/" },
       { text: "PDF", link: "/pdf/", activeMatch: "^/pdf/" },
+      {
+        text: `v${version}`,
+        items: [
+          { text: "Changelog", link: "/changelog" },
+          { text: "Updating vitakit", link: "/cli/migrating" },
+          { text: "Releases on GitHub", link: "https://github.com/anja-codes/vitakit/releases" },
+        ],
+      },
     ],
     sidebar: {
       "/guide/": guide,
