@@ -48,6 +48,9 @@ appear in the site**, and every asset and link — `href`, `src`, `srcset`,
 the site is served from a subdirectory, which is exactly when it is hard to
 notice by hand. Every such link must also lead somewhere: a Markdown link
 `[Slides](/slides/talk.pdf)` fails the check until `public/slides/talk.pdf` exists.
+Names must match exactly, including upper and lower case: `/img/photo.jpg` does
+not lead to `public/img/Photo.jpg` on most web servers, even where your computer
+finds it, and the check says when only the case differs.
 The check inspects links emitted into HTML, not URL fields that a renderer omits.
 
 The checks assume nothing about *what* your site contains: which pages exist

@@ -112,22 +112,65 @@ function urlReferences(html: string): string[] {
   return found
 }
 
+/** The names in a directory of the generated site, read once per run. */
+type Listings = Map<string, Promise<Map<string, boolean> | undefined>>
+
+/** Name -> whether it is a directory; `undefined` for no directory. */
+function listing(listings: Listings, dir: string): Promise<Map<string, boolean> | undefined> {
+  let names = listings.get(dir)
+  if (!names) {
+    names = readdir(dir, { withFileTypes: true }).then(
+      entries => new Map(entries.map(entry => [entry.name, entry.isDirectory()])),
+      () => undefined,
+    )
+    listings.set(dir, names)
+  }
+  return names
+}
+
 /**
  * Whether a path below the base names something in the generated site: a file,
  * or a page, i.e. a directory with an `index.html` (`/cv/` and `/cv` alike).
+ *
+ * Names are compared exactly, by reading each directory rather than asking
+ * the file system: macOS and Windows find `Photo.jpg` for `photo.jpg`, the
+ * web server usually does not. A name that differs only in case comes back
+ * as `differsInCase`, the path as it is in the site.
  */
-async function existsInSite(outDir: string, path: string): Promise<boolean> {
+async function existsInSite(outDir: string, path: string, listings: Listings): Promise<{ found: boolean, differsInCase?: string }> {
   let decoded: string
   try {
     decoded = decodeURIComponent(path.replace(/[?#].*$/, ''))
   } catch {
-    return false
+    return { found: false }
   }
-  const target = join(outDir, decoded)
-  if (relative(outDir, target).startsWith('..')) return false
-  const found = await stat(target).catch(() => undefined)
-  if (found?.isFile()) return true
-  return found?.isDirectory() === true && (await stat(join(target, 'index.html')).catch(() => undefined))?.isFile() === true
+  if (relative(outDir, join(outDir, decoded)).startsWith('..')) return { found: false }
+  const segments = decoded.split('/').filter(segment => segment !== '' && segment !== '.')
+
+  let dir = outDir
+  const actual: string[] = []
+  let caseOnly = false
+  for (const [index, segment] of segments.entries()) {
+    const names = await listing(listings, dir)
+    if (!names) return { found: false }
+    let name: string | undefined = names.has(segment) ? segment : undefined
+    if (name === undefined) {
+      const lower = segment.toLowerCase()
+      name = [...names.keys()].find(candidate => candidate.toLowerCase() === lower)
+      if (name === undefined) return { found: false }
+      caseOnly = true
+    }
+    actual.push(name)
+    const isDirectory = names.get(name)!
+    if (index < segments.length - 1 && !isDirectory) return { found: false }
+    dir = join(dir, name)
+  }
+
+  const last = segments.length ? (await listing(listings, join(dir, '..')))?.get(actual.at(-1)!) : true
+  // A directory is a page when it has an index.html (written by the generator, so in lower case).
+  const leads = last === false || (await listing(listings, dir))?.get('index.html') === false
+  if (!leads) return { found: false }
+  return caseOnly ? { found: false, differsInCase: `/${actual.join('/')}${decoded.endsWith('/') ? '/' : ''}` } : { found: true }
 }
 
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: '\'', nbsp: ' ' }
@@ -279,15 +322,19 @@ export async function checkStatic(options: CheckOptions): Promise<CheckResult> {
   // and nothing but the built site can tell: a typo, a file never committed, a
   // page that was renamed. Paths outside the base are step 5's business.
   if (builtForBase) {
-    const missing = new Map<string, string>()
+    const missing = new Map<string, { file: string, differsInCase?: string }>()
+    const listings: Listings = new Map()
     for (const [file, html] of pages) {
       for (const path of urlReferences(html)) {
         if (!underBase(path, base) || missing.has(path)) continue
-        if (!(await existsInSite(outDir, path.slice(base.length)))) missing.set(path, relative(outDir, file))
+        const found = await existsInSite(outDir, path.slice(base.length), listings)
+        if (!found.found) missing.set(path, { file: relative(outDir, file), differsInCase: found.differsInCase })
       }
     }
-    for (const [path, file] of missing) {
-      fail(`${file}: ${path} leads nowhere: no such file or page in the generated site. A file belongs in public/, a page in content/pages/ or app/pages/`)
+    for (const [path, { file, differsInCase }] of missing) {
+      fail(differsInCase !== undefined
+        ? `${file}: ${path} leads nowhere: the site has ${base}${differsInCase.slice(1)}, which differs only in case. Web servers usually tell them apart, even where your computer does not; write the name as it is`
+        : `${file}: ${path} leads nowhere: no such file or page in the generated site. A file belongs in public/, a page in content/pages/ or app/pages/`)
     }
     checked.push('links into the site lead somewhere')
   }

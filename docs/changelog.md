@@ -11,6 +11,10 @@ notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 - `vitakit migrate` points out a stylesheet that styles the groups of a
   publication list but not its title (`.vita-publications__title`, new in 0.3),
   with the rules to add. It does not change the stylesheet.
+- `vitakit verify` compares the names of files and pages exactly, including
+  their case. On macOS and Windows, a link to `/img/photo.jpg` passed when the
+  file was `public/img/Photo.jpg`, and then led nowhere on a case-sensitive web
+  server or in CI on Linux. Such a link now fails, naming the file as it is.
 - Docs: [those rules](./cli/migrating.md#from-vitakit-02) for projects updated
   from 0.2, the class in the [website's styling](./website/styling.md), and
   [the size of a list's group headings](./pdf/styling.md#publication-lists) in

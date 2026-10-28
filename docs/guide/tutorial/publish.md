@@ -35,7 +35,9 @@ Two of these are worth knowing:
   those entries; this checks, independently, that none of their titles appear
   on any page — in case a page of your own prints something it should not.
 - **Every link leads somewhere.** A link to `/slides/aofa2025.pdf` fails the
-  check until `public/slides/aofa2025.pdf` exists.
+  check until `public/slides/aofa2025.pdf` exists, with the name in the same
+  case: web servers usually tell `Talk.pdf` and `talk.pdf` apart, even where
+  your computer does not.
 
 The scaffolded workflows run `check` before every deployment, so a problem
 stops the deployment instead of reaching your site.

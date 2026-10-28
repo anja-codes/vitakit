@@ -124,6 +124,28 @@ describe('links', () => {
       'index.html: /slides/tlak.pdf leads nowhere: no such file or page in the generated site. A file belongs in public/, a page in content/pages/ or app/pages/',
     ])
   })
+
+  // Compared by reading the directories, so this fails on case-insensitive
+  // file systems (macOS, Windows) as it would on the web server.
+  it('finds names that differ only in case, in a file, a directory or a page', async () => {
+    const extra = '<img src="/img/Daniel_photo.jpg"><a href="/Slides/talk.pdf"></a><a href="/Research/"></a><img src="/img/Daniel_Photo.jpg">'
+    const root = await generate({}, { extra })
+    await writeFiles(root, { '.output/public/img/Daniel_Photo.jpg': '', '.output/public/slides/talk.pdf': '' })
+    const hint = 'which differs only in case. Web servers usually tell them apart, even where your computer does not; write the name as it is'
+    expect(await failures(root)).toEqual([
+      `index.html: /img/Daniel_photo.jpg leads nowhere: the site has /img/Daniel_Photo.jpg, ${hint}`,
+      `index.html: /Slides/talk.pdf leads nowhere: the site has /slides/talk.pdf, ${hint}`,
+      `index.html: /Research/ leads nowhere: the site has /research/, ${hint}`,
+    ])
+  })
+
+  it('names the case as it is under a base path', async () => {
+    const root = await generate({}, { base: '/sub/', extra: '<img src="/sub/img/photo.JPG">' })
+    await writeFiles(root, { '.output/public/img/photo.jpg': '' })
+    expect(await failures(root, { baseURL: '/sub/' })).toEqual([
+      expect.stringContaining('index.html: /sub/img/photo.JPG leads nowhere: the site has /sub/img/photo.jpg, which differs only in case'),
+    ])
+  })
 })
 
 describe('the base path', () => {
