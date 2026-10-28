@@ -67,6 +67,7 @@ No web development experience is needed.
 | [**Content**](/content/) | what goes into `content/`: field types, built-in sections, [publications and lists](/content/publications), schemas |
 | [**Website**](/website/) | pages, placing sections, customising entries, styling, components |
 | [**PDF**](/pdf/) | documents and selection, variants and prose, templates, styling, building |
+| [**Changelog**](/changelog) | what changed in each release; [updating](/cli/migrating) a project to a new version |
 
 ## How it works
 

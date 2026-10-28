@@ -4,6 +4,8 @@ A new version of vitakit can change how a setting is written. Your content —
 entries, pages, publications — keeps working; what may need changing is how a
 page or a PDF uses vitakit. `vitakit migrate` makes those changes for you.
 
+What changed in each version is in the [changelog](../changelog.md).
+
 ## Step by step
 
 Commit your project first (or copy it), so that you can compare afterwards.
