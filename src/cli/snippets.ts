@@ -17,7 +17,9 @@ export function fieldLabel(name: string): string {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/
-const access = (object: string, name: string) => IDENTIFIER.test(name) ? `${object}.${name}` : `${object}['${name}']`
+/** `entry.thesis.title` for the path `thesis.title`: each part of a nested field in turn. */
+const access = (object: string, path: string) => path.split('.')
+  .reduce((result, name) => IDENTIFIER.test(name) ? `${result}.${name}` : `${result}['${name}']`, object)
 
 export interface WebSnippet {
   /** One element, or a comment when the value has no obvious markup. */
@@ -32,7 +34,8 @@ export interface WebSnippet {
  */
 export function webFieldSnippet(field: FieldDescription, className = 'vita-entry__note', entry = 'entry'): WebSnippet {
   const value = access(entry, field.path)
-  const label = fieldLabel(field.path)
+  // A part of a group is labelled by its own name: `Supervisor`, not `Thesis.supervisor`.
+  const label = fieldLabel(field.path.split('.').pop()!)
   const line = (condition: string, content: string) => `<p v-if="${condition}" class="${className}">${content}</p>`
 
   if (field.type === 'link') {
@@ -61,8 +64,17 @@ export function webFieldSnippet(field: FieldDescription, className = 'vita-entry
         return { markup: line(`typeof ${value} === 'string'`, `<a :href="${value}">${label}</a>`), imports: [] }
     }
   }
+  if (field.type === 'group' && !field.several && field.fields?.length) {
+    // One line per part, below a check for the group: its parts are typed by
+    // the schema, so `entry.thesis.title` reads as written.
+    const parts = field.fields.map(part => webFieldSnippet(part, className, entry))
+    return {
+      markup: [`<template v-if="${value}">`, ...parts.map(part => `  ${part.markup}`), '</template>'].join('\n'),
+      imports: parts.flatMap(part => part.imports),
+    }
+  }
   return {
-    markup: `<!-- ${field.path}: ${field.type === 'group' ? 'a group of fields' : 'a value of its own kind'}; show its parts, e.g. ${field.fields?.[0] ? `{{ ${value}.${field.fields[0].path.split('.').pop()} }}` : `{{ ${value} }}`} -->`,
+    markup: `<!-- ${field.path}: ${field.type === 'group' ? 'a list of groups of fields' : 'a value of its own kind'}; its type is in schemas/, e.g. {{ ${value} }} -->`,
     imports: [],
   }
 }
@@ -108,12 +120,32 @@ function sharedImport(imports: string[]): string[] {
 const indent = (lines: string[], by: string) => lines.map(line => line ? by + line : line)
 
 /**
+ * The section ids a component shows, as a TypeScript type: `'talks'`, or
+ * `'talks' | 'talks-public'` for a component shown for several. Typing `id`
+ * with them types the entries in its slots by their schemas.
+ */
+export function sectionIdType(ids: readonly string[]): string {
+  return [...new Set(ids)].map(id => `'${id}'`).join(' | ')
+}
+
+/** The props of a component around `VitaSection`, typed for its sections. */
+export function entryComponentProps(ids: readonly string[]): string {
+  const type = sectionIdType(ids)
+  return `const props = defineProps<{ id: ${type}, entries?: SectionEntries<${type}>, title?: string, where?: Where, limit?: number }>()`
+}
+
+/** The props of a component with its own list, typed for its sections. */
+export function listComponentProps(ids: readonly string[]): string {
+  return `const props = defineProps<{ id: ${sectionIdType(ids)}, title?: string, where?: Where, limit?: number }>()`
+}
+
+/**
  * A component around `VitaSection` that changes one region of every entry:
  * vitakit keeps the list, sorting, dates and default styling.
  */
 export function entryComponent(id: string, name: string, fields: FieldDescription[], region: 'note' | 'meta'): string {
   const snippets = fields.map(field => webFieldSnippet(field, region === 'note' ? 'vita-entry__note' : 'vita-entry__meta'))
-  const imports = sharedImport(['type Entry', 'type Where', ...snippets.flatMap(snippet => snippet.imports)])
+  const imports = sharedImport(['type SectionEntries', 'type Where', ...snippets.flatMap(snippet => snippet.imports)])
   const keep = region === 'note'
     ? ['<p v-if="display.note !== undefined" class="vita-entry__note">{{ display.note }}</p>']
     : [
@@ -129,7 +161,7 @@ export function entryComponent(id: string, name: string, fields: FieldDescriptio
         '</p>',
       ]
   const body = fields.length
-    ? [...keep, ...snippets.map(snippet => snippet.markup)]
+    ? [...keep, ...snippets.flatMap(snippet => snippet.markup.split('\n'))]
     : [...keep, `<!-- Add your own lines here, e.g. -->`, `<!-- <p v-if="typeof entry.audience === 'string'" class="vita-entry__${region}">Audience: {{ entry.audience }}</p> -->`]
   return [
     '<script setup lang="ts">',
@@ -141,11 +173,12 @@ export function entryComponent(id: string, name: string, fields: FieldDescriptio
     ` * The #${region} slot below replaces that region of each entry. Delete it to get`,
     ' * vitakit\'s version back; the other slots are #title, #meta, #note and the',
     ' * default slot (the whole entry). `entry` has every field of the entry,',
-    ' * `display` what vitakit would show.',
+    ` * typed by its schema; \`display\` what vitakit would show. \`entries\` takes`,
+    ` * ${id} entries a page selected itself, e.g. filtered in its script.`,
     ' */',
     ...imports,
     '',
-    'const props = defineProps<{ id?: string, entries?: Entry[], title?: string, where?: Where, limit?: number }>()',
+    entryComponentProps([id]),
     '</script>',
     '',
     '<template>',
@@ -173,7 +206,8 @@ export function listComponent(id: string, name: string, fields: FieldDescription
       : `<p class="vita-entry__title">{{ ${access('entry', titleField.path)} }}</p>`
     : '<!-- <p class="vita-entry__title">{{ entry.title }}</p> -->'
   const imports = sharedImport([
-    'filterWhere', 'type Entry', 'type Where',
+    'filterWhere', 'type Where',
+    ...(groupBy ? ['type SectionEntries'] : []),
     ...(fields.some(field => field.path === 'date') ? ['type DateRange'] : []),
     ...(titleField?.type === 'formatted-text' ? ['richHtml'] : []),
     ...snippets.flatMap(snippet => snippet.imports),
@@ -181,7 +215,7 @@ export function listComponent(id: string, name: string, fields: FieldDescription
   const hasDate = fields.some(field => field.path === 'date')
   const row = [
     `<VitaEntry v-for="entry in ${groupBy ? 'group.entries' : 'entries'}" :key="entry.id"${hasDate ? ' :date="entry.date as DateRange"' : ''}>`,
-    ...indent([titleLine, ...snippets.map(snippet => snippet.markup)], '  '),
+    ...indent([titleLine, ...snippets.flatMap(snippet => snippet.markup.split('\n'))], '  '),
     '</VitaEntry>',
   ]
   const grouping = groupBy
@@ -190,7 +224,7 @@ export function listComponent(id: string, name: string, fields: FieldDescription
         `// Entries in a row with the same ${groupBy} form a group, in the order`,
         '// vitakit sorted them (newest first).',
         'const groups = computed(() => {',
-        '  const result: { label: string, entries: Entry[] }[] = []',
+        '  const result: { label: string, entries: SectionEntries<typeof props.id> }[] = []',
         '  for (const entry of entries.value) {',
         `    const label = String(${access('entry', groupBy)} ?? '')`,
         '    const last = result[result.length - 1]',
@@ -227,9 +261,9 @@ export function listComponent(id: string, name: string, fields: FieldDescription
     `import { computed } from 'vue'`,
     ...imports,
     '',
-    'const props = defineProps<{ id: string, title?: string, where?: Where, limit?: number }>()',
+    listComponentProps([id]),
     '',
-    'const entries = computed<Entry[]>(() => {',
+    'const entries = computed(() => {',
     '  const selected = filterWhere(useSection(props.id), props.where)',
     '  return props.limit ? selected.slice(0, props.limit) : selected',
     '})',

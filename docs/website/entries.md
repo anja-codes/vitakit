@@ -36,9 +36,9 @@ list, sorting, dates and styling stay vitakit's, and fills one of its
 
 ```vue
 <script setup lang="ts">
-import type { Entry, Where } from '@anja.codes/vitakit/shared'
+import type { SectionEntries, Where } from '@anja.codes/vitakit/shared'
 
-const props = defineProps<{ id?: string, entries?: Entry[], title?: string, where?: Where, limit?: number }>()
+const props = defineProps<{ id: 'teaching', entries?: SectionEntries<'teaching'>, title?: string, where?: Where, limit?: number }>()
 </script>
 
 <template>
@@ -53,8 +53,22 @@ const props = defineProps<{ id?: string, entries?: Entry[], title?: string, wher
 
 It is yours: change the wording, the order, the markup. Each field gets markup
 that suits its type: a number is shown even when it is `0`, formatted text as
-its rendered HTML, a link as a link. `--region meta` uses the secondary line
-instead of the note.
+its rendered HTML, a link as a link, and a group of fields (a thesis, a project)
+one line per part. `--region meta` uses the secondary line instead of the note.
+
+`id: 'teaching'` says which section the component shows, and that types
+`entry` in its slots: see [types](#types). `entries` takes teaching entries a
+page selected itself, for a selection `where` cannot express:
+
+```vue
+<script setup lang="ts">
+const recent = useSection('teaching').filter(course => course.date.from.year >= 2020)
+</script>
+
+<template>
+  <TeachingSection id="teaching" :entries="recent" />
+</template>
+```
 
 **A list of its own.** `--list` writes a component that gets the entries from
 vitakit — selected and sorted, honouring `where` and `limit` — and has its own
@@ -74,7 +88,8 @@ or a layout of your own. `--group-by term` adds a heading for each term:
 
 **The same component for another section.** A component works for any section
 with the same fields: `vitakit customize talks-public --web --use TalkList`
-switches that section's lines to it.
+switches that section's lines to it, and adds the section to the component's
+`id`: `id: 'talks' | 'talks-public'`.
 
 **Later**, `vitakit customize teaching --web --field hours` does not rewrite the
 component: it prints the line to add. `vitakit explain teaching --field hours`
@@ -96,9 +111,9 @@ There are exactly four slots:
 | `default` | the entire body, including title, meta, note and links |
 
 All four receive the same typed context: `{ entry, index, display }`.
-`entry` is the current processed `Entry`, not raw YAML; custom fields remain
-`unknown`, with no schema-specific type generation. Narrow them with checks such
-as `typeof`. `index` is zero-based in the displayed list, after `limit`.
+`entry` is the entry as the website has it, not raw YAML: typed by the
+section's schema (see [types](#types)), with formatted text rendered and links
+resolved. `index` is zero-based in the displayed list, after `limit`.
 
 `display` contains the values the default web renderer uses:
 
@@ -117,7 +132,7 @@ keeping the built-in title, metadata and links:
 ```vue
 <VitaSection id="supervision">
   <template #note="{ entry }">
-    <p v-if="typeof entry.coSupervisor === 'string'" class="vita-entry__note">
+    <p v-if="entry.coSupervisor" class="vita-entry__note">
       Co-supervisor: {{ entry.coSupervisor }}
     </p>
   </template>
@@ -135,10 +150,10 @@ software section whose schema accepts `name` and `language`:
 ```vue
 <VitaSection id="software">
   <template #default="{ entry }">
-    <p v-if="typeof entry.name === 'string'" class="vita-entry__title">
+    <p class="vita-entry__title">
       {{ entry.name }}
     </p>
-    <p v-if="typeof entry.language === 'string'" class="vita-entry__meta">
+    <p v-if="entry.language" class="vita-entry__meta">
       Written in {{ entry.language }}
     </p>
   </template>
@@ -181,3 +196,46 @@ Two different axes, easily confused:
 
 Adding a field to supervision is a schema change; displaying it can be a slot
 change. Neither requires owning the whole component.
+
+## Types
+
+An entry's fields are typed by its section's schema — `schemas/<section>.ts`, or
+vitakit's own for a built-in section — wherever the section is known by its
+name: `useSection('talks')`, the slots of `<VitaSection id="talks">`, and the
+slots of a component whose `id` names its sections (`id: 'talks'`). Fields
+arrive as the website has them:
+
+| In the schema | In a component |
+|---|---|
+| `richText` | `{ text, html }`: `entry.title.html` with `v-html`, `entry.title.text` as plain text |
+| `linked` | `{ label, url? }`: `entry.institution.label` |
+| `url` | a string, with the site's base path where it is a path on the site |
+| `dateRange` | a `DateRange`, for `<VitaDate :value>` |
+| a group, `z.strictObject({ … })` | its fields, typed the same way: `entry.thesis.supervisor.url` |
+| an optional field | possibly `undefined`: `v-if="entry.thesis"` first |
+
+So a typo is an error in your editor and in `pnpm check`, not an empty line on
+the page:
+
+```
+Property 'titel' does not exist on type '{ title: RichText; event?: string; … }'. Did you mean 'title'?
+```
+
+A field you add to a schema is typed at once. A section you add is typed after
+the development server notices the new `content/<section>.yml`, or after
+`nuxt prepare`. A section known only at run time — `useSection(someVariable)`,
+`<VitaSection :id="someVariable">` — has entries of type `Entry`, whose fields
+are `unknown`; narrow them with checks such as `typeof`.
+
+For a schema of your own outside a component, `SectionEntry<typeof schema>` is
+the type of one of its entries, and `SectionEntries<'talks'>` the type of a
+section's entries:
+
+```ts
+import type { SectionEntries } from '@anja.codes/vitakit/shared'
+
+function invited(talks: SectionEntries<'talks'>) {
+  return talks.filter(talk => talk.kind === 'invited')
+}
+```
+

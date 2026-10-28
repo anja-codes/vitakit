@@ -206,6 +206,31 @@ describe('migrate', () => {
     expect((await cli(['migrate', '--yes'], { cwd: unstyled })).out).not.toContain('main.css')
   })
 
+  it('types the components customize wrote for 0.3, by the sections they show', async () => {
+    const entry03 = (casts: string) => `<script setup lang="ts">\nimport type { Entry, Where } from '@anja.codes/vitakit/shared'\n\nconst props = defineProps<{ id?: string, entries?: Entry[], title?: string, where?: Where, limit?: number }>()\n${casts}</script>\n\n<template>\n  <VitaSection v-bind="props" />\n</template>\n`
+    const root = await project({
+      'content/talks-public.yml': '- { date: 2024, title: Maths night }\n',
+      'schemas/talks-public.ts': `import { schemas } from '@anja.codes/vitakit'\nexport default schemas.talks\n`,
+      'app/components/EducationSection.vue': entry03('const thesis = (entry: Entry) => entry.thesis as Thesis | undefined\n'),
+      'app/components/TalkSection.vue': entry03(''),
+      'app/components/Unused.vue': entry03(''),
+      'app/pages/cv.vue': source => source
+        .replace('<VitaSection id="education"', '<EducationSection id="education"')
+        .replace('<VitaSection id="talks" title="Talks" />', '<TalkSection id="talks" title="Talks" />\n    <TalkSection id="talks-public" />'),
+    })
+
+    const result = await cli(['migrate', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(await read(root, 'app/components/EducationSection.vue')).toContain(`import type { Entry, SectionEntries, Where } from '@anja.codes/vitakit/shared'\n\nconst props = defineProps<{ id: 'education', entries?: SectionEntries<'education'>, title?: string, where?: Where, limit?: number }>()\nconst thesis = (entry: Entry) => entry.thesis as Thesis | undefined\n`)
+    expect(await read(root, 'app/components/TalkSection.vue')).toContain(`import type { SectionEntries, Where } from '@anja.codes/vitakit/shared'\n\nconst props = defineProps<{ id: 'talks' | 'talks-public', entries?: SectionEntries<'talks' | 'talks-public'>,`)
+    expect(result.out).toContain('app/components/EducationSection.vue casts entries to types of its own (as …). They still work')
+    expect(result.out).not.toMatch(/TalkSection\.vue casts/)
+    expect(result.out).toContain('By hand: app/components/Unused.vue is shown on no page with a literal id.')
+    expect(await read(root, 'app/components/Unused.vue')).toContain('id?: string, entries?: Entry[]')
+
+    expect((await cli(['migrate', '--yes'], { cwd: root })).out).toContain('Nothing to write.')
+  })
+
   it('suggests the rules the scaffold has', async () => {
     const scaffold = await readFile(join(ROOT, 'create/template/app/assets/css/main.css'), 'utf8')
     for (const rule of PUBLICATIONS_TITLE_CSS.split(/\n(?=\.)/)) expect(scaffold).toContain(rule)

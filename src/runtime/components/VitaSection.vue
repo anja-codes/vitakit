@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="Id extends string = string">
 /**
  * A generic section with conventional field selection and optional overrides.
  *
@@ -18,14 +18,15 @@ import {
   richHtml,
   type DateRange,
   type Entry,
+  type SectionEntries,
   type VitaSectionSlotProps,
   type Where,
 } from '@anja.codes/vitakit/shared'
 
 const props = defineProps<{
   /** Section id; ignored when `entries` is given. */
-  id?: string
-  entries?: Entry[]
+  id?: Id
+  entries?: SectionEntries<Id>
   /** Fields to try, in order, for the main line. */
   titleFields?: string[]
   /** Only entries whose fields have these values, as `where` in a PDF document. */
@@ -35,23 +36,24 @@ const props = defineProps<{
   title?: string
 }>()
 
+type Row = VitaSectionSlotProps<SectionEntries<Id>[number]>
 const slots = defineSlots<{
-  title?(props: VitaSectionSlotProps): VNodeChild
-  meta?(props: VitaSectionSlotProps): VNodeChild
-  note?(props: VitaSectionSlotProps): VNodeChild
-  default?(props: VitaSectionSlotProps): VNodeChild
+  title?(props: Row): VNodeChild
+  meta?(props: Row): VNodeChild
+  note?(props: Row): VNodeChild
+  default?(props: Row): VNodeChild
 }>()
 
 const rows = computed(() => {
-  const source = filterWhere(props.entries ?? (props.id ? useSection(props.id) : []), props.where)
+  const source = filterWhere((props.entries ?? (props.id ? useSection(props.id) : [])) as Entry[], props.where)
   const items = props.limit ? source.slice(0, props.limit) : source
-  return items.map((entry, index): VitaSectionSlotProps => {
+  return items.map((entry, index): Row => {
     // Field selection remains shared with the emitter; only the web-specific
     // presentation (such as a term replacing the date) is decided here.
     const titleField = entryTitleField(entry, props.titleFields)
     const term = typeof entry.term === 'string' && entry.term.length > 0 ? entry.term : undefined
     return {
-      entry,
+      entry: entry as Row['entry'],
       index,
       display: {
         titleHtml: (titleField && richHtml(entry[titleField])) || '',
@@ -74,7 +76,7 @@ const rows = computed(() => {
     <h2 class="vita-section-group__title">
       {{ title }}
     </h2>
-    <VitaSection :entries="rows.map(row => row.entry)" :title-fields="titleFields">
+    <VitaSection :entries="rows.map(row => row.entry as Entry)" :title-fields="titleFields">
       <template v-for="(_, name) in slots" #[name]="scope">
         <slot :name="name" v-bind="scope" />
       </template>

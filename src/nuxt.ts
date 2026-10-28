@@ -20,6 +20,7 @@ import {
 import { createRequire } from 'node:module'
 import type { NuxtModule } from '@nuxt/schema'
 import { loadContent } from './content'
+import { sectionTypeSources, sectionTypesDeclaration } from './section-types'
 import { fail } from './issues'
 import { findWebPlacements, publicationPlacementProblems } from './placements'
 import { watchComponentOverrides } from './dev-overrides'
@@ -49,6 +50,7 @@ function katexStylesheet(): string {
 
 const TEMPLATE = 'vitakit/content.mjs'
 const TYPES = 'vitakit/content.d.ts'
+const SECTION_TYPES = 'vitakit/sections.d.ts'
 
 function report(content: VitakitContent): void {
   if (!content.issues.length) return
@@ -111,6 +113,15 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
       ].join('\n'),
     })
 
+    // Section id -> entry type, from content/*.yml and each one's schema. The
+    // schema is referenced, not copied: a field added to schemas/<id>.ts is
+    // typed at once; which sections exist is rewritten as files come and go.
+    let sections = await sectionTypeSources(rootDir)
+    addTypeTemplate({
+      filename: SECTION_TYPES,
+      getContents: () => sectionTypesDeclaration(sections, nuxt.options.buildDir),
+    })
+
     if (options.katexCss !== false) nuxt.options.css.push(katexStylesheet())
 
     // The runtime ships as source (Vue SFCs and TypeScript), so Nuxt has to
@@ -133,8 +144,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 
     // Recompile in place instead of restarting Nuxt, so that fixing a file
     // recovers without losing the dev server.
-    nuxt.hook('builder:watch', async (_event, path) => {
+    nuxt.hook('builder:watch', async (event, path) => {
       if (!/[/\\](content|schemas)[/\\]/.test(path)) return
+      // A section or a schema file added or removed: which sections are typed, and how.
+      if (event === 'add' || event === 'unlink') {
+        const found = await sectionTypeSources(rootDir)
+        if (JSON.stringify(found) !== JSON.stringify(sections)) {
+          sections = found
+          await updateTemplates({ filter: item => item.filename === SECTION_TYPES })
+        }
+      }
       try {
         content = await load(false)
       } catch (error) {

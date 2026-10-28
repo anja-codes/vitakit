@@ -23,10 +23,11 @@ Then check the project: \`${run.bin('vitakit', 'validate')}\``,
 
   async run(context, { values }) {
     const { Workspace } = await import('../plan')
-    const { migratePublicationLists } = await import('../migrations')
+    const { migratePublicationLists, migrateSectionComponents } = await import('../migrations')
     const ws = new Workspace(context.root)
     const notes = { before: [] as string[], after: [] as string[] }
     await migratePublicationLists(context.root, ws, notes)
+    await migrateSectionComponents(context.root, ws, notes)
     notes.after.push(`Check the project: \`${context.run.bin('vitakit', 'validate')}\``)
     return finish(context, ws, values, notes)
   },

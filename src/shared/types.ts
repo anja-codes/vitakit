@@ -168,6 +168,17 @@ export interface ContentIssue {
   message: string
 }
 
+/**
+ * Section id -> its entries' type. Empty here; a project's
+ * `.nuxt/vitakit/sections.d.ts` adds one key per `content/<id>.yml`, from its
+ * schema, so that `useSection('talks')` is typed by `schemas/talks.ts`.
+ */
+// eslint-disable-next-line ts/no-empty-object-type -- filled by declaration merging
+export interface VitakitSections {}
+
+/** The entries of a section: typed by its schema when the section is known. */
+export type SectionEntries<Id extends string> = Id extends keyof VitakitSections ? VitakitSections[Id][] : Entry[]
+
 /** Everything compiled from `content/`, as the app sees it. */
 export interface VitakitContent {
   profile: Profile
@@ -179,3 +190,33 @@ export interface VitakitContent {
   /** Always empty in a production build, which fails instead. */
   issues: ContentIssue[]
 }
+
+/**
+ * A path on the site before it is resolved: `{ __vitakitPath }`. Internal, like
+ * `RichTextMarker`; components receive a string.
+ */
+interface SitePathMarkerShape {
+  __vitakitPath: string
+}
+
+/**
+ * A value as a component receives it: rendered text instead of its marker,
+ * resolved paths instead of theirs, at any depth.
+ */
+export type Rendered<T>
+  = T extends RichTextMarker ? RichText
+    : T extends SitePathMarkerShape ? string
+      : T extends DateRange ? DateRange
+        : T extends readonly (infer Item)[] ? Rendered<Item>[]
+          : T extends object ? { [Key in keyof T]: Rendered<T[Key]> }
+            : T
+
+/**
+ * One entry of a section, as `useSection` and the slots of `VitaSection` see
+ * it, from the section's schema: `SectionEntry<typeof schema>`.
+ */
+export type SectionEntry<Schema extends { _zod: { output: readonly unknown[] } }>
+  = Flat<Rendered<Schema['_zod']['output'][number]> & EntryBase>
+
+/** One object type instead of an intersection: readable on hover, and assignable to `Entry`. */
+type Flat<T> = { [Key in keyof T]: T[Key] }

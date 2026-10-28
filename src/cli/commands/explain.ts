@@ -52,9 +52,9 @@ async function fieldSnippets(context: CommandContext, inv: Inventory, section: S
     lines.push(block('', [['creates a component that shows them; or, on the page, give VitaSection a slot:']]))
     lines.push('', `    <VitaSection id="${id}">`, '      <template #note="{ entry, display }">',
       '        <p v-if="display.note !== undefined" class="vita-entry__note">{{ display.note }}</p>')
-    lines.push(...web.map(snippet => `        ${snippet.markup}`), '      </template>', '    </VitaSection>')
+    lines.push(...web.flatMap(snippet => snippet.markup.split('\n')).map(line => `        ${line}`), '      </template>', '    </VitaSection>')
   }
-  if (components.length) lines.push('', ...indented(web.map(snippet => snippet.markup)))
+  if (components.length) lines.push('', ...indented(web.flatMap(snippet => snippet.markup.split('\n'))))
   if (imports.length) lines.push('', `    import { ${imports.join(', ')} } from '@anja.codes/vitakit/shared'`)
 
   lines.push('')

@@ -43,6 +43,9 @@ describe('customize --web', () => {
     expect(await read(root, 'app/pages/cv.vue')).toContain('<TeachingSection id="teaching" title="Teaching" />')
     const component = await read(root, 'app/components/TeachingSection.vue')
     expect(component).toContain(`<p v-if="typeof entry.evaluation === 'number'" class="vita-entry__note">Evaluation: {{ entry.evaluation }}</p>`)
+    // Typed for its section, which types `entry` in its slots.
+    expect(component).toContain(`import type { SectionEntries, Where } from '@anja.codes/vitakit/shared'`)
+    expect(component).toContain(`const props = defineProps<{ id: 'teaching', entries?: SectionEntries<'teaching'>, title?: string, where?: Where, limit?: number }>()`)
 
     // Zero is a value worth showing; the default note stays.
     const html = await renderComponent(root, 'app/components/TeachingSection.vue', { id: 'teaching', title: 'Teaching' })
@@ -52,6 +55,19 @@ describe('customize --web', () => {
 
     expect((await cli(['status'], { cwd: root })).out).toMatch(/teaching\s+3 entries\s+\/cv\/\s+cv/)
     expect((await cli(['validate'], { cwd: root })).code).toBe(0)
+  })
+
+  it('shows each part of a group, below a check for the group', async () => {
+    const root = await project()
+    expect((await cli(['customize', 'education', '--web', '--field', 'thesis', '--yes'], { cwd: root })).code).toBe(0)
+    const component = await read(root, 'app/components/EducationSection.vue')
+    expect(component).toContain([
+      '      <template v-if="entry.thesis">',
+      '        <p v-if="richHtml(entry.thesis.title)" class="vita-entry__note">Title: <span v-html="richHtml(entry.thesis.title)" /></p>',
+      `        <p v-if="typeof entry.thesis.type === 'string'" class="vita-entry__note">Type: {{ entry.thesis.type }}</p>`,
+    ].join('\n'))
+    const html = await renderComponent(root, 'app/components/EducationSection.vue', { id: 'education' })
+    expect(html).toContain('<p class="vita-entry__note">Title: <span>Cutting down random trees</span></p><p class="vita-entry__note">Type: Doctoral thesis</p><p class="vita-entry__note">Supervisor: <a href="https://example.org/supervisor">A. Supervisor</a></p>')
   })
 
   it('writes a list of its own with --list, showing every field once', async () => {
@@ -89,8 +105,13 @@ describe('customize --web', () => {
     expect(again.code).toBe(1)
     expect(again.err).toMatch(/app\/components\/TalkList\.vue exists\. `--use TalkList` shows talks-public with it; --force replaces it/)
 
+    expect(await read(root, 'app/components/TalkList.vue')).toContain(`const props = defineProps<{ id: 'talks', title?: string, where?: Where, limit?: number }>()`)
     expect((await cli(['customize', 'talks-public', '--web', '--use', 'TalkList', '--yes'], { cwd: root })).code).toBe(0)
     expect(await read(root, 'app/pages/cv.vue')).toContain('<TalkList id="talks-public" title="Talks public" />')
+    // Its id names both sections now, so both are typed in it.
+    expect(await read(root, 'app/components/TalkList.vue')).toContain(`const props = defineProps<{ id: 'talks' | 'talks-public', title?: string, where?: Where, limit?: number }>()`)
+    const twice = await cli(['customize', 'talks-public', '--web', '--use', 'TalkList', '--yes'], { cwd: root })
+    expect(twice.out).not.toContain('its id accepts')
 
     await writeFile(join(root, 'app/components/TalkList.vue'), (await read(root, 'app/components/TalkList.vue')).replace('vita-section-group', 'mine'))
     expect((await cli(['customize', 'talks', '--web', '--list', '--component', 'TalkList', '--force', '--yes'], { cwd: root })).code).toBe(0)

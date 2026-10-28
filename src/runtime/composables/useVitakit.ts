@@ -6,7 +6,7 @@
  * chunk.
  */
 import content from '#vitakit/content'
-import type { Entry, Page, Profile, PublicationList, VitakitContent } from '@anja.codes/vitakit/shared'
+import type { Page, Profile, PublicationList, SectionEntries, VitakitContent } from '@anja.codes/vitakit/shared'
 
 export function useVitakit(): VitakitContent {
   return content
@@ -23,8 +23,8 @@ export function useProfile(): Profile {
  * Unknown ids return an empty list rather than throwing, so deleting a content
  * file cannot break a page that still mentions it.
  */
-export function useSection(id: string): Entry[] {
-  return content.sections[id] ?? []
+export function useSection<Id extends string>(id: Id): SectionEntries<Id> {
+  return (content.sections[id] ?? []) as SectionEntries<Id>
 }
 
 /** All section ids that have content. */

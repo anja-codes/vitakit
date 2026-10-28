@@ -90,6 +90,12 @@ async function planWeb(context: CommandContext, ws: Workspace, inv: Inventory, s
     if (!inv.web.components.has(component)) {
       throw new CommandError(`--use ${component}: no app/components/${component}.vue; the components are ${[...inv.web.components.keys()].join(', ') || '(none)'}`)
     }
+    // Its `id` names the sections it shows, which types their entries: add this one.
+    const { typeSectionProps } = await import('../../edit/props')
+    const file = inv.web.components.get(component)!
+    const typed = typeSectionProps((await ws.read(file))!, [id])
+    if (!typed.ok) notes.after.push(`By hand: ${file} ${typed.reason}; for ${id}'s entries to be typed in it, its id should accept '${id}' too, e.g. id: 'talks' | '${id}'.`)
+    else if (typed.value.changed) await ws.edit(file, typed.value.source, `shows ${id} too: its id accepts '${id}'`)
   } else {
     const fallback = `${pascal(id)}${list ? 'List' : 'Section'}`
     component = (values.component as string | undefined) ?? (interactive ? await prompt.input(io, 'Name of the component', fallback) : fallback)
