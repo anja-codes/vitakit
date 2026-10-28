@@ -6,7 +6,7 @@ same version. To update a project, see [Updating vitakit](./cli/migrating.md):
 `vitakit migrate` makes most of the changes a new version needs. The same
 notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 
-## Unreleased
+## 0.4.0 — 2026-10-28
 
 ### Typed entries
 
@@ -33,6 +33,17 @@ components that `vitakit customize --web` writes. Formatted text is
 **What may need changing:** code that reads a field the schema does not have
 now fails `pnpm check`, where it showed nothing before. That is the point; the
 error names the field.
+
+### Updating from 0.3
+
+```bash
+pnpm add @anja.codes/vitakit@latest
+pnpm vitakit migrate --dry-run   # see what would change
+pnpm vitakit migrate             # make the changes
+pnpm check
+```
+
+Step by step: [Updating vitakit](./cli/migrating.md#from-vitakit-03).
 
 ### Fixes
 
