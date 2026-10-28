@@ -26,7 +26,7 @@ to restyle; the components only provide structure.
 | `vita-entry`, `vita-entry__date`, `vita-entry__title`, `vita-entry__meta`, `vita-entry__note` | one row of a section |
 | `vita-section` | the list wrapping entries |
 | `vita-date`, `vita-links` | a formatted date, a row of links |
-| `vita-publications__group`, `vita-publications__heading`, `vita-bib`, `vita-badge` | the publication list |
+| `vita-publications__title`, `vita-publications__group`, `vita-publications__heading`, `vita-bib`, `vita-badge` | a [publication list](./publications.md#classes) |
 | `vita-prose` | rendered Markdown |
 | `vita-issues` | the development-only problem banner |
 

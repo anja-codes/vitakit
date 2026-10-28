@@ -100,14 +100,36 @@ async function statusOrder(root: string): Promise<string[]> {
   }
 }
 
-async function vueFiles(root: string, dir = join(root, 'app')): Promise<string[]> {
+async function appFiles(root: string, extension: string, dir = join(root, 'app')): Promise<string[]> {
   const files: string[] = []
   for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
     const path = join(dir, entry.name)
-    if (entry.isDirectory()) files.push(...await vueFiles(root, path))
-    else if (entry.name.endsWith('.vue')) files.push(relative(root, path).split(sep).join('/'))
+    if (entry.isDirectory()) files.push(...await appFiles(root, extension, path))
+    else if (entry.name.endsWith(extension)) files.push(relative(root, path).split(sep).join('/'))
   }
   return files.sort()
+}
+
+/** The rules for a list's `title` that the 0.3 scaffold added to `main.css`. */
+export const PUBLICATIONS_TITLE_CSS = `.vita-publications__title {
+  @apply text-xl font-semibold;
+}
+.vita-publications__title ~ .vita-publications__group .vita-publications__heading {
+  @apply mt-4 text-base;
+}`
+
+/**
+ * A stylesheet styles a list's group headings but not its title: the title
+ * would be plain text, smaller than the headings below it. The stylesheet is
+ * the project's own, so this is a note, never an edit.
+ */
+async function checkStyles(ws: Workspace, root: string, notes: MigrationNotes): Promise<void> {
+  const sheets: { path: string, source: string }[] = []
+  for (const path of await appFiles(root, '.css')) sheets.push({ path, source: (await ws.read(path))! })
+  if (sheets.some(sheet => sheet.source.includes('.vita-publications__title'))) return
+  const styled = sheets.find(sheet => sheet.source.includes('.vita-publications__heading'))
+  if (!styled) return
+  notes.after.push(`By hand: ${styled.path} styles the groups of a publication list but not its title, <VitaPublications title>. New projects have, after .vita-publications__heading:\n${PUBLICATIONS_TITLE_CSS}`)
 }
 
 /** `groups`/`defaultGroup` in `schemas/publications.ts` are `statuses`/`defaultStatus`. */
@@ -123,7 +145,7 @@ async function migrateSchema(ws: Workspace, notes: MigrationNotes): Promise<void
 /** `<VitaPublications>` without a list, with `groups` and `headings`, gets one. */
 async function migratePages(root: string, ws: Workspace, lists: ListPlan, notes: MigrationNotes): Promise<void> {
   const statuses = await statusOrder(root)
-  for (const path of await vueFiles(root)) {
+  for (const path of await appFiles(root, '.vue')) {
     const source = (await ws.read(path))!
     if (/(^|\/)VitaPublications\.vue$/.test(path)) {
       notes.after.push(`By hand: ${path} is your copy of VitaPublications. Its props are now list and title, and it reads usePublicationList(list); \`vitakit eject VitaPublications\` shows vitakit's.`)
@@ -226,6 +248,7 @@ async function migrateDocuments(root: string, ws: Workspace, lists: ListPlan, no
  */
 export async function migratePublicationLists(root: string, ws: Workspace, notes: MigrationNotes): Promise<void> {
   await migrateSchema(ws, notes)
+  await checkStyles(ws, root, notes)
 
   const source = await ws.read(LISTS_FILE)
   let existing: unknown

@@ -28,6 +28,24 @@ and heading is typeset, without touching anything vitakit writes:
 | `\vitaheader` | name, position and contact line |
 | `\vitasectiontitle{section}{Heading}` | a section's heading in every document that includes this preamble |
 
+## Publication lists
+
+A list grouped by status (or year, or any field) heads each group the way
+biblatex heads a bibliography with `heading=subbibliography`, as a
+`\subsection*`. The list's own heading, `\vitapublications[Publications]{all}`,
+is a `\section`. To change the groups' headings, redefine that heading in
+`preamble.tex`:
+
+```tex
+% the groups' headings (Published, Preprints, …) in the size of the text
+\defbibheading{subbibliography}[\refname]{\subsection*{\normalsize #1}}
+```
+
+Anything can go around `#1`: `\small`, `\itshape`, `\color{vitamuted}`, a
+`\vspace`. Only the groups' headings change; a `\subsection` in your own prose
+keeps its look. How each reference is formatted is the
+[bibliography style](./bibliography.md)'s.
+
 ## Taking over the class
 
 For changes the macros do not reach — the page layout, how sections are

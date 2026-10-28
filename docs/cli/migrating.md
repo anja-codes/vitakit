@@ -152,6 +152,21 @@ npx vitakit add publication-list recent --limit 3 --page / --title "Recent publi
 - A copy of the PDF template `cv-tex/templates/publications.eta`: vitakit's now
   prints one list, in its order. `vitakit customize publications --pdf --force`
   writes vitakit's, keeping yours next to it as a `.backup` to compare.
+- The style of a list's heading, `<VitaPublications title>`, in
+  `app/assets/css/main.css`. Your stylesheet is yours, so `migrate` does not
+  change it; new projects have, after `.vita-publications__heading`:
+
+  ```css
+  .vita-publications__title {
+    @apply text-xl font-semibold;
+  }
+  .vita-publications__title ~ .vita-publications__group .vita-publications__heading {
+    @apply mt-4 text-base;
+  }
+  ```
+
+  Without them, a list's heading is plain text, smaller than the headings of its
+  groups.
 
 **On the command line**, `vitakit explain cv --document` (and `--section`) is now
 `vitakit explain document cv`, with the kind first as in `add`; a name alone
