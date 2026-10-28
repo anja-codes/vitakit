@@ -277,3 +277,36 @@ export async function migratePublicationLists(root: string, ws: Workspace, notes
   if (source === undefined) ws.create(LISTS_FILE, lines, reason, { show: true })
   else await ws.edit(LISTS_FILE, lines, reason)
 }
+
+/** Casts that 0.3 made necessary: a local interface or `as` for an entry's field. */
+const CAST = /\bentry\.[\w$]+\s+as\s+[A-Z][\w$]*(?:\s*\|\s*undefined)?|\(\s*entry\s+as\s+[A-Z][\w$<>'" |]*\)/
+
+/**
+ * Components `vitakit customize --web` wrote for 0.3 (`id?: string`,
+ * `entries?: Entry[]`) get their `id` typed for the sections they are
+ * shown with, which types their entries. The sections come from the pages:
+ * `<TalkList id="talks" />` and `<TalkList id="talks-public" />` make
+ * `id: 'talks' | 'talks-public'`.
+ */
+export async function migrateSectionComponents(root: string, ws: Workspace, notes: MigrationNotes): Promise<void> {
+  const { findWebPlacements } = await import('../placements')
+  const { sectionProps, typeSectionProps } = await import('../edit/props')
+  const { placements, components } = await findWebPlacements(root)
+  for (const [name, file] of components) {
+    const source = await ws.read(file)
+    if (source === undefined) continue
+    const found = sectionProps(source)
+    if (!found.ok || !found.value.untyped) continue
+    const ids = [...new Set(placements.filter(placement => placement.component === name).map(placement => placement.section))].sort()
+    if (!ids.length) {
+      notes.after.push(`By hand: ${file} is shown on no page with a literal id. To type its entries, give its id the sections it shows, e.g. id: 'talks' | 'talks-public'.`)
+      continue
+    }
+    const typed = typeSectionProps(source, ids)
+    if (!typed.ok) continue
+    await ws.edit(file, typed.value.source, `its entries are typed by the schema of ${ids.join(', ')}`)
+    if (CAST.test(source)) {
+      notes.after.push(`${file} casts entries to types of its own (as …). They still work, but its entries are typed by their schema now; the casts can go, and fields read as written, e.g. entry.<group>.<field>.`)
+    }
+  }
+}

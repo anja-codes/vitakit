@@ -10,7 +10,7 @@ everyone.
 
 | | |
 |---|---|
-| `useSection(id)` | a section's entries: validated, public only, newest first; empty for an unknown id |
+| `useSection(id)` | a section's entries: validated, public only, newest first, [typed by its schema](./entries.md#types); empty for an unknown id |
 | `usePublicationList(name)` | a [publication list](../content/publications.md#lists): `count` and `groups`, each with an optional `label` and its entries; each entry has its formatted `html`, its `badges` as data, and the `fields` listed in `schemas/publications.ts`. An unknown name is an error |
 | `usePage(route)`, `usePages()` | the compiled Markdown pages: `title`, `titleHtml`, `description`, `bodyHtml` |
 | `useProfile()` | everything in `profile.yml`, including `nav` |

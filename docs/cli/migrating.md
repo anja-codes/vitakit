@@ -78,6 +78,36 @@ npx vitakit validate
 file and line. Running `migrate` again is harmless: what is up to date stays as
 it is.
 
+## From vitakit 0.3
+
+**What changed.** An entry's fields are [typed by its section's
+schema](../website/entries.md#types) on the website. In 0.3 they were all
+`unknown`, so a component read them through `typeof` checks or casts to types
+of its own.
+
+**What `migrate` does.** A component that `vitakit customize --web` wrote is
+typed for the sections it is shown with:
+
+```
+~ app/components/EducationSection.vue   its entries are typed by the schema of education
+  - const props = defineProps<{ id?: string, entries?: Entry[], title?: string, where?: Where, limit?: number }>()
+  + const props = defineProps<{ id: 'education', entries?: SectionEntries<'education'>, title?: string, where?: Where, limit?: number }>()
+```
+
+A component shown for several sections gets all of them,
+`id: 'talks' | 'talks-public'`.
+
+**By hand**, where `migrate` finds them:
+
+- A component that is on no page with a literal `id`: type its `id` yourself.
+- Casts of your own, such as `entry.thesis as Thesis`, keep working; `migrate`
+  says where they are no longer needed. Without them,
+  `entry.thesis.supervisor.url` reads as written.
+
+**What may look different.** Nothing on the page. `pnpm check` may now fail
+where a component reads a field its schema does not have, such as a misspelt
+name: that line showed nothing before. The error names the field.
+
 ## From vitakit 0.2
 
 **What changed.** In 0.2, a page chose its publications: `<VitaPublications

@@ -8,6 +8,34 @@ notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 
 ## Unreleased
 
+### Typed entries
+
+A section's entries are typed by its schema on the website: in
+`useSection('talks')`, in the slots of `<VitaSection id="talks">`, and in
+components that `vitakit customize --web` writes. Formatted text is
+`{ text, html }`, a link `{ label, url? }`, a group its own fields, so
+`entry.thesis.supervisor.url` needs neither checks nor casts, and a typo such as
+`entry.titel` is an error in the editor and in `pnpm check`. See
+[types](./website/entries.md#types).
+
+- `vitakit customize --web` writes components typed for their section:
+  `id: 'teaching'`, with `entries` for teaching entries a page selected itself.
+  `--use` adds the section to the component's `id`
+  (`id: 'talks' | 'talks-public'`). A group of fields gets one line per part
+  instead of a comment.
+- `vitakit migrate` types the components `customize` wrote for 0.3, for the
+  sections they are shown with; casts of your own keep working, and it says
+  where they are no longer needed.
+- `extendSection` keeps the types of the section it extends; before, every
+  field of an extended schema was `unknown`.
+- New types: `SectionEntry<typeof schema>`, `SectionEntries<'talks'>`.
+
+**What may need changing:** code that reads a field the schema does not have
+now fails `pnpm check`, where it showed nothing before. That is the point; the
+error names the field.
+
+### Fixes
+
 - `vitakit migrate` points out a stylesheet that styles the groups of a
   publication list but not its title (`.vita-publications__title`, new in 0.3),
   with the rules to add. It does not change the stylesheet.

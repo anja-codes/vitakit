@@ -57,8 +57,8 @@ export interface VitaSectionDisplay {
 }
 
 /** Shared context for VitaSection's title, meta, note and default (body) slots. */
-export interface VitaSectionSlotProps {
-  entry: Entry
+export interface VitaSectionSlotProps<E = Entry> {
+  entry: E
   /** Zero-based position in the displayed list, after limiting. */
   index: number
   display: VitaSectionDisplay

@@ -75,9 +75,9 @@ export type BuiltinSection = keyof typeof schemas
  * export default extendSection(schemas.teaching, { evaluationScore: z.number().optional() })
  * ```
  */
-export function extendSection<Shape extends z.ZodRawShape>(
-  base: z.ZodArray<z.ZodObject<z.ZodRawShape>>,
+export function extendSection<Base extends z.ZodObject, Shape extends z.ZodRawShape>(
+  base: z.ZodArray<Base>,
   shape: Shape,
-) {
-  return z.array(base.element.extend(shape))
+): z.ZodArray<z.ZodObject<z.util.Extend<Base['shape'], Shape>, Base['_zod']['config']>> {
+  return z.array(base.element.extend(shape)) as never
 }
