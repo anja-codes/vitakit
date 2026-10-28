@@ -3,10 +3,14 @@
  * from VitaPublications' groups and headings, and what `status`, `explain` and
  * `validate` say about lists.
  */
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { PUBLICATIONS_TITLE_CSS } from '../src/cli/migrations'
 import { loadContent } from '../src/content'
 import { cli } from './support/cli'
 import { exampleProject as project, readProjectFile as read } from './support/example'
+import { ROOT } from './support/project'
 
 describe('status, explain and validate', () => {
   it('list each publication list, how many it shows and where', async () => {
@@ -181,5 +185,29 @@ describe('migrate', () => {
     expect(result.out).toContain('By hand: app/components/VitaPublications.vue is your copy of VitaPublications')
     expect(result.out).toContain('By hand: cv-tex/templates/publications.eta is your copy of the PDF template')
     expect(await read(root, 'app/pages/publications.vue')).toContain('<VitaPublications list="all" class="mt-8" />')
+  })
+
+  it('points out a stylesheet without the rules for a list\'s title, and leaves it as it is', async () => {
+    const withoutTitle = (source: string) => source.replace(/^\.vita-publications__title[^{]*\{[^}]*\}\n/gm, '')
+    const root = await project({ 'app/assets/css/main.css': withoutTitle })
+    const css = await read(root, 'app/assets/css/main.css')
+    expect(css).toContain('.vita-publications__heading')
+    expect(css).not.toContain('.vita-publications__title')
+
+    const result = await cli(['migrate', '--yes'], { cwd: root })
+    expect(result.code, result.err).toBe(0)
+    expect(result.out).toContain(`By hand: app/assets/css/main.css styles the groups of a publication list but not its title, <VitaPublications title>. New projects have, after .vita-publications__heading:\n${PUBLICATIONS_TITLE_CSS}`)
+    expect(await read(root, 'app/assets/css/main.css')).toBe(css)
+  })
+
+  it('says nothing about a stylesheet that styles the title, or none of the list', async () => {
+    expect((await cli(['migrate', '--yes'], { cwd: await project() })).out).not.toContain('main.css')
+    const unstyled = await project({ 'app/assets/css/main.css': '@import "tailwindcss";\n' })
+    expect((await cli(['migrate', '--yes'], { cwd: unstyled })).out).not.toContain('main.css')
+  })
+
+  it('suggests the rules the scaffold has', async () => {
+    const scaffold = await readFile(join(ROOT, 'create/template/app/assets/css/main.css'), 'utf8')
+    for (const rule of PUBLICATIONS_TITLE_CSS.split(/\n(?=\.)/)) expect(scaffold).toContain(rule)
   })
 })

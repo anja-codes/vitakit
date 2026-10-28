@@ -21,4 +21,5 @@ Building the bibliography needs **biber** (part of every current TeX distributio
 Which entries a list shows, and the status labels, come from
 `content/publication-lists.yml` and `schemas/publications.ts`: see
 [publications](../content/publications.md). How each reference is formatted is
-biblatex's: set its style in `cv-tex/preamble.tex`.
+biblatex's: set its style in `cv-tex/preamble.tex`. The groups' headings:
+[styling](./styling.md#publication-lists).

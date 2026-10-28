@@ -6,6 +6,16 @@ same version. To update a project, see [Updating vitakit](./cli/migrating.md):
 `vitakit migrate` makes most of the changes a new version needs. The same
 notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 
+## Unreleased
+
+- `vitakit migrate` points out a stylesheet that styles the groups of a
+  publication list but not its title (`.vita-publications__title`, new in 0.3),
+  with the rules to add. It does not change the stylesheet.
+- Docs: [those rules](./cli/migrating.md#from-vitakit-02) for projects updated
+  from 0.2, the class in the [website's styling](./website/styling.md), and
+  [the size of a list's group headings](./pdf/styling.md#publication-lists) in
+  the PDF.
+
 ## 0.3.0 — 2026-10-27
 
 ### Publication lists
