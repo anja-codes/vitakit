@@ -30,4 +30,4 @@ nav:
   - { label: CV, to: /cv/ }
 
 # Inline Markdown, shown quietly at the bottom of every page.
-footer: Built with [vitakit](https://github.com/anja-codes/vitakit).
+footer: Built with [vitakit](https://vitakit.anja.codes/).

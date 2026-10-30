@@ -27,7 +27,7 @@ nav:
   - { label: Publications, to: /publications/ }
   - { label: CV, to: /cv/ }
 
-footer: Built with [vitakit](https://github.com/anja-codes/vitakit).
+footer: Built with [vitakit](https://vitakit.anja.codes/).
 ```
 
 A few things worth knowing:
