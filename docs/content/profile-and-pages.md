@@ -13,7 +13,7 @@ The only file that is not a CV section: who you are, plus the shape of the site.
 | `links`       | list of links           | no       | ORCID, GitHub, arXiv, …                                                                                               |
 | `summary`     | text                    | no       | One or two sentences for metadata; not rendered on the page — prose belongs in `content/pages/index.md`               |
 | `url`         | http(s) URL             | no       | Where the site is published, e.g. `https://jane.github.io/site/`. The PDF needs it to link [paths on the site](./field-types.md#web-addresses) |
-| `avatar`      | path                    | no       | Below `public/`, e.g. `/img/portrait.jpg`                                                                             |
+| `avatar`      | path                    | no       | Below `public/`, e.g. `/img/portrait.jpg`. A PDF shows it only when it [asks for a portrait](../pdf/index.md#portrait) |
 | `nav`         | list of `{ label, to }` | no       | Navigation; explicit, so wording and order are yours                                                                  |
 | `footer`      | text                    | no       | Inline Markdown, shown at the bottom of every page                                                                    |
 

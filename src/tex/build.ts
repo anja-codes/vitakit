@@ -7,9 +7,9 @@
  */
 import { spawn } from 'node:child_process'
 import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import process from 'node:process'
-import { delimiter, join, resolve } from 'node:path'
+import { delimiter, extname, join, resolve } from 'node:path'
 import { loadContent } from '../content'
 import { fail } from '../issues'
 import { discoverDocuments, selectEntries, validateDocumentSections, type DocumentSource } from './documents'
@@ -88,7 +88,7 @@ function run(
  * `profile.url`, a biblatex sourcemap that makes a `url` in the .bib file that
  * is a path on the site (`/papers/x.pdf`) absolute, as biblatex prints it.
  */
-function profilePreamble(content: VitakitContent, document: DocumentSource, lists: string[]): string {
+function profilePreamble(content: VitakitContent, document: DocumentSource, lists: string[], cvDir: string): string {
   const { profile } = content
   const href = (url: string) => {
     if (isSitePath(url)) fail('content/profile.yml', `links: ${url} ${SITE_PATH_HELP}`)
@@ -106,6 +106,7 @@ function profilePreamble(content: VitakitContent, document: DocumentSource, list
     `\\vitaname{${escapeTex(profile.name)}}`,
     `\\vitatagline{${tagline}}`,
     `\\vitacontact{${contact}}`,
+    ...portraitLine(content, document, cvDir),
     ...(profile.url ? siteUrlSourcemap(profile.url) : []),
     ...Object.entries(content.sections).flatMap(([id, entries]) => {
       const title = document.options.sections[id]?.title
@@ -117,6 +118,46 @@ function profilePreamble(content: VitakitContent, document: DocumentSource, list
     ...lists.filter(name => !content.publications[name]?.count).map(name => `\\vitaemptypublications{${name}}`),
     '',
   ].join('\n')
+}
+
+/** Formats that pdfLaTeX, LuaLaTeX and XeLaTeX all include; SVG is not one. */
+const PORTRAIT_FORMATS = ['.jpg', '.jpeg', '.png', '.pdf']
+
+/**
+ * `\vitaportrait{../public/img/x.jpg}` when the document asks for a portrait.
+ * TeX runs in `cv-tex/`, so the path is relative to it. Every problem is
+ * reported here, by name, rather than as a LaTeX error.
+ */
+function portraitLine(content: VitakitContent, document: DocumentSource, cvDir: string): string[] {
+  const option = document.options.portrait
+  if (option === false) return []
+  const where = `cv-tex/${document.name}.yml`
+  // A PDF build loads content without a base URL, so `avatar` is as written.
+  const path = option === true ? content.profile.avatar : option
+  if (!path) {
+    fail(where, 'portrait: true shows avatar from content/profile.yml, which has none; '
+      + 'add one there, or give the image here, e.g. portrait: /img/portrait.jpg')
+  }
+  const what = option === true ? `portrait: true shows avatar ${path} (content/profile.yml)` : `portrait: ${path}`
+  const format = extname(path).toLowerCase()
+  if (!PORTRAIT_FORMATS.includes(format)) {
+    fail(where, `${what}, but LaTeX cannot include ${format ? `a ${format} file` : 'a file without an extension'}; `
+      + `use a JPG, PNG or PDF${option === true ? ', e.g. portrait: /img/portrait.jpg' : ''}`)
+  }
+  // Written into a TeX argument: nothing TeX would interpret.
+  if (!/^[\w./-]+$/.test(path) || path.split('/').includes('..')) {
+    fail(where, `${what}: the path may only contain letters, digits and - . _ /`)
+  }
+  if (!existsSync(join(cvDir, '..', 'public', path))) fail(where, `${what}: public${path} does not exist`)
+  // A class ejected before portraits existed would stop with
+  // `Undefined control sequence`, which does not say what to do.
+  const ejected = join(cvDir, CLASS_FILE)
+  if (existsSync(ejected) && !readFileSync(ejected, 'utf8').includes('\\vitaportrait')) {
+    fail(where, `portrait needs \\vitaportrait, which cv-tex/${CLASS_FILE} does not define: it was ejected `
+      + 'from an earlier vitakit. Run vitakit eject vitakit-cv.cls --force for the current class (your copy is kept as a backup), '
+      + 'or remove portrait')
+  }
+  return [`\\vitaportrait{../public${path}}`]
 }
 
 /** Rewrites `url = {/papers/x.pdf}` to an absolute URL below the site's address. */
@@ -150,7 +191,7 @@ async function buildDocument(
     templateDir: join(cvDir, 'templates'),
     outDir,
   })
-  await writeFile(join(outDir, 'profile.tex'), profilePreamble(content, document, lists))
+  await writeFile(join(outDir, 'profile.tex'), profilePreamble(content, document, lists, cvDir))
 
   // The document class lives in the package and is copied into the generated
   // directory -- which vitakit owns and .gitignore excludes -- rather than into

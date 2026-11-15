@@ -61,6 +61,13 @@ export const documentSchema = z.strictObject({
    * build (see `vitakit verify`), and the website renders CV data directly.
    */
   visibility: z.enum(['public', 'cv', 'private']).default('cv'),
+  /**
+   * A portrait beside the header: `true` for `avatar` from
+   * `content/profile.yml`, or a path below `public/` for another image, e.g.
+   * a print version. Off by default: whether a CV shows a photo depends on
+   * where it is sent, so each document decides.
+   */
+  portrait: z.union([z.boolean(), z.string().startsWith('/')]).default(false),
   sections: z.record(z.string(), sectionOptions).default({}),
 })
 

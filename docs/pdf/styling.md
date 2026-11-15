@@ -25,7 +25,7 @@ and heading is typeset, without touching anything vitakit writes:
 |---|---|
 | `\vitaentry{date}{title}{details}` | one entry: the date in the margin column, then title and details |
 | `\vitanote{text}` | a further line of an entry |
-| `\vitaheader` | name, position and contact line |
+| `\vitaheader` | name, position and contact line, and the [portrait](./index.md#portrait) if the document has one |
 | `\vitasectiontitle{section}{Heading}` | a section's heading in every document that includes this preamble |
 
 ## Publication lists
