@@ -27,6 +27,7 @@
 \RequirePackage{xcolor}
 \RequirePackage{titlesec}
 \RequirePackage{amsmath,amssymb}
+\RequirePackage{graphicx}
 \RequirePackage{hyperref}
 
 %% --- bibliography ---------------------------------------------------------
@@ -76,13 +77,38 @@
 \newcommand{\vitaname}[1]{\def\vita@name{#1}}
 \newcommand{\vitatagline}[1]{\def\vita@tagline{#1}}
 \newcommand{\vitacontact}[1]{\def\vita@contact{#1}}
-\vitaname{} \vitatagline{} \vitacontact{}
+%% `portrait` in the document's .yml: the image, relative to cv-tex/.
+\newcommand{\vitaportrait}[1]{\def\vita@portrait{#1}}
+\vitaname{} \vitatagline{} \vitacontact{} \vitaportrait{}
 
-\newcommand{\vitaheader}{%
-  \begingroup
+%% The portrait's height in \vitaheader. It is never wider than a quarter of
+%% the line. \setlength{\vitaportraitheight}{4cm} in preamble.tex changes it.
+\newlength{\vitaportraitheight}
+\setlength{\vitaportraitheight}{3cm}
+\newsavebox{\vita@portraitbox}
+
+\newcommand{\vita@headertext}{%
   \noindent{\LARGE\bfseries\vita@name}\par
   \ifx\vita@tagline\empty\else\vspace{0.2em}\noindent{\color{vitamuted}\vita@tagline}\par\fi
-  \ifx\vita@contact\empty\else\vspace{0.2em}\noindent{\small\vita@contact}\par\fi
+  \ifx\vita@contact\empty\else\vspace{0.2em}\noindent{\small\vita@contact}\par\fi}
+
+%% Name, tagline and contact line; with a portrait, those on the left and the
+%% portrait on the right, both aligned at the top.
+\newcommand{\vitaheader}{%
+  \begingroup
+  \ifx\vita@portrait\empty
+    \vita@headertext
+  \else
+    \sbox{\vita@portraitbox}{\includegraphics[height=\vitaportraitheight,
+      width=0.25\linewidth, keepaspectratio]{\vita@portrait}}%
+    \noindent
+    \begin{minipage}[t]{\dimexpr\linewidth-\wd\vita@portraitbox-1.5em\relax}
+      \vspace{0pt}\vita@headertext
+    \end{minipage}\hfill
+    \begin{minipage}[t]{\wd\vita@portraitbox}
+      \vspace{0pt}\usebox{\vita@portraitbox}
+    \end{minipage}\par
+  \fi
   \vspace{1em}\hrule\vspace{1.5em}
   \endgroup}
 

@@ -1,5 +1,7 @@
 # Selection for this document. Order lives in cv.tex.
 visibility: cv        # include entries marked public and cv, not private
+# portrait: /img/portrait.jpg   # a photo beside the header: JPG, PNG or PDF below public/;
+#                               # true uses avatar from content/profile.yml
 
 sections:
   talks:

@@ -4,7 +4,7 @@
  * distribution and pdftotext.
  */
 import { existsSync } from 'node:fs'
-import { cp, readdir, readFile, rm } from 'node:fs/promises'
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -108,6 +108,20 @@ describe.skipIf(!hasCommand('latexmk') || !hasCommand('pdftotext'))('latexmk', {
     const toc = await readFile(join(root, 'cv-tex/generated/cv/cv.toc'), 'utf8')
     expect([...toc.matchAll(/\\numberline \{\d+\}(.*)\}\{\d+\}\{section/g)].map(match => match[1]))
       .toEqual(['Inline employment \\& roles', 'Employment', 'YAML talks'])
+  })
+
+  it('places the portrait beside the header when the document asks for it', async () => {
+    const root = await scaffolded({
+      'content/profile.yml': 'name: Jane Doe\ntitle: Postdoc\navatar: /img/jane_doe.png\n',
+      'cv-tex/cv.yml': 'portrait: true\n',
+    })
+    // A 1×1 PNG.
+    await mkdir(join(root, 'public/img'), { recursive: true })
+    await writeFile(join(root, 'public/img/jane_doe.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64'))
+    const [pdf] = await buildCv({ rootDir: root })
+    expect(pdfText(pdf!)).toContain('Jane Doe Postdoc')
+    const images = execFileSync('pdfimages', ['-list', pdf!], { encoding: 'utf8' }).trim().split('\n').slice(2)
+    expect(images).toHaveLength(1)
   })
 
   it('builds a document named like a section without the generated section shadowing it', async () => {

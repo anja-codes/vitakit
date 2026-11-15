@@ -6,6 +6,15 @@ same version. To update a project, see [Updating vitakit](./cli/migrating.md):
 `vitakit migrate` makes most of the changes a new version needs. The same
 notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 
+## Unreleased
+
+- A PDF can show a portrait beside its header: `portrait: true` in
+  `cv-tex/<document>.yml` uses `avatar` from `content/profile.yml`, and a path
+  such as `portrait: /img/print.jpg` uses another image. Off by default, so
+  existing documents do not change. See [portrait](./pdf/index.md#portrait).
+  A class ejected before this version needs `vitakit eject vitakit-cv.cls --force`
+  first; the build says so.
+
 ## 0.4.0 — 2026-10-28
 
 ### Typed entries

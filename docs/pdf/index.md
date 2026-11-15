@@ -63,7 +63,7 @@ sections:
 | Macro | Meaning |
 |---|---|
 | `\vitadocument{name}` | which generated directory to read |
-| `\vitaheader` | name, tagline and contact line from `profile.yml` |
+| `\vitaheader` | name, tagline and contact line from `profile.yml`; the [portrait](#portrait) beside them, if any |
 | `\vitasection[Heading]{id}` | heading + the generated entries; heading argument optional, section omitted when the selection is empty |
 | `\vitapublications[Heading]{list}` | a [publication list](../content/publications.md#lists), with its heading; omitted when the list is empty |
 | `\vitainput{id}` | the generated file only, no heading or list (profile) |
@@ -88,6 +88,7 @@ work as usual.
 
 ```yaml
 visibility: public | cv | private     # default: cv
+portrait: true | /img/print.jpg       # default: none; see Portrait below
 sections:
   <id>:
     where: { kind: [invited, seminar] }  # field equals this value, or one of them;
@@ -120,6 +121,32 @@ remain yours to show or remove.
 A YAML `title` overrides the label from the shared preamble. Keep
 `\vitainput{profile}` after `\input{preamble.tex}`: the generated profile also
 contains the document's title overrides and empty-section markers.
+
+### Portrait
+
+A document shows a photo beside its header when its YAML asks for one:
+
+```yaml
+# cv-tex/cv.yml
+portrait: true                 # avatar from content/profile.yml
+portrait: /img/print.jpg       # or another image below public/
+```
+
+It is off by default, so a variant for a place that expects no photo simply
+leaves the line out. The image must be a JPG, PNG or PDF; LaTeX cannot include
+SVG, so an SVG `avatar` needs a path to another format here. A missing
+file, an unsupported format or `true` without an `avatar` is an error that
+names the document's YAML file.
+
+The portrait is 3 cm high and at most a quarter of the line wide. Change its
+height in `preamble.tex`:
+
+```tex
+\setlength{\vitaportraitheight}{4cm}
+```
+
+For another layout, [take over the class](./styling.md#taking-over-the-class)
+and change `\vitaheader` there.
 
 `vitakit explain <section>` shows, for each document, which entries it selects
 and which option removed the others; `vitakit explain cv` lists what a

@@ -133,6 +133,38 @@ describe('the generated files', () => {
     ].join('\n'))
   })
 
+  describe('portrait', () => {
+    const AVATAR = { 'content/profile.yml': 'name: Jane Doe\navatar: /img/jane.jpg\n', 'public/img/jane.jpg': 'jpg' }
+
+    it('is off unless the document asks for it, even with an avatar', async () => {
+      const root = await project({ ...BASE, ...AVATAR })
+      await build(root)
+      expect(await generated(root, 'profile')).not.toContain('\\vitaportrait')
+    })
+
+    it.each([
+      ['true, the avatar', 'portrait: true\n', '../public/img/jane.jpg'],
+      ['a path, another image', 'portrait: /img/print/jane_2.PNG\n', '../public/img/print/jane_2.PNG'],
+    ])('%s, relative to cv-tex/', async (_case, yml, path) => {
+      const root = await project({ ...BASE, ...AVATAR, 'public/img/print/jane_2.PNG': 'png', 'cv-tex/cv.yml': yml })
+      await build(root)
+      expect(await generated(root, 'profile')).toContain(`\\vitacontact{}\n\\vitaportrait{${path}}\n`)
+    })
+
+    it.each([
+      ['no avatar', { 'content/profile.yml': 'name: Jane Doe\n' }, 'portrait: true\n', 'portrait: true shows avatar from content/profile.yml, which has none'],
+      ['an SVG avatar', { 'content/profile.yml': 'name: Jane Doe\navatar: /img/jane.svg\n', 'public/img/jane.svg': '<svg/>' }, 'portrait: true\n', 'LaTeX cannot include a .svg file; use a JPG, PNG or PDF, e.g. portrait: /img/portrait.jpg'],
+      ['a missing file', AVATAR, 'portrait: /img/gone.jpg\n', 'portrait: /img/gone.jpg: public/img/gone.jpg does not exist'],
+      ['a space in the path', AVATAR, 'portrait: /img/my photo.jpg\n', 'the path may only contain letters, digits and - . _ /'],
+      ['a path outside public/', AVATAR, 'portrait: /../content/x.jpg\n', 'the path may only contain'],
+      ['a relative path', AVATAR, 'portrait: img/jane.jpg\n', 'cv-tex/cv.yml'],
+      ['an ejected class without portraits', { ...AVATAR, 'cv-tex/vitakit-cv.cls': '\\newcommand{\\vitaheader}{}\n' }, 'portrait: true\n', 'vitakit eject vitakit-cv.cls --force'],
+    ])('reports %s', async (_case, files, yml, message) => {
+      const root = await project({ ...BASE, ...files, 'cv-tex/cv.yml': yml })
+      await expect(build(root)).rejects.toThrow(message)
+    })
+  })
+
   it.each([
     ['nothing in the file', { 'content/talks.yml': '[]\n' }],
     ['a year filter', { 'cv-tex/cv.yml': 'sections:\n  talks: { since: 2030 }\n' }],
