@@ -6,7 +6,7 @@ same version. To update a project, see [Updating vitakit](./cli/migrating.md):
 `vitakit migrate` makes most of the changes a new version needs. The same
 notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
 
-## Unreleased
+## 0.5.0 — 2026-11-15
 
 - A PDF can show a portrait beside its header: `portrait: true` in
   `cv-tex/<document>.yml` uses `avatar` from `content/profile.yml`, and a path
@@ -14,6 +14,16 @@ notes are on [GitHub](https://github.com/anja-codes/vitakit/releases).
   existing documents do not change. See [portrait](./pdf/index.md#portrait).
   A class ejected before this version needs `vitakit eject vitakit-cv.cls --force`
   first; the build says so.
+- `create-vitakit`: new projects get a menu for small screens. Below the `lg`
+  breakpoint, the links in the header become a button that opens the menu
+  from the side. It closes on Escape, on a click beside it and after
+  navigating, and keeps focus inside while it is open. Existing projects keep
+  their `app/layouts/default.vue`; to get the menu, copy
+  [the new layout](https://github.com/anja-codes/vitakit/blob/main/create/template/app/layouts/default.vue)
+  into the project.
+- `create-vitakit`: the footer of new projects links to
+  [vitakit.anja.codes](https://vitakit.anja.codes/) instead of the GitHub
+  repository.
 
 ## 0.4.0 — 2026-10-28
 
